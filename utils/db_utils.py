@@ -9,7 +9,7 @@ from dbutils.pooled_db import PooledDB
 import pymysql
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
-full_path = os.path.join(base_dir, 'D:\jbt-data-collect-platform\config\config.ini')
+full_path = os.path.join(base_dir, '../config/config.ini')
 
 cf = ConfigParser()
 cf.read(full_path)
