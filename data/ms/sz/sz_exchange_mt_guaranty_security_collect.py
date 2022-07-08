@@ -28,8 +28,9 @@ excel_file_path = os.path.join(base_dir, 'sz_exchange_mt_guaranty_security.xlsx'
 
 exchange_mt_guaranty_security = '2'  # 融资融券可充抵保证金证券
 exchange_mt_underlying_security = '3'  # 融资融券标的证券
-exchange_mt_financing_underlying_security = '3.1'  # 融资融券融资标的证券
-exchange_mt_lending_underlying_security = '3.2'  # 融资融券融券标的证券
+exchange_mt_financing_underlying_security = '4'  # 融资融券融资标的证券
+exchange_mt_lending_underlying_security = '5'  # 融资融券融券标的证券
+exchange_mt_guaranty_and_underlying_security = '99'  # 融资融券可充抵保证金证券和融资融券标的证券
 
 data_source_szse = 'szse'
 data_source_sse = 'sse'
@@ -158,7 +159,7 @@ if __name__ == '__main__':
     # download_excel('2022-06-27')
     # excel_file = xlrd2.open_workbook(excel_file_path, encoding_override="utf-8")
     # handle_excel(excel_file, '2022-06-27', excel_file_path)
-    exchange_mt_guaranty_security_collect('20220613', '20220615')
+    exchange_mt_guaranty_security_collect()
     # fire.Fire()
 
     # python3 sz_exchange_mt_guaranty_security_collect.py - exchange_mt_guaranty_security_collect 20220613 20220615

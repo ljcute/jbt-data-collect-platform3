@@ -203,7 +203,7 @@ if __name__ == "__main__":
     # excel_file = xlrd2.open_workbook(excel_file_path, encoding_override="utf-8")
     # handle_excel(excel_file, '2022-04-26')
     # data_collect()
-    collect("2022-05-23")
+    collect()
     # collect_history('20220620', '20220621')
     # total_data_collect('2022-06-24')
 
