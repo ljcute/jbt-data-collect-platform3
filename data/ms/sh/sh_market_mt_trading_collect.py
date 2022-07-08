@@ -2,6 +2,11 @@
 # -*- coding: utf-8 -*-
 # author yanpan
 # 2022/6/23 13:33
+import os
+import sys
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(BASE_DIR)
 import json
 import traceback
 import datetime
@@ -176,6 +181,7 @@ if __name__ == "__main__":
     # handle_excel_total(excel_file, '2022-06-01', excel_file_path)
     # collect('20220606')
     # collect_history('20220621', '20220624')
-    fire.Fire()
+    # fire.Fire()
+    collect()
 
     # python3 sh_market_mt_trading_collect.py - collect_history 20220621 20220624

@@ -2,7 +2,11 @@
 # -*- coding: utf-8 -*-
 # author yanpan
 # 2022/6/27 09:33
+import os
+import sys
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(BASE_DIR)
 import json
 import traceback
 import datetime
@@ -156,8 +160,8 @@ def exchange_mt_underlying_security_collect(query_date=None, query_end_data=None
 
 
 if __name__ == '__main__':
-    # exchange_mt_underlying_security_collect('20220615')
+    exchange_mt_underlying_security_collect('20220615')
 
-    fire.Fire()
+    # fire.Fire()
 
     # python3 sz_exchange_mt_underlying_security_collect.py - exchange_mt_underlying_security_collect 20220615

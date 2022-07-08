@@ -3,6 +3,12 @@
 # author yanpan
 # 2022/06/28 15:16
 # 申万宏源
+
+import os
+import sys
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(BASE_DIR)
 import json
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -200,10 +206,10 @@ def resolve_single_guaranty_page(html_content, all_data_list):
 
 
 if __name__ == '__main__':
-    # target_collect()
-    # guaranty_collect()
+    target_collect()
+    guaranty_collect()
 
-    fire.Fire()
+    # fire.Fire()
 
     # python3 sw_securities_collect.py - target_collect
     # python3 sw_securities_collect.py - guaranty_collect

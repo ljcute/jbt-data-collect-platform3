@@ -3,6 +3,12 @@
 # author yanpan
 # 2022/07/06 15:16
 # 光大证券
+
+import os
+import sys
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(BASE_DIR)
 import json
 import fire
 import pandas as pd
@@ -178,9 +184,9 @@ def resolve_every_page_bzj(this_page_content, original_data_list):
 
 
 if __name__ == '__main__':
-    # target_collect()
-    # guaranty_collect()
-    fire.Fire()
+    target_collect()
+    guaranty_collect()
+    # fire.Fire()
 
     # python3 gd_securities_collect.py - target_collect
     # python3 gd_securities_collect.py - guaranty_collect

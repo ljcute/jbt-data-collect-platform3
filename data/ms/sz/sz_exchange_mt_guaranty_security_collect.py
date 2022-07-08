@@ -3,6 +3,11 @@
 # author yanpan
 # 2022/6/27 09:33
 
+import os
+import sys
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(BASE_DIR)
 import json
 import traceback
 import pandas as pd
@@ -150,7 +155,7 @@ if __name__ == '__main__':
     # download_excel('2022-06-27')
     # excel_file = xlrd2.open_workbook(excel_file_path, encoding_override="utf-8")
     # handle_excel(excel_file, '2022-06-27', excel_file_path)
-    # exchange_mt_guaranty_security_collect('20220613', '20220615')
-    fire.Fire()
+    exchange_mt_guaranty_security_collect('20220613', '20220615')
+    # fire.Fire()
 
     # python3 sz_exchange_mt_guaranty_security_collect.py - exchange_mt_guaranty_security_collect 20220613 20220615

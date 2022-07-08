@@ -3,14 +3,21 @@
 # author yanpan
 # 2022/06/30 13:19
 # 财通证券
+import os
+import sys
 import json
 import time
 import pandas as pd
+import fire
+import datetime
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(BASE_DIR)
+
 from constants import *
 from data.dao import sh_data_deal
 from utils.logs_utils import logger
-import fire
-import datetime
+
 
 # 定义常量
 broker_id = 10011
@@ -155,8 +162,8 @@ def guaranty_collect():
 
 
 if __name__ == '__main__':
-    # target_collect()
-    # guaranty_collect()
-    fire.Fire()
+    target_collect()
+    guaranty_collect()
+    # fire.Fire()
     # python3 ct_securities_collect.py - target_collect
     # python3 ct_securities_collect.py - guaranty_collect

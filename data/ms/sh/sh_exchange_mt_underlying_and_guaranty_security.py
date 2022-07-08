@@ -2,6 +2,12 @@
 # -*- coding: utf-8 -*-
 # author yanpan
 # 2022/6/27 09:33
+import os
+import sys
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(BASE_DIR)
+
 import pandas as pd
 import json
 import time
@@ -130,7 +136,7 @@ def remove_file(file_path):
 
 
 if __name__ == '__main__':
-    # get_data()
-    fire.Fire()
+    get_data()
+    # fire.Fire()
 
     # python3 sh_exchange_mt_underlying_and_guaranty_security.py - get_data

@@ -2,6 +2,12 @@
 # -*- coding: utf-8 -*-
 # author yanpan
 # 2022/6/24 13:33
+
+import os
+import sys
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(BASE_DIR)
 import json
 import traceback
 import datetime
@@ -196,10 +202,10 @@ if __name__ == "__main__":
     # excel_file = xlrd2.open_workbook(excel_file_path, encoding_override="utf-8")
     # handle_excel(excel_file, '2022-04-26')
     # data_collect()
-    # collect("2022-05-23")
+    collect("2022-05-23")
     # collect_history('20220620', '20220621')
     # total_data_collect('2022-06-24')
 
-    fire.Fire()
+    # fire.Fire()
 
     # python3 sz_market_mt_trading_collect.py - collect_history 20220620 20220621

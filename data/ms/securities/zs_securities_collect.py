@@ -3,7 +3,11 @@
 # author yanpan
 # 2022/06/30 10:19
 # 招商证券 --interface
+import os
+import sys
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(BASE_DIR)
 import json
 import time
 import pandas as pd
@@ -120,9 +124,9 @@ def random_page_size(mu=28888, sigma=78888):
 
 
 if __name__ == '__main__':
-    # rz_target_collect()
-    # guaranty_collect()
-    fire.Fire()
+    rz_target_collect()
+    guaranty_collect()
+    # fire.Fire()
 
     # python3 zs_securities_collect.py - rz_target_collect
     # python3 zs_securities_collect.py - guaranty_collect

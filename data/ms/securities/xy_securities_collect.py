@@ -3,6 +3,13 @@
 # author yanpan
 # 2022/06/30 13:19
 # 兴业证券
+
+import os
+import sys
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(BASE_DIR)
+
 import os
 import json
 import time
@@ -170,10 +177,10 @@ def remove_file(file_path):
 
 
 if __name__ == '__main__':
-    # target_collect_task()
-    # guaranty_collect_task()
+    target_collect_task()
+    guaranty_collect_task()
 
-    fire.Fire()
+    # fire.Fire()
 
     # python3 xy_securities_collect.py - target_collect_task
     # python3 xy_securities_collect.py - guaranty_collect_task

@@ -3,6 +3,11 @@
 # author yanpan
 # 2022/07/01 13:19
 # 长城证券
+import os
+import sys
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(BASE_DIR)
 import json
 import time
 import pandas as pd
@@ -201,10 +206,10 @@ def get_timestamp():
 
 
 if __name__ == '__main__':
-    # rz_target_collect()
-    # rq_target_collect()
-    # guaranty_collect()
-    fire.Fire()
+    rz_target_collect()
+    rq_target_collect()
+    guaranty_collect()
+    # fire.Fire()
 
     # python3 cc_securities_collect.py - rz_target_collect
     # python3 cc_securities_collect.py - rq_target_collect

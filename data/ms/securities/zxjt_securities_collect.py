@@ -3,6 +3,13 @@
 # author yanpan
 # 2022/06/29 16:47
 # 中信建投
+
+import os
+import sys
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(BASE_DIR)
+
 import json
 import os
 import time
@@ -141,7 +148,7 @@ def remove_file(file_path):
 
 
 if __name__ == '__main__':
-    # all_collect()
-    fire.Fire()
+    all_collect()
+    # fire.Fire()
 
     # python3 zxjt_securities_collect.py - all_collect

@@ -3,7 +3,11 @@
 # author yanpan
 # 2022/06/30 13:19
 # 长江证券
+import os
+import sys
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(BASE_DIR)
 import json
 import time
 import pandas as pd
@@ -119,9 +123,9 @@ def guaranty_collect():
 
 
 if __name__ == '__main__':
-    # target_collect()
-    # guaranty_collect()
-    fire.Fire()
+    target_collect()
+    guaranty_collect()
+    # fire.Fire()
 
     # python3 cj_securities_collect.py - target_collect
     # python3 cj_securities_collect.py - guaranty_collect

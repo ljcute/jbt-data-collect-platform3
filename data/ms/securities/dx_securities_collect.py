@@ -3,6 +3,13 @@
 # author yanpan
 # 2022/07/01 15:19
 # 东兴证券
+
+import os
+import sys
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(BASE_DIR)
+
 import datetime
 import fire
 import json
@@ -180,10 +187,10 @@ def resolve_single_target_page_ohter(html_content, original_data_list):
 
 
 if __name__ == '__main__':
-    # rzrq_target_collect()
-    # guaranty_collect()
+    rzrq_target_collect()
+    guaranty_collect()
 
-    fire.Fire()
+    # fire.Fire()
 
     # python3 dx_securities_collect.py - rzrq_target_collect
     # python3 dx_securities_collect.py - guaranty_collect
