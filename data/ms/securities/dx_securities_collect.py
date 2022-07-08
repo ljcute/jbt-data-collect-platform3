@@ -53,7 +53,6 @@ def rzrq_target_collect():
         li_elements = driver.find_elements(By.XPATH, "//span[contains(@class, 'all')]/em")
         if len(li_elements) > 0:
             total_page = li_elements[len(li_elements) - 1].text
-        print(total_page)
 
         # 当前网页内容(第1页)
         html_content = str(driver.page_source)
@@ -75,11 +74,11 @@ def rzrq_target_collect():
             logger.info("东兴标的券第{}页".format(current_page))
             resolve_single_target_page(html_content, original_data_list)
 
+        logger.info("broker_id={}采集东兴证券融资融券标的证券数据结束".format(broker_id))
         end_dt = datetime.datetime.now()
         # 计算采集数据所需时间used_time
         used_time = (end_dt - start_dt).seconds
         original_data_df = pd.DataFrame(data=original_data_list, columns=target_title)
-        print(original_data_df)
         if original_data_df is not None:
             df_result = {
                 'columns': target_title,
@@ -88,6 +87,7 @@ def rzrq_target_collect():
             sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
                                                , exchange_mt_underlying_security, data_source, start_dt,
                                                end_dt, used_time)
+            logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
 
     except Exception as es:
         logger.error(es)
@@ -132,7 +132,6 @@ def guaranty_collect():
         li_elements = driver.find_elements(By.XPATH, "//span[contains(@class, 'all')]/em")
         if len(li_elements) > 0:
             total_page = li_elements[len(li_elements) - 1].text
-        print(total_page)
 
         # 当前网页内容(第1页)
         html_content = str(driver.page_source)
@@ -151,11 +150,11 @@ def guaranty_collect():
             logger.info("东兴可充抵保证金券第{}页".format(current_page))
             resolve_single_target_page_ohter(html_content, original_data_list)
 
+        logger.info("broker_id={}采集东兴证券可充抵保证金担保券数据结束".format(broker_id))
         end_dt = datetime.datetime.now()
         # 计算采集数据所需时间used_time
         used_time = (end_dt - start_dt).seconds
         original_data_df = pd.DataFrame(data=original_data_list, columns=target_title)
-        print(original_data_df)
         if original_data_df is not None:
             df_result = {
                 'columns': target_title,
@@ -164,6 +163,7 @@ def guaranty_collect():
             sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
                                                , exchange_mt_guaranty_security, data_source, start_dt,
                                                end_dt, used_time)
+            logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
 
     except Exception as es:
         logger.error(es)
@@ -187,8 +187,11 @@ def resolve_single_target_page_ohter(html_content, original_data_list):
 
 
 if __name__ == '__main__':
-    rzrq_target_collect()
-    guaranty_collect()
+    try:
+        rzrq_target_collect()
+        guaranty_collect()
+    except Exception as es:
+        logger.error(es)
 
     # fire.Fire()
 

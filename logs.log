@@ -1,0 +1,13 @@
+2022-07-08 15:26:49,823 - D:\jbt-data-collect-platform\data\ms\securities\cj_securities_collect.py[line:34] - INFO: broker_id=10005开始采集长江证券标的证券及保证金比例数据
+2022-07-08 15:26:50,556 - D:\jbt-data-collect-platform\data\ms\securities\cj_securities_collect.py[line:58] - INFO: broker_id=10005采集长江证券标的证券及保证金比例数据结束
+2022-07-08 15:26:50,861 - D:\jbt-data-collect-platform\data\ms\securities\cj_securities_collect.py[line:72] - INFO: broker_id=10005数据采集完成，已成功入库！
+2022-07-08 15:26:50,864 - D:\jbt-data-collect-platform\data\ms\securities\cj_securities_collect.py[line:84] - INFO: broker_id=10005开始采集长江证券可充抵保证金证券及折算率数据
+2022-07-08 15:26:52,700 - D:\jbt-data-collect-platform\data\ms\securities\cj_securities_collect.py[line:104] - INFO: broker_id=10005采集长江证券可充抵保证金证券及折算率数据采集结束
+2022-07-08 15:26:53,090 - D:\jbt-data-collect-platform\data\ms\securities\cj_securities_collect.py[line:118] - INFO: broker_id=10005数据采集完成，已成功入库！
+2022-07-08 15:27:10,115 - D:\jbt-data-collect-platform\data\ms\securities\cj_securities_collect.py[line:34] - INFO: broker_id=10005开始采集长江证券标的证券及保证金比例数据
+2022-07-08 15:27:10,641 - D:\jbt-data-collect-platform\data\ms\securities\cj_securities_collect.py[line:58] - INFO: broker_id=10005采集长江证券标的证券及保证金比例数据结束
+2022-07-08 15:27:10,641 - D:\jbt-data-collect-platform\data\ms\securities\cj_securities_collect.py[line:78] - ERROR: 4 columns passed, passed data had 5 columns
+2022-07-08 15:27:10,642 - D:\jbt-data-collect-platform\data\ms\securities\cj_securities_collect.py[line:84] - INFO: broker_id=10005开始采集长江证券可充抵保证金证券及折算率数据
+2022-07-08 15:27:12,323 - D:\jbt-data-collect-platform\data\ms\securities\cj_securities_collect.py[line:104] - INFO: broker_id=10005采集长江证券可充抵保证金证券及折算率数据采集结束
+2022-07-08 15:27:12,680 - D:\jbt-data-collect-platform\data\ms\securities\cj_securities_collect.py[line:118] - INFO: broker_id=10005数据采集完成，已成功入库！
+2022-07-08 15:27:30,856 - D:\jbt-data-collect-platform\data\ms\sh\sh_exchange_mt_underlying_and_guaranty_security.py[line:63] - INFO: 上交所、担保券开始采集

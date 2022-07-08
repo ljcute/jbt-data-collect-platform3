@@ -2,22 +2,34 @@
 # -*- coding: utf-8 -*-
 # author yanpan
 # 2022/06/23 13:42
-
+from logging import handlers
 import logging
+import os
 
 
-def get_console_logger(log_level=logging.INFO):
-    console_handler = logging.StreamHandler()
+def get_log_info():
+    level_relations = {
+        'debug': logging.DEBUG,
+        'info': logging.INFO,
+        'warning': logging.WARNING,
+        'error': logging.ERROR,
+        'crit': logging.CRITICAL
+    }
 
-    formatter = logging.Formatter('%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s')
-    console_handler.setFormatter(formatter)
+    filename = '../../../logs.log'
+    logger = logging.getLogger(filename)
+    fmt = '%(asctime)s - %(pathname)s[line:%(lineno)d] - %(levelname)s: %(message)s'
+    format_str = logging.Formatter(fmt)
+    logger.setLevel(level_relations.get('info'))
+    # handler = logging.FileHandler(log_path)
+    sh = logging.StreamHandler()
+    sh.setFormatter(format_str)
+    th = handlers.TimedRotatingFileHandler(filename=filename, when='D', backupCount=3, encoding='utf-8')
+    th.setFormatter(format_str)
+    logger.addHandler(sh)
+    logger.addHandler(th)
+    # logger.addHandler(handler)
+    return logger
 
-    logger_ = logging.getLogger()
-    logger_.addHandler(console_handler)
 
-    logger_.setLevel(log_level)
-    return logger_
-
-
-# 日志
-logger = get_console_logger()
+logger = get_log_info()

@@ -18,7 +18,6 @@ from constants import *
 from data.dao import sh_data_deal
 from utils.logs_utils import logger
 
-
 # 定义常量
 broker_id = 10011
 
@@ -68,7 +67,6 @@ def target_collect():
             text = json.loads(response.text)
             total = text['data']['total']
             data = text['data']['rows']
-            print(data)
             if data:
                 for i in data:
                     sec_code = i['STOCK_CODE']
@@ -77,11 +75,11 @@ def target_collect():
                     rq_rate = i['SLO_RATIO']  # 融券保证金比例
                     data_list.append((sec_code, sec_name, rz_rate, rq_rate))
 
+                logger.info("broker_id={}采集财通证券融资融券标的证券数据结束".format(broker_id))
                 end_dt = datetime.datetime.now()
                 # 计算采集数据所需时间used_time
                 used_time = (end_dt - start_dt).seconds
                 data_df = pd.DataFrame(data_list, columns=data_title)
-                print(data_df)
                 if data_df is not None:
                     df_result = {
                         'columns': data_title,
@@ -91,6 +89,7 @@ def target_collect():
                         sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
                                                            , exchange_mt_underlying_security, data_source, start_dt,
                                                            end_dt, used_time)
+                        logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
 
     except Exception as es:
         logger.error(es)
@@ -133,7 +132,6 @@ def guaranty_collect():
             text = json.loads(response.text)
             total = text['data']['total']
             data = text['data']['rows']
-            print(data)
             if data:
                 for i in data:
                     sec_code = i['STOCK_CODE']
@@ -142,11 +140,11 @@ def guaranty_collect():
                     market = i['MARKET']  # 融券保证金比例
                     data_list.append((sec_code, sec_name, discount_rate, market))
 
+                logger.info("broker_id={}采集财通证券可充抵保证金证券数据结束".format(broker_id))
                 end_dt = datetime.datetime.now()
                 # 计算采集数据所需时间used_time
                 used_time = (end_dt - start_dt).seconds
                 data_df = pd.DataFrame(data_list, columns=data_title)
-                print(data_df)
                 if data_df is not None:
                     df_result = {
                         'columns': data_title,
@@ -156,6 +154,7 @@ def guaranty_collect():
                         sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
                                                            , exchange_mt_guaranty_security, data_source, start_dt,
                                                            end_dt, used_time)
+                        logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
 
     except Exception as es:
         logger.error(es)
@@ -164,6 +163,7 @@ def guaranty_collect():
 if __name__ == '__main__':
     target_collect()
     guaranty_collect()
+
     # fire.Fire()
     # python3 ct_securities_collect.py - target_collect
     # python3 ct_securities_collect.py - guaranty_collect

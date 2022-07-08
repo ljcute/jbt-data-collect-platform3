@@ -39,7 +39,7 @@ all_file_path = './' + str(broker_id) + 'all.xls'
 
 # 从html拿到标的和担保的excel路径,下载excel再解析之
 def all_collect():
-    logger.info("broker_id={}开始采集数据".format(broker_id))
+    logger.info("broker_id={}开始采集中信建投数据".format(broker_id))
     url = "https://www.csc108.com/kyrz/xxggIndex.jspx"
     # 用 urllib.request.urlopen 方式打开一个URL，服务器端会收到对于该页面的访问请求。由于服务器缺失信息，包括浏览器,操作系统,硬件平台等，将视为一种非正常的访问。
     # 在代码中加入UserAgent信息即可。
@@ -73,7 +73,7 @@ def all_collect():
                     excel_file = xlrd2.open_workbook(all_file_path)
                     do_all_collect(excel_file, all_file_path)
     except Exception as es:
-        print(es)
+        logger.error(es)
     finally:
         remove_file(all_file_path)
 
@@ -118,6 +118,7 @@ def do_all_collect(excel_file, all_file_path):
                 (no, sec_code, market, sec_name, db_rate_str, rz_rate_str, rq_rate_str, rz_valid_status,
                  rq_valid_status))
 
+        logger.info("broker_id={}采集中信建投数据结束".format(broker_id))
         end_dt = datetime.datetime.now()
         # 计算采集数据所需时间used_time
         used_time = (end_dt - start_dt).seconds
@@ -125,7 +126,6 @@ def do_all_collect(excel_file, all_file_path):
                                columns=['no', 'sec_code', 'market', 'sec_name', 'db_rate_str', 'rz_rate_str',
                                         'rq_rate_str',
                                         'rz_valid_status', 'rq_valid_status'])
-        print(data_df)
         if data_df is not None:
             df_result = {
                 'columns': ['no', 'sec_code', 'market', 'sec_name', 'db_rate_str', 'rz_rate_str', 'rq_rate_str',
@@ -135,6 +135,7 @@ def do_all_collect(excel_file, all_file_path):
             sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
                                              , exchange_mt_guaranty_and_underlying_security, data_source, start_dt,
                                                end_dt, used_time, all_file_path)
+            logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
     except Exception as es:
         logger.error(es)
 
@@ -149,6 +150,7 @@ def remove_file(file_path):
 
 if __name__ == '__main__':
     all_collect()
+
     # fire.Fire()
 
     # python3 zxjt_securities_collect.py - all_collect

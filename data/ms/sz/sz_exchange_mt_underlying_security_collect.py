@@ -33,6 +33,7 @@ exchange_mt_lending_underlying_security = '3.2'  # 融资融券融券标的证�
 
 data_source_szse = 'szse'
 data_source_sse = 'sse'
+broker_id = 1000094
 
 regrex_pattern = re.compile(r"[(](.*?)[)]", re.S)  # 最小匹配,提取括号内容
 regrex_pattern2 = re.compile(r"[(](.*)[)]", re.S)  # 贪婪匹配
@@ -54,11 +55,12 @@ def download_excel(query_date=None):
     }
 
     try:
+        logger.info("broker_id={}开始采集深交所数据".format(broker_id))
         response = requests.get(url=download_url, proxies=get_proxies(), headers=headers, params=params, timeout=20)
         with open(excel_file_path, 'wb') as file:
             file.write(response.content)  # 写excel到当前目录
     except Exception as es:
-        print(es)
+        logger.error(es)
 
 
 def handle_excel(excel_file, date, excel_file_path):
@@ -84,12 +86,12 @@ def handle_excel(excel_file, date, excel_file_path):
                 zdfxz = str(row[7].value)  # 涨跌幅限制
                 data_list.append((zqdm, zqjc, rzbd, rqbd, drkrz, drkrq, rqmcjgxz, zdfxz))
 
+            logger.info("broker_id={}采集深交所数据结束".format(broker_id))
             end_dt = datetime.datetime.now()
             # 计算采集数据所需时间used_time
             used_time = (end_dt - start_dt).seconds
             data_df = pd.DataFrame(data_list,
                                    columns=['zqdm', 'zqjc', 'rzbd', 'rqbd', 'drkrz', 'drkrq', 'rqmcjgxz', 'zdfxz'])
-            print(data_df)
             if data_df is not None:
                 if data_df.iloc[:, 0].size == total_row - 1:
                     df_result = {
@@ -100,6 +102,8 @@ def handle_excel(excel_file, date, excel_file_path):
                                                        , exchange_mt_underlying_security, data_source_szse, start_dt,
                                                        end_dt, used_time,
                                                        excel_file_path)
+                    logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+
         else:
             logger.info("深交所该日无数据:txt_date:{}".format(date))
 

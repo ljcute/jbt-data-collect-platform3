@@ -36,6 +36,7 @@ def target_collect():
     options.add_argument("--headless")
     driver = webdriver.Firefox(options=options)
     driver.implicitly_wait(10)
+    logger.info("broker_id={}开始采集光大证券标的证券数据".format(broker_id))
     try:
         # 标的证券
         start_dt = datetime.datetime.now()
@@ -53,7 +54,6 @@ def target_collect():
         li_elements = driver.find_elements(By.XPATH, '//*[@id="pageCount"]')
         if len(li_elements) > 0:
             total_page = ((li_elements[len(li_elements) - 2].text).split(' ')[1])[0:3]
-            print(total_page)
 
         for_count = int(total_page) + 1  # range不包括后者
         for current_page in range(2, for_count):
@@ -70,11 +70,11 @@ def target_collect():
             logger.info("光大标的券第{}页".format(current_page))
             resolve_every_page_bd(this_page_content, original_data_list)
 
+        logger.info("broker_id={}采集光大证券标的证券数据结束".format(broker_id))
         end_dt = datetime.datetime.now()
         # 计算采集数据所需时间used_time
         used_time = (end_dt - start_dt).seconds
         data_df = pd.DataFrame(data=original_data_list, columns=original_data_title)
-        print(data_df)
         if data_df is not None:
             df_result = {
                 'columns': original_data_title,
@@ -113,6 +113,7 @@ def guaranty_collect():
     options.add_argument("--headless")
     driver = webdriver.Firefox(options=options)
     driver.implicitly_wait(10)
+    logger.info("broker_id={}开始采集光大证券可充抵保证金证券数据".format(broker_id))
     try:
         # 可充抵保证金证券
         start_dt = datetime.datetime.now()
@@ -130,7 +131,6 @@ def guaranty_collect():
         li_elements = driver.find_elements(By.XPATH, '//*[@id="pageCount"]')
         if len(li_elements) > 0:
             total_page = ((li_elements[len(li_elements) - 1].text).split(' ')[1])[0:3]
-            print(total_page)
 
         for_count = int(total_page) + 1  # range不包括后者
         for current_page in range(2, for_count):
@@ -147,11 +147,11 @@ def guaranty_collect():
             logger.info("光大可充抵保证金券第{}页".format(current_page))
             resolve_every_page_bzj(this_page_content, original_data_list)
 
+        logger.info("broker_id={}采集光大证券可充抵保证金证券数据结束".format(broker_id))
         end_dt = datetime.datetime.now()
         # 计算采集数据所需时间used_time
         used_time = (end_dt - start_dt).seconds
         data_df = pd.DataFrame(data=original_data_list, columns=original_data_title)
-        print(data_df)
         if data_df is not None:
             df_result = {
                 'columns': original_data_title,
@@ -185,7 +185,8 @@ def resolve_every_page_bzj(this_page_content, original_data_list):
 
 if __name__ == '__main__':
     target_collect()
-    guaranty_collect()
+    # guaranty_collect()
+
     # fire.Fire()
 
     # python3 gd_securities_collect.py - target_collect

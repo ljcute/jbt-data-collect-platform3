@@ -86,7 +86,6 @@ def get_data():
     except Exception as es:
         logger.error("采集上交所全量两融券异常,{}".format(es))
         traceback.format_tb()
-        print(es)
     finally:
         remove_file(sh_guaranty_file_path)
         remove_file(sh_target_rz_file_path)
@@ -108,11 +107,11 @@ def handle_excel(excel_file, date, excel_file_path, type, soure):
             sec_name = str(row[2].value)
             data_list.append((biz_dt, sec_code, sec_name))
 
+        logger.info("broker_id={}采集上交所数据结束".format(broker_id))
         end_dt = datetime.datetime.now()
         # 计算采集数据所需时间used_time
         used_time = (end_dt - start_dt).seconds
         data_df = pd.DataFrame(data_list, columns=['biz_dt', 'sec_code', 'sec_name'])
-        print(data_df)
         if data_df is not None:
             if data_df.iloc[:, 0].size == total_row - 1:
                 df_result = {
@@ -122,6 +121,7 @@ def handle_excel(excel_file, date, excel_file_path, type, soure):
                 sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), date
                                                    , type, soure, start_dt,
                                                    end_dt, used_time, excel_file_path)
+                logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
 
     except Exception as es:
         logger.error(es)

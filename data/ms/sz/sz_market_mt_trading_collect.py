@@ -30,7 +30,7 @@ data_type_market_mt_trading_items = '1'  # 市场融资融券交易明细
 
 data_source_szse = 'szse'
 data_source_sse = 'sse'
-
+broker_id = 1000092
 
 def total_data_collect(query_date=None):
     url = 'http://www.szse.cn/api/report/ShowReport/data'
@@ -47,6 +47,7 @@ def total_data_collect(query_date=None):
     }
 
     try:
+        logger.info("broker_id={}开始采集深交所数据".format(broker_id))
         data_list = []
         response = requests.get(url=url, proxies=get_proxies(), headers=headers, params=params, timeout=10)
         if response.status_code == 200:
@@ -66,11 +67,11 @@ def total_data_collect(query_date=None):
             jrrjyl = title_data['jrrjyl']  # 融券余量(亿股/亿份)
             data_list.append((jrrzye, jrrjye, jrrzrjye, jrrzmr, jrrjmc, jrrjyl))
 
+            logger.info("broker_id={}采集深交所数据结束".format(broker_id))
             end_dt = datetime.datetime.now()
             # 计算采集数据所需时间used_time
             used_time = (end_dt - start_dt).seconds
             data_df = pd.DataFrame(data_list, columns=['jrrzye', 'jrrjye', 'jrrzrjye', 'jrrzmr', 'jrrjmc', 'jrrjyl'])
-            print(data_df)
             if data_df is not None:
                 if data_df.iloc[:, 0].size == len(data_list) and (str(subname).replace("-", "")) == str(query_date):
                     df_result = {
@@ -80,6 +81,7 @@ def total_data_collect(query_date=None):
                     sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), subname
                                                        , data_type_market_mt_trading_amount, data_source_szse, start_dt,
                                                        end_dt, used_time)
+                    logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
 
     except Exception as es:
         logger.error(es)
@@ -147,7 +149,6 @@ def handle_excel(excel_file, date, excel_file_path):
         used_time = (end_dt - start_dt).seconds
         data_df = pd.DataFrame(data_list,
                                columns=['zqdm', 'zqjc', 'jrrzye', 'jrrzmr', 'jrrjyl', 'jrrjye', 'jrrjmc', 'jrrzrjye'])
-        print(data_df)
         if data_df is not None:
             if data_df.iloc[:, 0].size == total_row - 1:
                 df_result = {

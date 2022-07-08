@@ -43,6 +43,7 @@ def rz_target_collect():
     options.add_argument("--headless")
     driver = webdriver.Firefox(options=options)
     driver.implicitly_wait(5)
+    logger.info("broker_id={}开始采集中国银河证券融资标的证券相关数据".format(broker_id))
     try:
         # 融资标的证券
         start_dt = datetime.datetime.now()
@@ -54,10 +55,10 @@ def rz_target_collect():
         html_content = str(driver.page_source)
         resolve_page_content_rz(html_content, original_data_list)
         data_df = pd.DataFrame(data=original_data_list, columns=original_data_title)
+        logger.info("broker_id={}采集中国银河证券融资标的证券相关数据结束".format(broker_id))
         end_dt = datetime.datetime.now()
         # 计算采集数据所需时间used_time
         used_time = (end_dt - start_dt).seconds
-        print(data_df)
         if data_df is not None:
             df_result = {
                 'columns': original_data_title,
@@ -66,7 +67,7 @@ def rz_target_collect():
             sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
                                                , exchange_mt_financing_underlying_security, data_source, start_dt,
                                                end_dt, used_time)
-            logger.info("broker_id={}完成数据入库".format(broker_id))
+            logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
 
     except Exception as es:
         logger.error(es)
@@ -94,6 +95,7 @@ def rq_target_collect():
     options.add_argument("--headless")
     driver = webdriver.Firefox(options=options)
     driver.implicitly_wait(5)
+    logger.info("broker_id={}开始采集中国银河证券融券标的证券相关数据".format(broker_id))
     try:
         # 融券标的证券
         start_dt = datetime.datetime.now()
@@ -105,10 +107,11 @@ def rq_target_collect():
         html_content = str(driver.page_source)
         resolve_page_content_rq(html_content, original_data_list)
         data_df = pd.DataFrame(data=original_data_list, columns=original_data_title)
+
+        logger.info("broker_id={}采集中国银河证券融券标的证券相关数据结束".format(broker_id))
         end_dt = datetime.datetime.now()
         # 计算采集数据所需时间used_time
         used_time = (end_dt - start_dt).seconds
-        print(data_df)
         if data_df is not None:
             df_result = {
                 'columns': original_data_title,
@@ -117,7 +120,7 @@ def rq_target_collect():
             sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
                                                , exchange_mt_lending_underlying_security, data_source, start_dt,
                                                end_dt, used_time)
-            logger.info("broker_id={}完成数据入库".format(broker_id))
+            logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
 
     except Exception as es:
         logger.error(es)
@@ -145,6 +148,7 @@ def guaranty_collect():
     options.add_argument("--headless")
     driver = webdriver.Firefox(options=options)
     driver.implicitly_wait(5)
+    logger.info("broker_id={}开始采集中国银河证券可充抵保证金证券相关数据".format(broker_id))
     try:
         # 可充抵保证金证券
         start_dt = datetime.datetime.now()
@@ -156,10 +160,10 @@ def guaranty_collect():
         html_content = str(driver.page_source)
         resolve_page_content_bzj(html_content, original_data_list)
         data_df = pd.DataFrame(data=original_data_list, columns=original_data_title)
+        logger.info("broker_id={}采集中国银河证券可充抵保证金证券相关数据结束".format(broker_id))
         end_dt = datetime.datetime.now()
         # 计算采集数据所需时间used_time
         used_time = (end_dt - start_dt).seconds
-        print(data_df)
         if data_df is not None:
             df_result = {
                 'columns': original_data_title,
@@ -168,7 +172,7 @@ def guaranty_collect():
             sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
                                                , exchange_mt_guaranty_security, data_source, start_dt,
                                                end_dt, used_time)
-            logger.info("broker_id={}完成数据入库".format(broker_id))
+            logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
 
     except Exception as es:
         logger.error(es)

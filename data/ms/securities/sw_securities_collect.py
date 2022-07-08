@@ -30,7 +30,7 @@ data_source = 'sw_securities'
 
 
 def target_collect():
-    logger.info("broker_id={}开始采集标的券".format(broker_id))
+    logger.info("broker_id={}开始采集申万宏源标的券数据".format(broker_id))
     # 创建chrome参数对象
     option = webdriver.ChromeOptions()
     option.add_argument("--headless")
@@ -48,7 +48,6 @@ def target_collect():
         span_element = driver.find_elements(By.XPATH,
                                             "//div[contains(@class, 'ant-form-item-control-input-content')]/span")
         sc_total = int(span_element[0].text)
-        print(sc_total)
 
         # 当前网页内容(第1页)
         html_content = str(driver.page_source)
@@ -76,11 +75,11 @@ def target_collect():
             logger.info("申万标的券第{}页".format(current_page))
             resolve_single_target_page(html_content, original_data_list)
 
+        logger.info("broker_id={}采集申万宏源标的券数据结束".format(broker_id))
         end_dt = datetime.datetime.now()
         # 计算采集数据所需时间used_time
         used_time = (end_dt - start_dt).seconds
         original_data_df = pd.DataFrame(data=original_data_list, columns=target_title)
-        print(original_data_df)
         if original_data_df is not None:
             if original_data_df.iloc[:, 0].size == sc_total:
                 df_result = {
@@ -90,6 +89,7 @@ def target_collect():
                 sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), local_date
                                                    , exchange_mt_financing_underlying_security, data_source, start_dt,
                                                    end_dt, used_time)
+                logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
             else:
                 logger.info("采集数据总数有误，请检查！")
 
@@ -115,7 +115,7 @@ def resolve_single_target_page(html_content, original_data_list):
 
 
 def guaranty_collect():
-    logger.info("broker_id={}开始采集担保券".format(broker_id))
+    logger.info("broker_id={}开始采集申万宏源担保券数据".format(broker_id))
     # 创建chrome参数对象
     option = webdriver.ChromeOptions()
     # 实现无可视化界面得操作
@@ -169,11 +169,11 @@ def guaranty_collect():
             logger.info("申万担保券第{}页".format(current_page))
             resolve_single_guaranty_page(html_content, all_data_list)
 
+        logger.info("broker_id={}采集申万宏源担保券数据结束".format(broker_id))
         end_dt = datetime.datetime.now()
         # 计算采集数据所需时间used_time
         used_time = (end_dt - start_dt).seconds
         guaranty_df = pd.DataFrame(data=all_data_list, columns=db_title)
-        print(guaranty_df)
         if guaranty_df is not None:
             if guaranty_df.iloc[:, 0].size == sc_total:
                 df_result = {
@@ -183,6 +183,7 @@ def guaranty_collect():
                 sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), local_date
                                                    , exchange_mt_guaranty_security, data_source, start_dt,
                                                    end_dt, used_time)
+                logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
 
     except Exception as es:
         logger.error(es)
@@ -206,8 +207,11 @@ def resolve_single_guaranty_page(html_content, all_data_list):
 
 
 if __name__ == '__main__':
-    target_collect()
-    guaranty_collect()
+    try:
+        target_collect()
+        guaranty_collect()
+    except Exception as es:
+        logger.error(es)
 
     # fire.Fire()
 

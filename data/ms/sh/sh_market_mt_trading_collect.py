@@ -30,14 +30,13 @@ data_type_market_mt_trading_items = '1'  # 市场融资融券交易明细
 
 data_source_szse = 'szse'
 data_source_sse = 'sse'
-
+broker_id = 1000099
 
 def download_excel(query_date=None):
     download_excel_url = "http://www.sse.com.cn/market/dealingdata/overview/margin/a/rzrqjygk20220623.xls"
     if query_date is not None:
         replace_str = 'rzrqjygk' + str(query_date).format("'%Y%m%d'").replace('-', '') + '.xls'
         download_excel_url = download_excel_url.replace(download_excel_url.split('/')[-1], replace_str)
-    print(download_excel_url)
     headers = {
         'User-Agent': random.choice(USER_AGENTS)
     }
@@ -47,7 +46,7 @@ def download_excel(query_date=None):
             with open(excel_file_path, 'wb') as file:
                 file.write(response.content)  # 写excel到当前目录
         except Exception as es:
-            print(es)
+            logger.error(es)
     else:
         logger.info("上交所该日无数据:txt_date:{}".format(query_date))
 
@@ -71,12 +70,12 @@ def handle_excel_total(excel_file, date, excel_file_path=None):
             rzrjye = float(str(row[5].value).replace(",", ""))  # 融资融券余额(元)
             data_list.append((date, rzye, rzmre, rjyl, rjylje, rjmcl, rzrjye))
 
+        logger.info("上交所数据采集结束:{}".format(broker_id))
         end_dt = datetime.datetime.now()
         # 计算采集数据所需时间used_time
         used_time = (end_dt - start_dt).seconds
         data_df = pd.DataFrame(data_list,
                                columns=['date', 'rzye', 'rzmre', 'rjyl', 'rjylje', 'rjmcl', 'rzrjye'])
-        print(data_df)
         if data_df is not None:
             if data_df.iloc[:, 0].size == 1:
                 df_result = {
@@ -86,10 +85,11 @@ def handle_excel_total(excel_file, date, excel_file_path=None):
                 sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), date
                                                    , data_type_market_mt_trading_amount, data_source_sse, start_dt,
                                                    end_dt, used_time, excel_file_path)
+                logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
         handle_excel_detail(excel_file, date, excel_file_path)
 
     except Exception as es:
-        print(es)
+        logger.error(es)
 
 
 def handle_excel_detail(excel_file, date, excel_file_path=None):
@@ -118,7 +118,6 @@ def handle_excel_detail(excel_file, date, excel_file_path=None):
         used_time = (end_dt - start_dt).seconds
         data_df = pd.DataFrame(data_list,
                                columns=['date', 'bdzjdm', 'bdzjjc', 'rzye', 'rzmre', 'rzche', 'rjyl', 'rjmcl', 'rjchl'])
-        print(data_df)
         if data_df is not None:
             if data_df.iloc[:, 0].size == total_row - 1:
                 df_result = {
@@ -128,8 +127,10 @@ def handle_excel_detail(excel_file, date, excel_file_path=None):
                 sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), date
                                                    , data_type_market_mt_trading_items, data_source_sse, start_dt,
                                                    end_dt, used_time, excel_file_path)
+                logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+
     except Exception as es:
-        print(es)
+        logger.error(es)
 
 
 def remove_file(file_path):

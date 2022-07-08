@@ -78,11 +78,11 @@ def target_collect(excel_file, target_file_path):
 
             data_list.append((no, sec_code, sec_name, rz_rate, rq_rate))
 
+        logger.info("broker_id={}采集兴业证券融资融券融资标的相关数据结束".format(broker_id))
         end_dt = datetime.datetime.now()
         # 计算采集数据所需时间used_time
         used_time = (end_dt - start_dt).seconds
         data_df = pd.DataFrame(data_list, columns=data_tile)
-        print(data_df)
         if data_df is not None:
             df_result = {
                 'columns': data_tile,
@@ -91,6 +91,7 @@ def target_collect(excel_file, target_file_path):
             sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
                                                , exchange_mt_underlying_security, data_source, start_dt,
                                                end_dt, used_time, target_file_path, )
+            logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
 
     except Exception as es:
         logger.error(es)
@@ -110,7 +111,7 @@ def guaranty_collect_task():
                 guaranty_collect(excel_file, guaranty_file_path)
 
     except Exception as es:
-        print(es)
+        logger.error(es)
     finally:
         remove_file(guaranty_file_path)
 
@@ -150,11 +151,11 @@ def guaranty_collect(excel_file, guaranty_file_path):
 
             data_list.append((no, sec_code, sec_name, discount_rate))
 
+        logger.info("broker_id={}采集兴业证券融资融券可充抵保证金证券及折算率相关数据结束".format(broker_id))
         end_dt = datetime.datetime.now()
         # 计算采集数据所需时间used_time
         used_time = (end_dt - start_dt).seconds
         data_df = pd.DataFrame(data_list, columns=data_tile)
-        print(data_df)
         if data_df is not None:
             df_result = {
                 'columns': data_tile,
@@ -163,6 +164,7 @@ def guaranty_collect(excel_file, guaranty_file_path):
             sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
                                                , exchange_mt_guaranty_security, data_source, start_dt,
                                                end_dt, used_time, guaranty_file_path)
+            logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
 
     except Exception as es:
         logger.error(es)

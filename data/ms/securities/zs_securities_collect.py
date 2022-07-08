@@ -44,7 +44,6 @@ def rz_target_collect():
             text = json.loads(response.text)
             total = text['body']['totalNum']
             data_list = text['body']['stocks']
-            print(total)
             target_title = ['stock_code', 'stock_name', 'margin_rate']
             target_list = []
             for i in data_list:
@@ -53,11 +52,11 @@ def rz_target_collect():
                 margin_rate = i['marginratefund']
                 target_list.append((stock_code, stock_name, margin_rate))
 
+            logger.info("broker_id={}采集招商证券标的证券及保证金比例数据结束".format(broker_id))
             end_dt = datetime.datetime.now()
             # 计算采集数据所需时间used_time
             used_time = (end_dt - start_dt).seconds
             data_df = pd.DataFrame(target_list, columns=target_title)
-            print(data_df)
             if data_df is not None:
                 df_result = {
                     'columns': target_title,
@@ -66,6 +65,8 @@ def rz_target_collect():
                 sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
                                                    , exchange_mt_underlying_security, data_source, start_dt,
                                                    end_dt, used_time)
+                logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+
     except Exception as es:
         logger.error(es)
 
@@ -85,7 +86,6 @@ def guaranty_collect():
             text = json.loads(response.text)
             total = text['body']['totalNum']
             data_list = text['body']['stocks']
-            print(total)
             target_title = ['stock_code', 'stock_name', 'discount_rate']
             target_list = []
             for i in data_list:
@@ -94,11 +94,11 @@ def guaranty_collect():
                 margin_rate = i['pledgerate']
                 target_list.append((stock_code, stock_name, margin_rate))
 
+            logger.info("broker_id={}采集可充抵保证金证券及折算率数据结束".format(broker_id))
             end_dt = datetime.datetime.now()
             # 计算采集数据所需时间used_time
             used_time = (end_dt - start_dt).seconds
             data_df = pd.DataFrame(target_list, columns=target_title)
-            print(data_df)
             if data_df is not None:
                 df_result = {
                     'columns': target_title,
@@ -107,7 +107,7 @@ def guaranty_collect():
                 sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
                                                    , exchange_mt_underlying_security, data_source, start_dt,
                                                    end_dt, used_time)
-                logger.info("broker_id={}完成数据入库".format(broker_id))
+                logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
     except Exception as es:
         logger.error(es)
 
@@ -126,6 +126,7 @@ def random_page_size(mu=28888, sigma=78888):
 if __name__ == '__main__':
     rz_target_collect()
     guaranty_collect()
+
     # fire.Fire()
 
     # python3 zs_securities_collect.py - rz_target_collect

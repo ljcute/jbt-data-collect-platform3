@@ -48,7 +48,6 @@ def rz_target_collect():
     while is_continue:
         params = {"page": page, "channelid": 257420, "searchword": 'KGNyZWRpdGZ1bmRjdHJsPTAp',
                   "_": get_timestamp()}
-        # logger.info("{}".format(params))
         try:
             response = requests.get(url=url, params=params, headers=cc_headers, timeout=10)
             text = json.loads(response.text)
@@ -73,11 +72,12 @@ def rz_target_collect():
 
         except Exception as es:
             logger.error(es)
+
+    logger.info("broker_id={}采集融资数据结束".format(broker_id))
     end_dt = datetime.datetime.now()
     # 计算采集数据所需时间used_time
     used_time = (end_dt - start_dt).seconds
     data_df = pd.DataFrame(data_list, columns=data_title)
-    print(data_df)
     if data_df is not None:
         df_result = {
             'columns': data_title,
@@ -87,12 +87,13 @@ def rz_target_collect():
             sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
                                                , exchange_mt_financing_underlying_security, data_source, start_dt,
                                                end_dt, used_time)
+            logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
 
 
 # 长城证券融券标的券采集
 def rq_target_collect():
     query_date = time.strftime('%Y%m%d', time.localtime())
-    logger.info("broker_id={}开始采集融资数据".format(broker_id))
+    logger.info("broker_id={}开始采集融券数据".format(broker_id))
     url = 'http://www.cgws.com/was5/web/de.jsp'
     page = 1
     page_size = 5
@@ -110,7 +111,6 @@ def rq_target_collect():
             total = 0
             if row_list:
                 total = int(text['total'])
-            print(total)
             if total is not None and type(total) is not str and total > page * page_size:
                 is_continue = True
                 page = page + 1
@@ -129,11 +129,11 @@ def rq_target_collect():
         except Exception as es:
             logger.error(es)
 
+    logger.info("broker_id={}采集融券数据结束".format(broker_id))
     end_dt = datetime.datetime.now()
     # 计算采集数据所需时间used_time
     used_time = (end_dt - start_dt).seconds
     data_df = pd.DataFrame(data_list, columns=data_title)
-    print(data_df)
     if data_df is not None:
         df_result = {
             'columns': data_title,
@@ -143,12 +143,13 @@ def rq_target_collect():
             sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
                                                , exchange_mt_lending_underlying_security, data_source, start_dt,
                                                end_dt, used_time)
+            logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
 
 
 # 长城证券担保券采集
 def guaranty_collect():
     query_date = time.strftime('%Y%m%d', time.localtime())
-    logger.info("broker_id={}开始采集融资数据".format(broker_id))
+    logger.info("broker_id={}开始采集担保券数据".format(broker_id))
     url = 'http://www.cgws.com/was5/web/de.jsp'
     page = 1
     page_size = 5
@@ -159,7 +160,6 @@ def guaranty_collect():
     while is_continue:
         params = {"page": page, "channelid": 229873, "searchword": None,
                   "_": get_timestamp()}
-        # logger.info("{}".format(params))
         try:
             response = requests.get(url=url, params=params, headers=cc_headers, timeout=20)
             text = json.loads(response.text)
@@ -185,11 +185,11 @@ def guaranty_collect():
         except Exception as es:
             logger.error(es)
 
+    logger.info("broker_id={}采集担保券数据结束".format(broker_id))
     end_dt = datetime.datetime.now()
     # 计算采集数据所需时间used_time
     used_time = (end_dt - start_dt).seconds
     data_df = pd.DataFrame(data_list, columns=data_title)
-    print(data_df)
     if data_df is not None:
         df_result = {
             'columns': data_title,
@@ -199,6 +199,7 @@ def guaranty_collect():
             sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
                                                , exchange_mt_guaranty_security, data_source, start_dt,
                                                end_dt, used_time)
+            logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
 
 
 def get_timestamp():
@@ -206,9 +207,12 @@ def get_timestamp():
 
 
 if __name__ == '__main__':
-    rz_target_collect()
-    rq_target_collect()
-    guaranty_collect()
+    try:
+        rz_target_collect()
+        rq_target_collect()
+        guaranty_collect()
+    except Exception as es:
+        logger.error(es)
     # fire.Fire()
 
     # python3 cc_securities_collect.py - rz_target_collect

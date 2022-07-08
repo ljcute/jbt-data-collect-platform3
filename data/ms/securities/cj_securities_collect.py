@@ -34,7 +34,6 @@ def target_collect():
     logger.info("broker_id={}开始采集长江证券标的证券及保证金比例数据".format(broker_id))
     url = 'https://www.95579.com/servlet/json'
     params = {"funcNo": "902122", "i_page": 1, "i_perpage": 10000}  # 默认查询当天
-    logger.info("{}".format(params))
     try:
         response = requests.get(url=url, params=params, headers=get_headers(), timeout=10)
         if response.status_code == 200:
@@ -56,11 +55,11 @@ def target_collect():
                     rqbd = i['rqbd']
                     target_list.append((market, stock_code, stock_name, rzbd, rqbd))
 
+                logger.info("broker_id={}采集长江证券标的证券及保证金比例数据结束".format(broker_id))
                 end_dt = datetime.datetime.now()
                 # 计算采集数据所需时间used_time
                 used_time = (end_dt - start_dt).seconds
                 data_df = pd.DataFrame(target_list, columns=target_title)
-                print(data_df)
                 if data_df is not None:
                     df_result = {
                         'columns': target_title,
@@ -70,6 +69,8 @@ def target_collect():
                         sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
                                                            , exchange_mt_underlying_security, data_source, start_dt,
                                                            end_dt, used_time)
+                        logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+
             else:
                 logger.info("无长江证券标的证券及保证金比例数据")
 
@@ -83,7 +84,6 @@ def guaranty_collect():
     logger.info("broker_id={}开始采集长江证券可充抵保证金证券及折算率数据".format(broker_id))
     url = 'https://www.95579.com/servlet/json'
     params = {"funcNo": "902124", "i_page": 1, "i_perpage": 10000}  # 默认查询当天
-    logger.info("{}".format(params))
     try:
         response = requests.post(url=url, params=params, headers=get_headers(), timeout=10)
         if response.status_code == 200:
@@ -101,11 +101,11 @@ def guaranty_collect():
                     market = i['exchange_type']
                     target_list.append((market, stock_code, stock_name, discount_rate))
 
+                logger.info("broker_id={}采集长江证券可充抵保证金证券及折算率数据采集结束".format(broker_id))
                 end_dt = datetime.datetime.now()
                 # 计算采集数据所需时间used_time
                 used_time = (end_dt - start_dt).seconds
                 data_df = pd.DataFrame(target_list, columns=target_title)
-                print(data_df)
                 if data_df is not None:
                     df_result = {
                         'columns': target_title,
@@ -115,6 +115,8 @@ def guaranty_collect():
                         sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
                                                            , exchange_mt_guaranty_security, data_source, start_dt,
                                                            end_dt, used_time)
+                        logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+
             else:
                 logger.info("无长江证券可充抵保证金证券及折算率数据")
 
@@ -125,6 +127,7 @@ def guaranty_collect():
 if __name__ == '__main__':
     target_collect()
     guaranty_collect()
+
     # fire.Fire()
 
     # python3 cj_securities_collect.py - target_collect
