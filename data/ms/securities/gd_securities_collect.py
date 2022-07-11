@@ -17,7 +17,7 @@ import datetime
 import time
 from selenium.common import StaleElementReferenceException
 from selenium.webdriver.common.by import By
-from data.dao import sh_data_deal
+from data.dao import data_deal
 from utils.logs_utils import logger
 
 broker_id = 10015
@@ -27,7 +27,7 @@ exchange_mt_financing_underlying_security = '4'  # 融资融券融资标的证�
 exchange_mt_lending_underlying_security = '5'  # 融资融券融券标的证券
 exchange_mt_guaranty_and_underlying_security = '99'  # 融资融券可充抵保证金证券和融资融券标的证券
 
-data_source = 'gd_securities'
+data_source = '光大证券'
 
 
 # 光大证券标的证券采集
@@ -41,7 +41,8 @@ def target_collect():
     try:
         # 标的证券
         start_dt = datetime.datetime.now()
-        driver.get('http://www.ebscn.com/ourBusiness/xyyw/rzrq/cyxx/')
+        url = 'http://www.ebscn.com/ourBusiness/xyyw/rzrq/cyxx/'
+        driver.get(url)
         original_data_list = []
         original_data_title = ['market', 'sec_code', 'sec_name', 'financing_target', 'securities_mark', 'date']
         time.sleep(3)
@@ -81,9 +82,9 @@ def target_collect():
                 'columns': original_data_title,
                 'data': data_df.values.tolist()
             }
-            sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
-                                               , exchange_mt_underlying_security, data_source, start_dt,
-                                               end_dt, used_time)
+            data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), query_date
+                                          , exchange_mt_underlying_security, data_source, start_dt,
+                                          end_dt, used_time, url)
             logger.info("broker_id={}完成数据入库".format(broker_id))
 
     except Exception as es:
@@ -118,7 +119,8 @@ def guaranty_collect():
     try:
         # 可充抵保证金证券
         start_dt = datetime.datetime.now()
-        driver.get('http://www.ebscn.com/ourBusiness/xyyw/rzrq/cyxx/')
+        url = 'http://www.ebscn.com/ourBusiness/xyyw/rzrq/cyxx/'
+        driver.get(url)
         original_data_list = []
         original_data_title = ['market', 'sec_code', 'sec_name', 'round_rate', 'date']
         time.sleep(3)
@@ -158,9 +160,9 @@ def guaranty_collect():
                 'columns': original_data_title,
                 'data': data_df.values.tolist()
             }
-            sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
-                                               , exchange_mt_guaranty_security, data_source, start_dt,
-                                               end_dt, used_time)
+            data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), query_date
+                                          , exchange_mt_guaranty_security, data_source, start_dt,
+                                          end_dt, used_time, url)
             logger.info("broker_id={}完成数据入库".format(broker_id))
 
     except Exception as es:

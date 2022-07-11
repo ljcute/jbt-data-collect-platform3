@@ -13,7 +13,7 @@ sys.path.append(BASE_DIR)
 import os
 import time
 import json
-from data.dao import sh_data_deal
+from data.dao import data_deal
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
 import pandas as pd
@@ -33,7 +33,7 @@ exchange_mt_financing_underlying_security = '4'  # 融资融券融资标的证�
 exchange_mt_lending_underlying_security = '5'  # 融资融券融券标的证券
 exchange_mt_guaranty_and_underlying_security = '99'  # 融资融券可充抵保证金证券和融资融券标的证券
 
-data_source = 'yh_securities'
+data_source = '中国银河证券'
 
 
 # 中国银河证券融资标的证券采集
@@ -47,7 +47,8 @@ def rz_target_collect():
     try:
         # 融资标的证券
         start_dt = datetime.datetime.now()
-        driver.get('http://www.chinastock.com.cn/newsite/cgs-services/stockFinance/businessAnnc.html?type=marginList')
+        url = 'http://www.chinastock.com.cn/newsite/cgs-services/stockFinance/businessAnnc.html?type=marginList'
+        driver.get(url)
         original_data_list = []
         original_data_title = ['sec_code', 'sec_name', 'margin_ratio']
         time.sleep(3)
@@ -64,9 +65,9 @@ def rz_target_collect():
                 'columns': original_data_title,
                 'data': data_df.values.tolist()
             }
-            sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
-                                               , exchange_mt_financing_underlying_security, data_source, start_dt,
-                                               end_dt, used_time)
+            data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), query_date
+                                          , exchange_mt_financing_underlying_security, data_source, start_dt,
+                                          end_dt, used_time, url)
             logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
 
     except Exception as es:
@@ -99,7 +100,8 @@ def rq_target_collect():
     try:
         # 融券标的证券
         start_dt = datetime.datetime.now()
-        driver.get('http://www.chinastock.com.cn/newsite/cgs-services/stockFinance/businessAnnc.html?type=marginList')
+        url = 'http://www.chinastock.com.cn/newsite/cgs-services/stockFinance/businessAnnc.html?type=marginList'
+        driver.get(url)
         original_data_list = []
         original_data_title = ['sec_code', 'sec_name', 'margin_ratio']
         time.sleep(3)
@@ -117,9 +119,9 @@ def rq_target_collect():
                 'columns': original_data_title,
                 'data': data_df.values.tolist()
             }
-            sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
-                                               , exchange_mt_lending_underlying_security, data_source, start_dt,
-                                               end_dt, used_time)
+            data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), query_date
+                                          , exchange_mt_lending_underlying_security, data_source, start_dt,
+                                          end_dt, used_time, url)
             logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
 
     except Exception as es:
@@ -152,7 +154,8 @@ def guaranty_collect():
     try:
         # 可充抵保证金证券
         start_dt = datetime.datetime.now()
-        driver.get('http://www.chinastock.com.cn/newsite/cgs-services/stockFinance/businessAnnc.html?type=marginList')
+        url = 'http://www.chinastock.com.cn/newsite/cgs-services/stockFinance/businessAnnc.html?type=marginList'
+        driver.get(url)
         original_data_list = []
         original_data_title = ['sec_code', 'sec_name', 'margin_ratio']
         time.sleep(3)
@@ -169,9 +172,9 @@ def guaranty_collect():
                 'columns': original_data_title,
                 'data': data_df.values.tolist()
             }
-            sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
-                                               , exchange_mt_guaranty_security, data_source, start_dt,
-                                               end_dt, used_time)
+            data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), query_date
+                                          , exchange_mt_guaranty_security, data_source, start_dt,
+                                          end_dt, used_time, url)
             logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
 
     except Exception as es:

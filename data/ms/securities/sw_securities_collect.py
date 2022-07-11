@@ -13,11 +13,10 @@ import json
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 import time
-import fire
 import datetime
 from bs4 import BeautifulSoup
 import pandas as pd
-from data.dao import sh_data_deal
+from data.dao import data_deal
 from utils.logs_utils import logger
 
 broker_id = 10015
@@ -27,20 +26,25 @@ exchange_mt_financing_underlying_security = '4'  # 融资融券融资标的证�
 exchange_mt_lending_underlying_security = '5'  # 融资融券融券标的证券
 exchange_mt_guaranty_and_underlying_security = '99'  # 融资融券可充抵保证金证券和融资融券标的证券
 
-data_source = 'sw_securities'
+data_source = '申万宏源'
 
 
 def target_collect():
     logger.info("broker_id={}开始采集申万宏源标的券数据".format(broker_id))
     # 创建chrome参数对象
-    option = webdriver.ChromeOptions()
-    option.add_argument("--headless")
-    option.binary_location = r'C:\Users\jbt\AppData\Local\Chromium\Application\Chromium.exe'
-    driver = webdriver.Chrome(executable_path='./chromedriver.exe', chrome_options=option)
+    # option = webdriver.ChromeOptions()
+    # option.add_argument("--headless")
+    # option.binary_location = r'C:\Users\jbt\AppData\Local\Chromium\Application\Chromium.exe'
+    # driver = webdriver.Chrome(executable_path='./chromedriver.exe', chrome_options=option)
+    options = webdriver.FirefoxOptions()
+    options.add_argument("--headless")
+    driver = webdriver.Firefox(options=options)
+    driver.implicitly_wait(5)
     try:
         # 标的券
         start_dt = datetime.datetime.now()
-        driver.get('https://www.swhysc.com/swhysc/financial/marginTradingList?channel=00010017000300020001&listId=2')
+        url = 'https://www.swhysc.com/swhysc/financial/marginTradingList?channel=00010017000300020001&listId=2'
+        driver.get(url)
 
         original_data_list = []
         local_date = time.strftime('%Y-%m-%d', time.localtime())
@@ -87,9 +91,9 @@ def target_collect():
                     'columns': target_title,
                     'data': original_data_df.values.tolist()
                 }
-                sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), local_date
-                                                   , exchange_mt_financing_underlying_security, data_source, start_dt,
-                                                   end_dt, used_time)
+                data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), local_date
+                                              , exchange_mt_financing_underlying_security, data_source, start_dt,
+                                              end_dt, used_time, url)
                 logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
             else:
                 logger.info("采集数据总数有误，请检查！")
@@ -118,17 +122,21 @@ def resolve_single_target_page(html_content, original_data_list):
 def guaranty_collect():
     logger.info("broker_id={}开始采集申万宏源担保券数据".format(broker_id))
     # 创建chrome参数对象
-    option = webdriver.ChromeOptions()
+    # option = webdriver.ChromeOptions()
     # 实现无可视化界面得操作
-    option.add_argument("--headless")
-    option.add_argument('--disable-gpu')
-    option.binary_location = r'C:\Users\jbt\AppData\Local\Chromium\Application\Chromium.exe'
-    driver = webdriver.Chrome(executable_path='./chromedriver.exe', chrome_options=option)
-
+    # option.add_argument("--headless")
+    # option.add_argument('--disable-gpu')
+    # option.binary_location = r'C:\Users\jbt\AppData\Local\Chromium\Application\Chromium.exe'
+    # driver = webdriver.Chrome(executable_path='./chromedriver.exe', chrome_options=option)
+    options = webdriver.FirefoxOptions()
+    options.add_argument("--headless")
+    driver = webdriver.Firefox(options=options)
+    driver.implicitly_wait(5)
     try:
         # 担保券（可充抵保证金）
         start_dt = datetime.datetime.now()
-        driver.get('https://www.swhysc.com/swhysc/financial/marginTradingList?channel=00010017000300020001&listId=1')
+        url = 'https://www.swhysc.com/swhysc/financial/marginTradingList?channel=00010017000300020001&listId=1'
+        driver.get(url)
         time.sleep(1)
         driver.execute_script("window.scrollTo(0,document.body.scrollHeight);")
         time.sleep(1)
@@ -181,9 +189,9 @@ def guaranty_collect():
                     'columns': db_title,
                     'data': guaranty_df.values.tolist()
                 }
-                sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), local_date
-                                                   , exchange_mt_guaranty_security, data_source, start_dt,
-                                                   end_dt, used_time)
+                data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), local_date
+                                              , exchange_mt_guaranty_security, data_source, start_dt,
+                                              end_dt, used_time, url)
                 logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
 
     except Exception as es:

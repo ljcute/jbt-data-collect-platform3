@@ -12,9 +12,8 @@ import json
 import time
 import pandas as pd
 from constants import *
-from data.dao import sh_data_deal
+from data.dao import data_deal
 from utils.logs_utils import logger
-import fire
 import datetime
 
 # 定义常量
@@ -31,7 +30,7 @@ exchange_mt_financing_underlying_security = '4'  # 融资融券融资标的证�
 exchange_mt_lending_underlying_security = '5'  # 融资融券融券标的证券
 exchange_mt_guaranty_and_underlying_security = '99'  # 融资融券可充抵保证金证券和融资融券标的证券
 
-data_source = 'cc_securities'
+data_source = '长城证券'
 
 
 # 长城证券融资标的券采集
@@ -84,9 +83,9 @@ def rz_target_collect():
             'data': data_df.values.tolist()
         }
         if data_df.iloc[:, 0].size == total:
-            sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
-                                               , exchange_mt_financing_underlying_security, data_source, start_dt,
-                                               end_dt, used_time)
+            data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), query_date
+                                          , exchange_mt_financing_underlying_security, data_source, start_dt,
+                                          end_dt, used_time, url)
             logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
 
 
@@ -140,9 +139,9 @@ def rq_target_collect():
             'data': data_df.values.tolist()
         }
         if data_df.iloc[:, 0].size == total:
-            sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
-                                               , exchange_mt_lending_underlying_security, data_source, start_dt,
-                                               end_dt, used_time)
+            data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), query_date
+                                          , exchange_mt_lending_underlying_security, data_source, start_dt,
+                                          end_dt, used_time, url)
             logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
 
 
@@ -196,9 +195,9 @@ def guaranty_collect():
             'data': data_df.values.tolist()
         }
         if data_df.iloc[:, 0].size == total:
-            sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
-                                               , exchange_mt_guaranty_security, data_source, start_dt,
-                                               end_dt, used_time)
+            data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), query_date
+                                          , exchange_mt_guaranty_security, data_source, start_dt,
+                                          end_dt, used_time, url)
             logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
 
 

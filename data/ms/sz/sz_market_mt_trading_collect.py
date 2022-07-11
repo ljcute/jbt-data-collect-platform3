@@ -19,7 +19,7 @@ from constants import USER_AGENTS
 import requests
 import random
 import os
-from data.dao import sz_data_deal, sh_data_deal
+from data.dao import data_deal
 from utils.proxy_utils import get_proxies
 from utils.logs_utils import logger
 
@@ -29,9 +29,10 @@ excel_file_path = os.path.join(base_dir, 'sz_balance.xlsx')
 data_type_market_mt_trading_amount = '0'  # 市场融资融券交易总量
 data_type_market_mt_trading_items = '1'  # 市场融资融券交易明细
 
-data_source_szse = 'szse'
-data_source_sse = 'sse'
+data_source_szse = '深圳交易所'
+data_source_sse = '上海交易所'
 broker_id = 1000092
+
 
 def total_data_collect(query_date=None):
     url = 'http://www.szse.cn/api/report/ShowReport/data'
@@ -57,32 +58,37 @@ def total_data_collect(query_date=None):
             text = response.text
             loads = json.loads(text)
             zero_ele = loads[0]
-            title_data = zero_ele['data'][0]
-            subname = zero_ele['metadata']['subname']  # 业务数据的交易日期
-            # 融资融券交易总量
-            jrrzye = title_data['jrrzye']  # 融资余额(亿元)
-            jrrjye = title_data['jrrjye']  # 融券余额(亿元)
-            jrrzrjye = title_data['jrrzrjye']  # 融资融券余额(亿元)
-            jrrzmr = title_data['jrrzmr']  # 融资买入额(亿元)
-            jrrjmc = title_data['jrrjmc']  # 融券卖出量(亿股/亿份)
-            jrrjyl = title_data['jrrjyl']  # 融券余量(亿股/亿份)
-            data_list.append((jrrzye, jrrjye, jrrzrjye, jrrzmr, jrrjmc, jrrjyl))
+            if zero_ele['data']:
+                title_data = zero_ele['data'][0]
+                subname = zero_ele['metadata']['subname']  # 业务数据的交易日期
+                # 融资融券交易总量
+                jrrzye = title_data['jrrzye']  # 融资余额(亿元)
+                jrrjye = title_data['jrrjye']  # 融券余额(亿元)
+                jrrzrjye = title_data['jrrzrjye']  # 融资融券余额(亿元)
+                jrrzmr = title_data['jrrzmr']  # 融资买入额(亿元)
+                jrrjmc = title_data['jrrjmc']  # 融券卖出量(亿股/亿份)
+                jrrjyl = title_data['jrrjyl']  # 融券余量(亿股/亿份)
+                data_list.append((jrrzye, jrrjye, jrrzrjye, jrrzmr, jrrjmc, jrrjyl))
 
-            logger.info("broker_id={}采集深交所数据结束".format(broker_id))
-            end_dt = datetime.datetime.now()
-            # 计算采集数据所需时间used_time
-            used_time = (end_dt - start_dt).seconds
-            data_df = pd.DataFrame(data_list, columns=['jrrzye', 'jrrjye', 'jrrzrjye', 'jrrzmr', 'jrrjmc', 'jrrjyl'])
-            if data_df is not None:
-                if data_df.iloc[:, 0].size == len(data_list) and (str(subname).replace("-", "")) == str(query_date):
-                    df_result = {
-                        'columns': ['jrrzye', 'jrrjye', 'jrrzrjye', 'jrrzmr', 'jrrjmc', 'jrrjyl'],
-                        'data': data_df.values.tolist()
-                    }
-                    sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), subname
-                                                       , data_type_market_mt_trading_amount, data_source_szse, start_dt,
-                                                       end_dt, used_time)
-                    logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+                logger.info("broker_id={}采集深交所数据结束".format(broker_id))
+                end_dt = datetime.datetime.now()
+                # 计算采集数据所需时间used_time
+                used_time = (end_dt - start_dt).seconds
+                data_df = pd.DataFrame(data_list,
+                                       columns=['jrrzye', 'jrrjye', 'jrrzrjye', 'jrrzmr', 'jrrjmc', 'jrrjyl'])
+                if data_df is not None:
+                    if data_df.iloc[:, 0].size == len(data_list) and (str(subname).replace("-", "")) == str(query_date):
+                        df_result = {
+                            'columns': ['jrrzye', 'jrrjye', 'jrrzrjye', 'jrrzmr', 'jrrjmc', 'jrrjyl'],
+                            'data': data_df.values.tolist()
+                        }
+                        data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), subname
+                                                      , data_type_market_mt_trading_amount, data_source_szse, start_dt,
+                                                      end_dt, used_time, url)
+                        logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+            else:
+                logger.error("没有找到符合条件的数据！")
+
 
     except Exception as es:
         logger.error(es)
@@ -124,44 +130,48 @@ def random_double(mu=0.8999999999999999, sigma=0.1000000000000001):
 
 
 def handle_excel(excel_file, date, excel_file_path):
+    download_url = "https://www.szse.cn/api/report/ShowReport"
     start_dt = datetime.datetime.now()
     sheet_0 = excel_file.sheet_by_index(0)
     total_row = sheet_0.nrows
+    if total_row >= 1:
+        try:
+            data_list = []
+            for i in range(1, total_row):  # 从第2行开始遍历
+                row = sheet_0.row(i)
+                if row is None:
+                    break
 
-    try:
-        data_list = []
-        for i in range(1, total_row):  # 从第2行开始遍历
-            row = sheet_0.row(i)
-            if row is None:
-                break
+                zqdm = str(row[0].value).replace(",", "")  # 证券代码
+                zqjc = str(row[1].value).replace(",", "")  # 证券简称
+                jrrzye = float(str(row[3].value).replace(",", ""))  # 融资余额(元)
+                jrrzmr = float(str(row[2].value).replace(",", ""))  # 融资买入额(元)
+                jrrjyl = float(str(row[5].value).replace(",", ""))  # 融券余量(股/份)
+                jrrjye = float(str(row[6].value).replace(",", ""))  # 融券余额(元)
+                jrrjmc = float(str(row[4].value).replace(",", ""))  # 融券卖出量(股/份)
+                jrrzrjye = float(str(row[7].value).replace(",", ""))  # 融资融券余额(亿元)
+                data_list.append((zqdm, zqjc, jrrzye, jrrzmr, jrrjyl, jrrjye, jrrjmc, jrrzrjye))
 
-            zqdm = str(row[0].value).replace(",", "")  # 证券代码
-            zqjc = str(row[1].value).replace(",", "")  # 证券简称
-            jrrzye = float(str(row[3].value).replace(",", ""))  # 融资余额(元)
-            jrrzmr = float(str(row[2].value).replace(",", ""))  # 融资买入额(元)
-            jrrjyl = float(str(row[5].value).replace(",", ""))  # 融券余量(股/份)
-            jrrjye = float(str(row[6].value).replace(",", ""))  # 融券余额(元)
-            jrrjmc = float(str(row[4].value).replace(",", ""))  # 融券卖出量(股/份)
-            jrrzrjye = float(str(row[7].value).replace(",", ""))  # 融资融券余额(亿元)
-            data_list.append((zqdm, zqjc, jrrzye, jrrzmr, jrrjyl, jrrjye, jrrjmc, jrrzrjye))
+            end_dt = datetime.datetime.now()
+            # 计算采集数据所需时间used_time
+            used_time = (end_dt - start_dt).seconds
+            data_df = pd.DataFrame(data_list,
+                                   columns=['zqdm', 'zqjc', 'jrrzye', 'jrrzmr', 'jrrjyl', 'jrrjye', 'jrrjmc',
+                                            'jrrzrjye'])
+            if data_df is not None:
+                if data_df.iloc[:, 0].size == total_row - 1:
+                    df_result = {
+                        'columns': ['zqdm', 'zqjc', 'jrrzye', 'jrrzmr', 'jrrjyl', 'jrrjye', 'jrrjmc', 'jrrzrjye'],
+                        'data': data_df.values.tolist()
+                    }
+                    data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), date
+                                                  , data_type_market_mt_trading_items, data_source_szse, start_dt,
+                                                  end_dt, used_time, download_url, excel_file_path)
 
-        end_dt = datetime.datetime.now()
-        # 计算采集数据所需时间used_time
-        used_time = (end_dt - start_dt).seconds
-        data_df = pd.DataFrame(data_list,
-                               columns=['zqdm', 'zqjc', 'jrrzye', 'jrrzmr', 'jrrjyl', 'jrrjye', 'jrrjmc', 'jrrzrjye'])
-        if data_df is not None:
-            if data_df.iloc[:, 0].size == total_row - 1:
-                df_result = {
-                    'columns': ['zqdm', 'zqjc', 'jrrzye', 'jrrzmr', 'jrrjyl', 'jrrjye', 'jrrjmc', 'jrrzrjye'],
-                    'data': data_df.values.tolist()
-                }
-                sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), date
-                                                   , data_type_market_mt_trading_items, data_source_szse, start_dt,
-                                                   end_dt, used_time, excel_file_path)
-
-    except Exception as es:
-        logger.error(es)
+        except Exception as es:
+            logger.error(es)
+    else:
+        logger.error("没有找到符合条件的数据！")
 
 
 def remove_file(file_path):
@@ -174,7 +184,7 @@ def remove_file(file_path):
 
 def collect(query_date=None):
     try:
-        actual_date = sz_data_deal.get_max_biz_dt() if query_date is None else query_date
+        actual_date = data_deal.get_max_biz_dt() if query_date is None else query_date
         logger.info("深交所数据采集日期actual_date:{}".format(actual_date))
         total_data_collect(actual_date)
         download_excel(actual_date)

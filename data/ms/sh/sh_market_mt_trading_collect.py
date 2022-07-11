@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # author yanpan
 # 2022/6/23 13:33
-#上海交易所-市场融资融券交易总量/市场融资融券交易明细
+# 上海交易所-市场融资融券交易总量/市场融资融券交易明细
 
 import os
 import sys
@@ -20,7 +20,7 @@ import datetime
 import fire
 import random
 import os
-from data.dao import sh_data_deal
+from data.dao import data_deal
 from utils.proxy_utils import get_proxies
 from utils.logs_utils import logger
 
@@ -30,9 +30,10 @@ excel_file_path = os.path.join(base_dir, 'sh_balance.xls')
 data_type_market_mt_trading_amount = '0'  # 市场融资融券交易总量
 data_type_market_mt_trading_items = '1'  # 市场融资融券交易明细
 
-data_source_szse = 'szse'
-data_source_sse = 'sse'
+data_source_szse = '深圳交易所'
+data_source_sse = '上海交易所'
 broker_id = 1000099
+
 
 def download_excel(query_date=None):
     download_excel_url = "http://www.sse.com.cn/market/dealingdata/overview/margin/a/rzrqjygk20220623.xls"
@@ -54,6 +55,7 @@ def download_excel(query_date=None):
 
 
 def handle_excel_total(excel_file, date, excel_file_path=None):
+    url = 'http://www.sse.com.cn/market/othersdata/margin/sum/'
     start_dt = datetime.datetime.now()
     sheet_0 = excel_file.sheet_by_index(0)
     total_row = sheet_0.nrows
@@ -84,9 +86,9 @@ def handle_excel_total(excel_file, date, excel_file_path=None):
                     'columns': ['date', 'rzye', 'rzmre', 'rjyl', 'rjylje', 'rjmcl', 'rzrjye'],
                     'data': data_df.values.tolist()
                 }
-                sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), date
+                data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), date
                                                    , data_type_market_mt_trading_amount, data_source_sse, start_dt,
-                                                   end_dt, used_time, excel_file_path)
+                                                   end_dt, used_time, url, excel_file_path)
                 logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
         handle_excel_detail(excel_file, date, excel_file_path)
 
@@ -95,6 +97,7 @@ def handle_excel_total(excel_file, date, excel_file_path=None):
 
 
 def handle_excel_detail(excel_file, date, excel_file_path=None):
+    url = 'http://www.sse.com.cn/market/othersdata/margin/sum/'
     start_dt = datetime.datetime.now()
     sheet_1 = excel_file.sheet_by_index(1)
     total_row = sheet_1.nrows
@@ -126,9 +129,9 @@ def handle_excel_detail(excel_file, date, excel_file_path=None):
                     'columns': ['date', 'bdzjdm', 'bdzjjc', 'rzye', 'rzmre', 'rzche', 'rjyl', 'rjmcl', 'rjchl'],
                     'data': data_df.values.tolist()
                 }
-                sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), date
+                data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), date
                                                    , data_type_market_mt_trading_items, data_source_sse, start_dt,
-                                                   end_dt, used_time, excel_file_path)
+                                                   end_dt, used_time, url, excel_file_path)
                 logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
 
     except Exception as es:
@@ -145,7 +148,7 @@ def remove_file(file_path):
 
 def collect(query_date=None):
     try:
-        actual_date = sh_data_deal.get_max_biz_dt() if query_date is None else query_date
+        actual_date = data_deal.get_max_biz_dt() if query_date is None else query_date
         logger.info("上交所数据采集日期actual_date:{}".format(actual_date))
         download_excel(actual_date)
         excel_file = xlrd2.open_workbook(excel_file_path, encoding_override="utf-8")

@@ -20,7 +20,7 @@ import random
 import os
 import datetime
 import fire
-from data.dao import sh_data_deal
+from data.dao import data_deal
 import re
 from utils.proxy_utils import get_proxies
 from utils.logs_utils import logger
@@ -34,8 +34,8 @@ exchange_mt_financing_underlying_security = '4'  # 融资融券融资标的证�
 exchange_mt_lending_underlying_security = '5'  # 融资融券融券标的证券
 exchange_mt_guaranty_and_underlying_security = '99'  # 融资融券可充抵保证金证券和融资融券标的证券
 
-data_source_szse = 'szse'
-data_source_sse = 'sse'
+data_source_szse = '深圳交易所'
+data_source_sse = '上海交易所'
 broker_id = 1000094
 
 regrex_pattern = re.compile(r"[(](.*?)[)]", re.S)  # 最小匹配,提取括号内容
@@ -67,6 +67,7 @@ def download_excel(query_date=None):
 
 
 def handle_excel(excel_file, date, excel_file_path):
+    download_url = 'http://www.szse.cn/api/report/ShowReport'
     start_dt = datetime.datetime.now()
     sheet_0 = excel_file.sheet_by_index(0)
     total_row = sheet_0.nrows
@@ -101,10 +102,9 @@ def handle_excel(excel_file, date, excel_file_path):
                         'columns': ['zqdm', 'zqjc', 'rzbd', 'rqbd', 'drkrz', 'drkrq', 'rqmcjgxz', 'zdfxz'],
                         'data': data_df.values.tolist()
                     }
-                    sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), date
-                                                       , exchange_mt_underlying_security, data_source_szse, start_dt,
-                                                       end_dt, used_time,
-                                                       excel_file_path)
+                    data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), date
+                                                  , exchange_mt_underlying_security, data_source_szse, start_dt,
+                                                  end_dt, used_time, download_url, excel_file_path)
                     logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
 
         else:
@@ -137,9 +137,12 @@ def random_double(mu=0.8999999999999999, sigma=0.1000000000000001):
 
 def exchange_mt_underlying_security_collect(query_date=None, query_end_data=None):
     if query_end_data is None:
-        query_date = datetime.datetime.strptime(str(query_date).replace("-", ""), '%Y%m%d').date()
+        if query_date is None:
+            query_date = datetime.date.today()
+        else:
+            query_date = datetime.datetime.strptime(str(query_date).replace("-", ""), '%Y%m%d').date()
         try:
-            actual_date = sh_data_deal.get_max_biz_dt() if query_date is None else query_date
+            actual_date = data_deal.get_max_biz_dt() if query_date is None else query_date
             logger.info("深交所数据采集日期actual_date:{}".format(actual_date))
             download_excel(actual_date)
             excel_file = xlrd2.open_workbook(excel_file_path, encoding_override="utf-8")

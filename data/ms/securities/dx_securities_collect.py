@@ -11,9 +11,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.pa
 sys.path.append(BASE_DIR)
 
 import datetime
-import fire
 import json
-from data.dao import sh_data_deal
+from data.dao import data_deal
 from utils.logs_utils import logger
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -30,22 +29,27 @@ exchange_mt_financing_underlying_security = '4'  # 融资融券融资标的证�
 exchange_mt_lending_underlying_security = '5'  # 融资融券融券标的证券
 exchange_mt_guaranty_and_underlying_security = '99'  # 融资融券可充抵保证金证券和融资融券标的证券
 
-data_source = 'dx_securities'
+data_source = '东兴证券'
 
 
 # 东兴证券融资融券标的证券采集
 def rzrq_target_collect():
     query_date = time.strftime('%Y%m%d', time.localtime())
     logger.info("broker_id={}开始采集东兴证券融资融券标的证券券".format(broker_id))
-    # 创建chrome参数对象
-    option = webdriver.ChromeOptions()
-    option.add_argument("--headless")
-    option.binary_location = r'C:\Users\jbt\AppData\Local\Chromium\Application\Chromium.exe'
-    driver = webdriver.Chrome(executable_path='./chromedriver.exe', chrome_options=option)
+    # # 创建chrome参数对象
+    # option = webdriver.ChromeOptions()
+    # option.add_argument("--headless")
+    # option.binary_location = r'C:\Users\jbt\AppData\Local\Chromium\Application\Chromium.exe'
+    # driver = webdriver.Chrome(executable_path='./chromedriver.exe', chrome_options=option)
+    options = webdriver.FirefoxOptions()
+    options.add_argument("--headless")
+    driver = webdriver.Firefox(options=options)
+    driver.implicitly_wait(5)
     try:
         # 融资融券标的证券
+        url = 'https://www.dxzq.net/main/rzrq/gsxx/rzrqdq/index.shtml?catalogId=1,10,60,144'
         start_dt = datetime.datetime.now()
-        driver.get('https://www.dxzq.net/main/rzrq/gsxx/rzrqdq/index.shtml?catalogId=1,10,60,144')
+        driver.get(url)
         original_data_list = []
 
         # 找到总页数
@@ -84,9 +88,9 @@ def rzrq_target_collect():
                 'columns': target_title,
                 'data': original_data_df.values.tolist()
             }
-            sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
-                                               , exchange_mt_underlying_security, data_source, start_dt,
-                                               end_dt, used_time)
+            data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), query_date
+                                          , exchange_mt_underlying_security, data_source, start_dt,
+                                          end_dt, used_time, url)
             logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
 
     except Exception as es:
@@ -117,14 +121,19 @@ def guaranty_collect():
     query_date = time.strftime('%Y%m%d', time.localtime())
     logger.info("broker_id={}开始采集东兴证券可充抵保证金担保券".format(broker_id))
     # 创建chrome参数对象
-    option = webdriver.ChromeOptions()
-    option.add_argument("--headless")
-    option.binary_location = r'C:\Users\jbt\AppData\Local\Chromium\Application\Chromium.exe'
-    driver = webdriver.Chrome(executable_path='./chromedriver.exe', chrome_options=option)
+    # option = webdriver.ChromeOptions()
+    # option.add_argument("--headless")
+    # option.binary_location = r'C:\Users\jbt\AppData\Local\Chromium\Application\Chromium.exe'
+    # driver = webdriver.Chrome(executable_path='./chromedriver.exe', chrome_options=option)
+    options = webdriver.FirefoxOptions()
+    options.add_argument("--headless")
+    driver = webdriver.Firefox(options=options)
+    driver.implicitly_wait(5)
     try:
         start_dt = datetime.datetime.now()
         # 可充抵保证金证券
-        driver.get('https://www.dxzq.net/main/rzrq/gsxx/kcdbzjzq/index.shtml?catalogId=1,10,60,145')
+        url = 'https://www.dxzq.net/main/rzrq/gsxx/kcdbzjzq/index.shtml?catalogId=1,10,60,145'
+        driver.get(url)
         original_data_list = []
 
         # 找到总页数
@@ -160,9 +169,9 @@ def guaranty_collect():
                 'columns': target_title,
                 'data': original_data_df.values.tolist()
             }
-            sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
-                                               , exchange_mt_guaranty_security, data_source, start_dt,
-                                               end_dt, used_time)
+            data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), query_date
+                                          , exchange_mt_guaranty_security, data_source, start_dt,
+                                          end_dt, used_time, url)
             logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
 
     except Exception as es:

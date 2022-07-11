@@ -16,7 +16,7 @@ import time
 import xlrd2
 import pandas as pd
 from constants import *
-from data.dao import sh_data_deal
+from data.dao import data_deal
 from utils.logs_utils import logger
 import datetime
 import fire
@@ -36,7 +36,7 @@ exchange_mt_financing_underlying_security = '4'  # 融资融券融资标的证�
 exchange_mt_lending_underlying_security = '5'  # 融资融券融券标的证券
 exchange_mt_guaranty_and_underlying_security = '99'  # 融资融券可充抵保证金证券和融资融券标的证券
 
-data_source = 'xy_securities'
+data_source = '兴业证券'
 
 
 # 兴业证券标的相关数据采集
@@ -50,7 +50,7 @@ def target_collect_task():
             with open(target_file_path, 'wb') as file:
                 file.write(response.content)
                 excel_file = xlrd2.open_workbook(target_file_path)
-                target_collect(excel_file, target_file_path)
+                target_collect(excel_file, target_file_path, excel_one_download_url)
 
     except Exception as es:
         logger.error(es)
@@ -58,7 +58,7 @@ def target_collect_task():
         remove_file(target_file_path)
 
 
-def target_collect(excel_file, target_file_path):
+def target_collect(excel_file, target_file_path, excel_one_download_url):
     query_date = time.strftime('%Y%m%d', time.localtime())
     try:
         start_dt = datetime.datetime.now()
@@ -88,9 +88,9 @@ def target_collect(excel_file, target_file_path):
                 'columns': data_tile,
                 'data': data_df.values.tolist()
             }
-            sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
-                                               , exchange_mt_underlying_security, data_source, start_dt,
-                                               end_dt, used_time, target_file_path, )
+            data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), query_date
+                                          , exchange_mt_underlying_security, data_source, start_dt,
+                                          end_dt, used_time, excel_one_download_url, target_file_path, )
             logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
 
     except Exception as es:
@@ -108,7 +108,7 @@ def guaranty_collect_task():
             with open(guaranty_file_path, 'wb') as file:
                 file.write(response.content)
                 excel_file = xlrd2.open_workbook(guaranty_file_path)
-                guaranty_collect(excel_file, guaranty_file_path)
+                guaranty_collect(excel_file, guaranty_file_path, excel_two_download_url)
 
     except Exception as es:
         logger.error(es)
@@ -116,7 +116,7 @@ def guaranty_collect_task():
         remove_file(guaranty_file_path)
 
 
-def guaranty_collect(excel_file, guaranty_file_path):
+def guaranty_collect(excel_file, guaranty_file_path, excel_two_download_url):
     query_date = time.strftime('%Y%m%d', time.localtime())
     try:
         start_dt = datetime.datetime.now()
@@ -161,9 +161,9 @@ def guaranty_collect(excel_file, guaranty_file_path):
                 'columns': data_tile,
                 'data': data_df.values.tolist()
             }
-            sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
-                                               , exchange_mt_guaranty_security, data_source, start_dt,
-                                               end_dt, used_time, guaranty_file_path)
+            data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), query_date
+                                          , exchange_mt_guaranty_security, data_source, start_dt,
+                                          end_dt, used_time, excel_two_download_url, guaranty_file_path)
             logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
 
     except Exception as es:

@@ -20,7 +20,7 @@ import requests
 import os
 import fire
 import datetime
-from data.dao import sh_data_deal
+from data.dao import data_deal
 from utils.logs_utils import logger
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -38,8 +38,8 @@ sh_guaranty_file_path = './' + str(broker_id) + 'sh_guaranty.xls'
 sh_target_rz_file_path = './' + str(broker_id) + 'sh_target_rz.xls'
 sh_target_rq_file_path = './' + str(broker_id) + 'sh_target_rq.xls'
 
-data_source_szse = 'szse'
-data_source_sse = 'sse'
+data_source_szse = '深圳交易所'
+data_source_sse = '上海交易所'
 
 
 def get_data():
@@ -96,6 +96,7 @@ def get_data():
 
 
 def handle_excel(excel_file, date, excel_file_path, type, soure):
+    url = 'http://www.sse.com.cn/market/othersdata/margin/sum/'
     start_dt = datetime.datetime.now()
     sheet_0 = excel_file.sheet_by_index(0)
     total_row = sheet_0.nrows
@@ -121,9 +122,9 @@ def handle_excel(excel_file, date, excel_file_path, type, soure):
                     'columns': ['biz_dt', 'sec_code', 'sec_name'],
                     'data': data_df.values.tolist()
                 }
-                sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), date
-                                                   , type, soure, start_dt,
-                                                   end_dt, used_time, excel_file_path)
+                data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), date
+                                              , type, soure, start_dt,
+                                              end_dt, used_time, url, excel_file_path)
                 logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
 
     except Exception as es:

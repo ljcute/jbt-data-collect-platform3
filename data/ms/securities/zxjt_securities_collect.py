@@ -18,7 +18,7 @@ import pandas as pd
 import xlrd2
 from bs4 import BeautifulSoup
 from constants import *
-from data.dao import sh_data_deal
+from data.dao import data_deal
 from utils.logs_utils import logger
 import fire
 import datetime
@@ -29,7 +29,7 @@ exchange_mt_financing_underlying_security = '4'  # 融资融券融资标的证�
 exchange_mt_lending_underlying_security = '5'  # 融资融券融券标的证券
 exchange_mt_guaranty_and_underlying_security = '99'  # 融资融券可充抵保证金证券和融资融券标的证券
 
-data_source = 'zxjt_securities'
+data_source = '中信建投'
 
 broker_id = 10006
 guaranty_file_path = './' + str(broker_id) + 'guaranty.xls'
@@ -45,7 +45,6 @@ def all_collect():
     # 在代码中加入UserAgent信息即可。
 
     try:
-        start_dt = datetime.datetime.now()
         req = urllib.request.Request(url=url, headers=get_headers())
         html_utf8 = urllib.request.urlopen(req, timeout=10).read().decode('utf-8')
         soup = BeautifulSoup(html_utf8, 'html.parser')
@@ -71,7 +70,7 @@ def all_collect():
                 with open(all_file_path, 'wb') as file:
                     file.write(response.content)  # 写excel到当前目录
                     excel_file = xlrd2.open_workbook(all_file_path)
-                    do_all_collect(excel_file, all_file_path)
+                    do_all_collect(excel_file, all_file_path, url)
     except Exception as es:
         logger.error(es)
     finally:
@@ -86,7 +85,7 @@ def guaranty_collect(excel_file):
     pass
 
 
-def do_all_collect(excel_file, all_file_path):
+def do_all_collect(excel_file, all_file_path, url):
     """
     解析excel文件且分别入库
     :param excel_file:
@@ -132,9 +131,9 @@ def do_all_collect(excel_file, all_file_path):
                             'rz_valid_status', 'rq_valid_status'],
                 'data': data_df.values.tolist()
             }
-            sh_data_deal.insert_data_collect_1(json.dumps(df_result, ensure_ascii=False), query_date
-                                             , exchange_mt_guaranty_and_underlying_security, data_source, start_dt,
-                                               end_dt, used_time, all_file_path)
+            data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), query_date
+                                          , exchange_mt_guaranty_and_underlying_security, data_source, start_dt,
+                                          end_dt, used_time, url, all_file_path)
             logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
     except Exception as es:
         logger.error(es)
