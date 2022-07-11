@@ -148,7 +148,7 @@ def remove_file(file_path):
 
 def collect(query_date=None):
     try:
-        actual_date = data_deal.get_max_biz_dt() if query_date is None else query_date
+        actual_date = datetime.date.today() if query_date is None else query_date
         logger.info("上交所数据采集日期actual_date:{}".format(actual_date))
         download_excel(actual_date)
         excel_file = xlrd2.open_workbook(excel_file_path, encoding_override="utf-8")
