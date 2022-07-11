@@ -68,9 +68,11 @@ def all_collect():
             elif "可充抵保证金证券及标的证券" in excel_download_url:  # 20220323 中信建投网站3种券合成一个excel文件了
                 response = requests.get(excel_download_url)
                 with open(all_file_path, 'wb') as file:
+                    logger.info("开始处理下载excel")
                     file.write(response.content)  # 写excel到当前目录
                     excel_file = xlrd2.open_workbook(all_file_path)
                     do_all_collect(excel_file, all_file_path, url)
+                    logger.info("处理excel完成")
     except Exception as es:
         logger.error(es)
     finally:
@@ -135,6 +137,8 @@ def do_all_collect(excel_file, all_file_path, url):
                                           , exchange_mt_guaranty_and_underlying_security, data_source, start_dt,
                                           end_dt, used_time, url, all_file_path)
             logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+        else:
+            logger.error("采集数据为空，此次采集任务失败！")
     except Exception as es:
         logger.error(es)
 

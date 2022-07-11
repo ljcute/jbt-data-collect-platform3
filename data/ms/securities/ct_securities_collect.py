@@ -73,7 +73,7 @@ def target_collect():
                     rz_rate = i['FIN_RATIO']  # 融资保证金比例
                     rq_rate = i['SLO_RATIO']  # 融券保证金比例
                     data_list.append((sec_code, sec_name, rz_rate, rq_rate))
-
+                logger.info(f'已采集数据条数为：{total}')
                 logger.info("broker_id={}采集财通证券融资融券标的证券数据结束".format(broker_id))
                 end_dt = datetime.datetime.now()
                 # 计算采集数据所需时间used_time
@@ -89,6 +89,10 @@ def target_collect():
                                                       , exchange_mt_underlying_security, data_source, start_dt,
                                                       end_dt, used_time, url)
                         logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+                    else:
+                        logger.error("采集数据条数与官网数据不一致，请检查重试！")
+                else:
+                    logger.error("采集数据为空，此次采集任务失败！")
 
     except Exception as es:
         logger.error(es)
@@ -138,7 +142,7 @@ def guaranty_collect():
                     discount_rate = i['ASSURE_RATIO']  # 融资保证金比例
                     market = i['MARKET']  # 融券保证金比例
                     data_list.append((sec_code, sec_name, discount_rate, market))
-
+                logger.info(f'已采集完成数据条数：{total}')
                 logger.info("broker_id={}采集财通证券可充抵保证金证券数据结束".format(broker_id))
                 end_dt = datetime.datetime.now()
                 # 计算采集数据所需时间used_time
@@ -154,6 +158,10 @@ def guaranty_collect():
                                                       , exchange_mt_guaranty_security, data_source, start_dt,
                                                       end_dt, used_time, url)
                         logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+                    else:
+                        logger.error("采集数据条数与官网数据不一致，请检查重试！")
+                else:
+                    logger.error("采集数据为空，此次采集任务失败！")
 
     except Exception as es:
         logger.error(es)

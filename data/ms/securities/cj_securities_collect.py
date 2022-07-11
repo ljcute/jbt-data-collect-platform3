@@ -53,7 +53,7 @@ def target_collect():
                     rzbd = i['rzbd']
                     rqbd = i['rqbd']
                     target_list.append((market, stock_code, stock_name, rzbd, rqbd))
-
+                logger.info(f'已采集数据条数：{total}')
                 logger.info("broker_id={}采集长江证券标的证券及保证金比例数据结束".format(broker_id))
                 end_dt = datetime.datetime.now()
                 # 计算采集数据所需时间used_time
@@ -69,7 +69,10 @@ def target_collect():
                                                       , exchange_mt_underlying_security, data_source, start_dt,
                                                       end_dt, used_time, url)
                         logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
-
+                    else:
+                        logger.error("采集数据条数与官网数据不一致，请检查重试！")
+                else:
+                    logger.error("采集数据为空，此次采集任务失败！")
             else:
                 logger.info("无长江证券标的证券及保证金比例数据")
 
@@ -99,7 +102,7 @@ def guaranty_collect():
                     discount_rate = i['assure_ratio']
                     market = i['exchange_type']
                     target_list.append((market, stock_code, stock_name, discount_rate))
-
+                logger.info(f'已采集数据条数：{total}')
                 logger.info("broker_id={}采集长江证券可充抵保证金证券及折算率数据采集结束".format(broker_id))
                 end_dt = datetime.datetime.now()
                 # 计算采集数据所需时间used_time
@@ -115,6 +118,10 @@ def guaranty_collect():
                                                       , exchange_mt_guaranty_security, data_source, start_dt,
                                                       end_dt, used_time, url)
                         logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+                    else:
+                        logger.error("采集数据条数与官网数据不一致，请检查重试！")
+                else:
+                    logger.error("采集数据为空，此次采集任务失败！")
 
             else:
                 logger.info("无长江证券可充抵保证金证券及折算率数据")

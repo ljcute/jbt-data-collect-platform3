@@ -65,6 +65,7 @@ def download_excel(query_date=None):
 
 
 def handle_excel(excel_file, date, excel_file_path):
+    logger.info("开始处理excel")
     download_url = 'http://www.szse.cn/api/report/ShowReport'
     start_dt = datetime.datetime.now()
     sheet_0 = excel_file.sheet_by_index(0)
@@ -81,7 +82,7 @@ def handle_excel(excel_file, date, excel_file_path):
                 zqdm = str(row[0].value)  # 证券代码
                 zqjc = str(row[1].value)  # 证券简称
                 data_list.append((zqdm, zqjc))
-
+            logger.info(f'已采集数据条数：{total_row - 1}')
             logger.info("broker_id={}采集深交所数据结束".format(broker_id))
             end_dt = datetime.datetime.now()
             # 计算采集数据所需时间used_time
@@ -97,6 +98,10 @@ def handle_excel(excel_file, date, excel_file_path):
                                                   , exchange_mt_guaranty_security, data_source_szse, start_dt,
                                                   end_dt, used_time, download_url, excel_file_path)
                     logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+                else:
+                    logger.error("已采集数据与官网条数不一致，采集失败")
+            else:
+                logger.error("采集数据失败")
         else:
             logger.info("深交所该日无数据:txt_date:{}".format(date))
 
@@ -134,7 +139,9 @@ def exchange_mt_guaranty_security_collect(query_date=None, query_end_data=None):
         try:
             actual_date = datetime.date.today() if query_date is None else query_date
             logger.info("深交所数据采集日期actual_date:{}".format(actual_date))
+            logger.info("开始下载excel")
             download_excel(actual_date)
+            logger.info("excel下载完成")
             excel_file = xlrd2.open_workbook(excel_file_path, encoding_override="utf-8")
             handle_excel(excel_file, actual_date, excel_file_path)
         except Exception as es:

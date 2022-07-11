@@ -48,7 +48,7 @@ def target_collect():
         time.sleep(3)
         # 第1页内容
         first_page_content = driver.find_elements(By.XPATH, '//*[@id="bdzq"]/div[2]/table/tbody/tr')[1:]
-        logger.info("光大标的券第{}页".format(1))
+        logger.info("光大标的券第{}页，共10条".format(1))
         resolve_every_page_bd(first_page_content, original_data_list)
 
         # 找到总页数
@@ -69,7 +69,7 @@ def target_collect():
                 this_page_content = driver.find_elements(By.XPATH, '//*[@id="bdzq"]/div[2]/table/tbody/tr')[1:]
                 # 处理第[2, total_page]页html
                 # html_content = str(driver.page_source)
-            logger.info("光大标的券第{}页".format(current_page))
+            logger.info("光大标的券第{}页，共10条".format(current_page))
             resolve_every_page_bd(this_page_content, original_data_list)
 
         logger.info("broker_id={}采集光大证券标的证券数据结束".format(broker_id))
@@ -86,6 +86,8 @@ def target_collect():
                                           , exchange_mt_underlying_security, data_source, start_dt,
                                           end_dt, used_time, url)
             logger.info("broker_id={}完成数据入库".format(broker_id))
+        else:
+            logger.error("采集数据为空，此次采集任务失败！")
 
     except Exception as es:
         logger.error(es)
@@ -126,7 +128,7 @@ def guaranty_collect():
         time.sleep(3)
         # 第1页内容
         first_page_content = driver.find_elements(By.XPATH, '//*[@id="bzj"]/div[2]/table/tbody/tr')[1:]
-        logger.info("光大可充抵保证金券第{}页".format(1))
+        logger.info("光大可充抵保证金券第{}页，共10条".format(1))
         resolve_every_page_bzj(first_page_content, original_data_list)
 
         # 找到总页数
@@ -147,7 +149,7 @@ def guaranty_collect():
                 this_page_content = driver.find_elements(By.XPATH, '//*[@id="bzj"]/div[2]/table/tbody/tr')[1:]
                 # 处理第[2, total_page]页html
                 # html_content = str(driver.page_source)
-            logger.info("光大可充抵保证金券第{}页".format(current_page))
+            logger.info("光大可充抵保证金券第{}页，共10条".format(current_page))
             resolve_every_page_bzj(this_page_content, original_data_list)
 
         logger.info("broker_id={}采集光大证券可充抵保证金证券数据结束".format(broker_id))
@@ -164,6 +166,8 @@ def guaranty_collect():
                                           , exchange_mt_guaranty_security, data_source, start_dt,
                                           end_dt, used_time, url)
             logger.info("broker_id={}完成数据入库".format(broker_id))
+        else:
+            logger.error("采集数据为空，此次采集任务失败！")
 
     except Exception as es:
         logger.error(es)

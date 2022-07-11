@@ -67,6 +67,7 @@ def download_excel(query_date=None):
 
 
 def handle_excel(excel_file, date, excel_file_path):
+    logger.info("开始处理excel")
     download_url = 'http://www.szse.cn/api/report/ShowReport'
     start_dt = datetime.datetime.now()
     sheet_0 = excel_file.sheet_by_index(0)
@@ -96,6 +97,7 @@ def handle_excel(excel_file, date, excel_file_path):
             used_time = (end_dt - start_dt).seconds
             data_df = pd.DataFrame(data_list,
                                    columns=['zqdm', 'zqjc', 'rzbd', 'rqbd', 'drkrz', 'drkrq', 'rqmcjgxz', 'zdfxz'])
+            logger.info(f'已采集数据条数：{total_row - 1}')
             if data_df is not None:
                 if data_df.iloc[:, 0].size == total_row - 1:
                     df_result = {
@@ -106,7 +108,10 @@ def handle_excel(excel_file, date, excel_file_path):
                                                   , exchange_mt_underlying_security, data_source_szse, start_dt,
                                                   end_dt, used_time, download_url, excel_file_path)
                     logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
-
+                else:
+                    logger.error("已采集数据与官网条数不一致，采集失败")
+            else:
+                logger.error("采集数据失败")
         else:
             logger.info("深交所该日无数据:txt_date:{}".format(date))
 
@@ -144,7 +149,9 @@ def exchange_mt_underlying_security_collect(query_date=None, query_end_data=None
         try:
             actual_date = datetime.date.today() if query_date is None else query_date
             logger.info("深交所数据采集日期actual_date:{}".format(actual_date))
+            logger.info("开始下载excel")
             download_excel(actual_date)
+            logger.info("excel下载完成")
             excel_file = xlrd2.open_workbook(excel_file_path, encoding_override="utf-8")
             handle_excel(excel_file, actual_date, excel_file_path)
         except Exception as es:

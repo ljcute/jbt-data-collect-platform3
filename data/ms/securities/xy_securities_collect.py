@@ -92,6 +92,8 @@ def target_collect(excel_file, target_file_path, excel_one_download_url):
                                           , exchange_mt_underlying_security, data_source, start_dt,
                                           end_dt, used_time, excel_one_download_url, target_file_path, )
             logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+        else:
+            logger.error("采集数据为空，此次采集任务失败！")
 
     except Exception as es:
         logger.error(es)
@@ -165,6 +167,8 @@ def guaranty_collect(excel_file, guaranty_file_path, excel_two_download_url):
                                           , exchange_mt_guaranty_security, data_source, start_dt,
                                           end_dt, used_time, excel_two_download_url, guaranty_file_path)
             logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+        else:
+            logger.error("采集数据为空，此次采集任务失败！")
 
     except Exception as es:
         logger.error(es)

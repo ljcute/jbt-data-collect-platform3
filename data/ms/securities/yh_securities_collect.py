@@ -69,6 +69,8 @@ def rz_target_collect():
                                           , exchange_mt_financing_underlying_security, data_source, start_dt,
                                           end_dt, used_time, url)
             logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+        else:
+            logger.error("采集数据为空，此次采集任务失败！")
 
     except Exception as es:
         logger.error(es)
@@ -123,6 +125,8 @@ def rq_target_collect():
                                           , exchange_mt_lending_underlying_security, data_source, start_dt,
                                           end_dt, used_time, url)
             logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+        else:
+            logger.error("采集数据为空，此次采集任务失败！")
 
     except Exception as es:
         logger.error(es)

@@ -56,7 +56,7 @@ def target_collect():
 
         # 当前网页内容(第1页)
         html_content = str(driver.page_source)
-        logger.info("申万标的券第{}页".format(1))
+        logger.info("申万标的券第{}页，共10条".format(1))
         resolve_single_target_page(html_content, original_data_list)
         target_title = ['market', 'secu_code', 'secu_name', 'rz_rate', 'rq_rate']
 
@@ -77,9 +77,9 @@ def target_collect():
 
             # 处理第[2, total_page]页html
             html_content = str(driver.page_source)
-            logger.info("申万标的券第{}页".format(current_page))
+            logger.info("申万标的券第{}页，共10条".format(current_page))
             resolve_single_target_page(html_content, original_data_list)
-
+        logger.info(f'已采集数据总条数：{sc_total}')
         logger.info("broker_id={}采集申万宏源标的券数据结束".format(broker_id))
         end_dt = datetime.datetime.now()
         # 计算采集数据所需时间used_time
@@ -97,6 +97,8 @@ def target_collect():
                 logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
             else:
                 logger.info("采集数据总数有误，请检查！")
+        else:
+            logger.error("采集数据为空，此次采集任务失败！")
 
     except Exception as es:
         logger.error(es)
@@ -151,7 +153,7 @@ def guaranty_collect():
 
         # 当前网页内容(第1页)
         html_content = str(driver.page_source)
-        logger.info("申万担保券第{}页".format(1))
+        logger.info("申万担保券第{}页，共10条".format(1))
         resolve_single_guaranty_page(html_content, all_data_list)
 
         db_title = ['market', 'secu_code', 'secu_name', 'rate', 'secu_type', 'secu_class']
@@ -175,9 +177,9 @@ def guaranty_collect():
             time.sleep(0.8)
             # 处理第[2, total_page]页html
             html_content = str(driver.page_source)
-            logger.info("申万担保券第{}页".format(current_page))
+            logger.info("申万担保券第{}页，共10条".format(current_page))
             resolve_single_guaranty_page(html_content, all_data_list)
-
+        logger.info(f'已采集数据条数：{sc_total}')
         logger.info("broker_id={}采集申万宏源担保券数据结束".format(broker_id))
         end_dt = datetime.datetime.now()
         # 计算采集数据所需时间used_time
@@ -193,6 +195,10 @@ def guaranty_collect():
                                               , exchange_mt_guaranty_security, data_source, start_dt,
                                               end_dt, used_time, url)
                 logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+            else:
+                logger.error("采集数据条数与官网数据不一致，请检查重试！")
+        else:
+            logger.error("采集数据为空，此次采集任务失败！")
 
     except Exception as es:
         logger.error(es)

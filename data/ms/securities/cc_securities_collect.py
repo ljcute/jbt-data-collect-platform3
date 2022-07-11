@@ -68,7 +68,7 @@ def rz_target_collect():
                 round_rate = i['rate']
                 date = i['pub_date']
                 data_list.append((sec_code, sec_name, round_rate, date))
-
+            logger.info(f'已采集数据条数：{total}')
         except Exception as es:
             logger.error(es)
 
@@ -87,6 +87,10 @@ def rz_target_collect():
                                           , exchange_mt_financing_underlying_security, data_source, start_dt,
                                           end_dt, used_time, url)
             logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+        else:
+            logger.error("采集数据条数与官网数据不一致，请检查重试！")
+    else:
+        logger.error("采集数据为空，此次采集任务失败！")
 
 
 # 长城证券融券标的券采集
@@ -124,6 +128,7 @@ def rq_target_collect():
                 round_rate = i['rate']
                 date = i['pub_date']
                 data_list.append((sec_code, sec_name, round_rate, date))
+            logger.info(f'已采集数据条数：{total}')
 
         except Exception as es:
             logger.error(es)
@@ -143,7 +148,10 @@ def rq_target_collect():
                                           , exchange_mt_lending_underlying_security, data_source, start_dt,
                                           end_dt, used_time, url)
             logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
-
+        else:
+            logger.error("采集数据条数与官网数据不一致，请检查重试！")
+    else:
+        logger.error("采集数据为空，此次采集任务失败！")
 
 # 长城证券担保券采集
 def guaranty_collect():
@@ -180,6 +188,7 @@ def guaranty_collect():
                 round_rate = i['rate']
                 date = i['pub_date']
                 data_list.append((sec_code, sec_name, round_rate, date))
+            logger.info(f'已采集数据条数：{total}')
 
         except Exception as es:
             logger.error(es)
@@ -199,7 +208,10 @@ def guaranty_collect():
                                           , exchange_mt_guaranty_security, data_source, start_dt,
                                           end_dt, used_time, url)
             logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
-
+        else:
+            logger.error("采集数据条数与官网数据不一致，请检查重试！")
+    else:
+        logger.error("采集数据为空，此次采集任务失败！")
 
 def get_timestamp():
     return int(time.time() * 1000)

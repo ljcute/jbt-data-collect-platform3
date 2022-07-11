@@ -68,6 +68,7 @@ def get_data():
         with open(sh_guaranty_file_path, 'wb') as file:
             file.write(response.content)  # 写excel到当前目录
             excel_file = xlrd2.open_workbook(sh_guaranty_file_path)
+            logger.info("上交所、担保券数据excel下载完成")
             handle_excel(excel_file, local_date, sh_guaranty_file_path, exchange_mt_guaranty_security, data_source_sse)
 
         logger.info("上交所、融资开始采集")
@@ -75,6 +76,7 @@ def get_data():
         with open(sh_target_rz_file_path, 'wb') as file:
             file.write(response.content)  # 写excel到当前目录
             excel_file = xlrd2.open_workbook(sh_target_rz_file_path)
+            logger.info("上交所、融资数据excel下载完成")
             handle_excel(excel_file, local_date, sh_target_rz_file_path, exchange_mt_financing_underlying_security,
                          data_source_sse)
 
@@ -83,6 +85,7 @@ def get_data():
         with open(sh_target_rq_file_path, 'wb') as file:
             file.write(response.content)  # 写excel到当前目录
             excel_file = xlrd2.open_workbook(sh_target_rq_file_path)
+            logger.info("上交所、融券数据excel下载完成")
             handle_excel(excel_file, local_date, sh_target_rq_file_path, exchange_mt_lending_underlying_security,
                          data_source_sse)
 
@@ -101,6 +104,7 @@ def handle_excel(excel_file, date, excel_file_path, type, soure):
     sheet_0 = excel_file.sheet_by_index(0)
     total_row = sheet_0.nrows
     try:
+        logger.info("开始处理excel数据")
         data_list = []
         for i in range(1, total_row):  # 从第2行开始遍历
             row = sheet_0.row(i)
@@ -116,6 +120,7 @@ def handle_excel(excel_file, date, excel_file_path, type, soure):
         # 计算采集数据所需时间used_time
         used_time = (end_dt - start_dt).seconds
         data_df = pd.DataFrame(data_list, columns=['biz_dt', 'sec_code', 'sec_name'])
+        logger.info(f'已采集数据总条数：{total_row-1}')
         if data_df is not None:
             if data_df.iloc[:, 0].size == total_row - 1:
                 df_result = {
@@ -126,6 +131,11 @@ def handle_excel(excel_file, date, excel_file_path, type, soure):
                                               , type, soure, start_dt,
                                               end_dt, used_time, url, excel_file_path)
                 logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+            else:
+                logger.error("采集数据条数与官网数据不一致，请检查重试！")
+        else:
+            logger.error("采集数据为空，此次采集任务失败！")
+
 
     except Exception as es:
         logger.error(es)

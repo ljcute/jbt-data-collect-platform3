@@ -60,7 +60,7 @@ def rzrq_target_collect():
 
         # 当前网页内容(第1页)
         html_content = str(driver.page_source)
-        logger.info("东兴标的券第{}页".format(1))
+        logger.info("东兴标的券第{}页,共10条".format(1))
         resolve_single_target_page(html_content, original_data_list)
         target_title = ['date', 'stock_code', 'stock_name', 'rz_rate', 'rq_rate']
 
@@ -75,7 +75,7 @@ def rzrq_target_collect():
 
             # 处理第[2, total_page]页html
             html_content = str(driver.page_source)
-            logger.info("东兴标的券第{}页".format(current_page))
+            logger.info("东兴标的券第{}页，共10条".format(current_page))
             resolve_single_target_page(html_content, original_data_list)
 
         logger.info("broker_id={}采集东兴证券融资融券标的证券数据结束".format(broker_id))
@@ -92,6 +92,8 @@ def rzrq_target_collect():
                                           , exchange_mt_underlying_security, data_source, start_dt,
                                           end_dt, used_time, url)
             logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+        else:
+            logger.error("采集数据为空，此次采集任务失败！")
 
     except Exception as es:
         logger.error(es)
@@ -144,7 +146,7 @@ def guaranty_collect():
 
         # 当前网页内容(第1页)
         html_content = str(driver.page_source)
-        logger.info("东兴可充抵保证金券第{}页".format(1))
+        logger.info("东兴可充抵保证金券第{}页，共10条".format(1))
         resolve_single_target_page_ohter(html_content, original_data_list)
         target_title = ['date', 'stock_code', 'stock_name', 'discount_rate']
         # 找到下一页 >按钮
@@ -156,7 +158,7 @@ def guaranty_collect():
 
             # 处理第[2, total_page]页html
             html_content = str(driver.page_source)
-            logger.info("东兴可充抵保证金券第{}页".format(current_page))
+            logger.info("东兴可充抵保证金券第{}页，共10条".format(current_page))
             resolve_single_target_page_ohter(html_content, original_data_list)
 
         logger.info("broker_id={}采集东兴证券可充抵保证金担保券数据结束".format(broker_id))
@@ -173,6 +175,8 @@ def guaranty_collect():
                                           , exchange_mt_guaranty_security, data_source, start_dt,
                                           end_dt, used_time, url)
             logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+        else:
+            logger.error("采集数据为空，此次采集任务失败！")
 
     except Exception as es:
         logger.error(es)

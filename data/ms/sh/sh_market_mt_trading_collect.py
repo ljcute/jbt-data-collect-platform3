@@ -36,6 +36,7 @@ broker_id = 1000099
 
 
 def download_excel(query_date=None):
+    logger.info("开始下载excel")
     download_excel_url = "http://www.sse.com.cn/market/dealingdata/overview/margin/a/rzrqjygk20220623.xls"
     if query_date is not None:
         replace_str = 'rzrqjygk' + str(query_date).format("'%Y%m%d'").replace('-', '') + '.xls'
@@ -55,6 +56,7 @@ def download_excel(query_date=None):
 
 
 def handle_excel_total(excel_file, date, excel_file_path=None):
+    logger.info("开始处理excel")
     url = 'http://www.sse.com.cn/market/othersdata/margin/sum/'
     start_dt = datetime.datetime.now()
     sheet_0 = excel_file.sheet_by_index(0)
@@ -74,12 +76,13 @@ def handle_excel_total(excel_file, date, excel_file_path=None):
             rzrjye = float(str(row[5].value).replace(",", ""))  # 融资融券余额(元)
             data_list.append((date, rzye, rzmre, rjyl, rjylje, rjmcl, rzrjye))
 
-        logger.info("上交所数据采集结束:{}".format(broker_id))
+        logger.info("excel处理完成，开始处理数据")
         end_dt = datetime.datetime.now()
         # 计算采集数据所需时间used_time
         used_time = (end_dt - start_dt).seconds
         data_df = pd.DataFrame(data_list,
                                columns=['date', 'rzye', 'rzmre', 'rjyl', 'rjylje', 'rjmcl', 'rzrjye'])
+        logger.info("上交所数据采集结束:{}".format(broker_id))
         if data_df is not None:
             if data_df.iloc[:, 0].size == 1:
                 df_result = {
@@ -90,6 +93,10 @@ def handle_excel_total(excel_file, date, excel_file_path=None):
                                                    , data_type_market_mt_trading_amount, data_source_sse, start_dt,
                                                    end_dt, used_time, url, excel_file_path)
                 logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+            else:
+                logger.error("已采集数据与官网不一致，采集失败！")
+        else:
+            logger.error("数据采集失败！")
         handle_excel_detail(excel_file, date, excel_file_path)
 
     except Exception as es:
@@ -97,6 +104,7 @@ def handle_excel_total(excel_file, date, excel_file_path=None):
 
 
 def handle_excel_detail(excel_file, date, excel_file_path=None):
+    logger.info("开始解析excel，处理数据！")
     url = 'http://www.sse.com.cn/market/othersdata/margin/sum/'
     start_dt = datetime.datetime.now()
     sheet_1 = excel_file.sheet_by_index(1)
@@ -123,6 +131,7 @@ def handle_excel_detail(excel_file, date, excel_file_path=None):
         used_time = (end_dt - start_dt).seconds
         data_df = pd.DataFrame(data_list,
                                columns=['date', 'bdzjdm', 'bdzjjc', 'rzye', 'rzmre', 'rzche', 'rjyl', 'rjmcl', 'rjchl'])
+        logger.info(f'已采集数据条数：{total_row-1}')
         if data_df is not None:
             if data_df.iloc[:, 0].size == total_row - 1:
                 df_result = {
@@ -133,6 +142,10 @@ def handle_excel_detail(excel_file, date, excel_file_path=None):
                                                    , data_type_market_mt_trading_items, data_source_sse, start_dt,
                                                    end_dt, used_time, url, excel_file_path)
                 logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+            else:
+                logger.error("已采集数据与官网不一致，采集失败！")
+        else:
+            logger.error("采集数据为空，采集失败！")
 
     except Exception as es:
         logger.error(es)
@@ -151,6 +164,7 @@ def collect(query_date=None):
         actual_date = datetime.date.today() if query_date is None else query_date
         logger.info("上交所数据采集日期actual_date:{}".format(actual_date))
         download_excel(actual_date)
+        logger.info("excel下载完成，开始处理excel")
         excel_file = xlrd2.open_workbook(excel_file_path, encoding_override="utf-8")
         handle_excel_total(excel_file, actual_date, excel_file_path)
     except Exception as es:
