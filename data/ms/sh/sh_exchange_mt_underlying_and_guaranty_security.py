@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 # author yanpan
 # 2022/6/27 09:33
+# 上海交易所-融资融券可充抵保证金证券及融资/融券标的证券
+
 import os
 import sys
 
