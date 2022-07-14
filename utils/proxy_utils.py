@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 # author lbj
 # 2021/6/18 16:11
+import os
+import time
+from configparser import ConfigParser
 
 import requests
 from utils.logs_utils import logger
@@ -14,32 +17,44 @@ expire_ip_url = cf.get('http-proxy-java-service', 'expire-ip')
 proxy_switch = cf.get('http-proxy-java-service', 'switch')
 none_proxy = {'http': None, 'https': None}
 
+base_dir = os.path.dirname(os.path.abspath(__file__))
+full_path = os.path.join(base_dir, '../config/config.ini')
+cf = ConfigParser()
+cf.read(full_path)
+proxy_retry_time = cf.get('proxy', 'proxy_retry_time')
+proxy_sleep_time = cf.get('proxy', 'proxy_sleep_time')
+
 
 def get_proxies(data_type=1, retry_count=3):
     if retry_count <= 0 or proxy_switch == 'N':
         return none_proxy
 
-    this_method_retry_count = 3
+    this_method_retry_count = int(proxy_retry_time)
     while this_method_retry_count > 0:
         params = {"appId": app_id, "interfaceId": data_type}
         response = requests.get(url=get_ip_url, params=params, timeout=3)
         text = json.loads(response.text)
         if text['code'] == '-1':
             logger.info("未获取到ip......")
+            time.sleep(int(proxy_sleep_time))
             return none_proxy
 
         data = text['data']
         ip = data['ip']
         port = data['port']
         logger.info("已获取到ip......")
+        time.sleep(int(proxy_sleep_time))
         if check_proxy_ip_valid(ip, port):  # 从java服务拿到ip再校验一次是否可用
             logger.info("从java服务拿到ip校验完成，为可用ip......")
+            time.sleep(int(proxy_sleep_time))
             return create_proxies(ip, port)
         else:
             logger.info("ip校验为不可用......")
             this_method_retry_count = this_method_retry_count - 1
             logger.info("重试，重新获取ip及代理......")
+            time.sleep(int(proxy_sleep_time))
             continue
+
     return none_proxy
 
 
@@ -91,6 +106,7 @@ if __name__ == "__main__":
     # print(n_time.__gt__(dt))
 
     # get_proxies()
-    print(check_proxy_ip_valid("117.10.187.192", 32947))
+    # print(check_proxy_ip_valid("117.10.187.192", 32947))
     # proxies222 = get_proxies(1, 3)
     # print(proxies222)
+    get_proxies()
