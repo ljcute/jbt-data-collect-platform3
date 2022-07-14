@@ -6,19 +6,17 @@
 import os
 import sys
 
+from data.ms.basehandler import BaseHandler
+from utils.deal_date import ComplexEncoder
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 import json
 import time
-import pandas as pd
 from constants import *
-from data.dao import data_deal
 from utils.logs_utils import logger
 import datetime
-import fire
 
-# 定义常量
-broker_id = 10005
 
 exchange_mt_guaranty_security = '2'  # 融资融券可充抵保证金证券
 exchange_mt_underlying_security = '3'  # 融资融券标的证券
@@ -29,17 +27,37 @@ exchange_mt_guaranty_and_underlying_security = '99'  # 融资融券可充抵保�
 data_source = '招商证券'
 
 
-# 标的证券及保证金比例采集
-def rz_target_collect():
-    query_date = time.strftime('%Y%m%d', time.localtime())
-    logger.info("broker_id={}开始采集招商证券标的证券及保证金比例数据".format(broker_id))
-    url = 'https://www.cmschina.com/api/newone2019/rzrq/rzrqstock'
-    page_size = random_page_size()
-    params = {"pageSize": page_size, "pageNum": 1, "rqbdflag": 1}  # rqbdflag = 1融资
-    try:
-        start_dt = datetime.datetime.now()
-        response = requests.get(url=url, params=params, headers=get_headers(), timeout=5)
-        if response.status_code == 200:
+class CollectHandler(BaseHandler):
+
+    @classmethod
+    def collect_data(cls):
+        max_retry = 0
+        while max_retry < 3:
+            try:
+                # 招商证券标的证券采集
+                cls.rz_target_collect()
+                # 招商证券保证金证券
+                cls.guaranty_collect()
+
+                break
+            except Exception as e:
+                time.sleep(3)
+                logger.error(e)
+
+            max_retry += 1
+
+    # 标的证券及保证金比例采集
+    @classmethod
+    def rz_target_collect(cls):
+        actual_date = datetime.date.today()
+        logger.info(f'开始采集招商证券标的证券及保证金比例数据{actual_date}')
+        url = 'https://www.cmschina.com/api/newone2019/rzrq/rzrqstock'
+        page_size = random_page_size()
+        params = {"pageSize": page_size, "pageNum": 1, "rqbdflag": 1}  # rqbdflag = 1融资
+        try:
+            start_dt = datetime.datetime.now()
+            proxies = super().get_proxies()
+            response = super().get_response(url, proxies, 0, get_headers(), params)
             text = json.loads(response.text)
             total = text['body']['totalNum']
             data_list = text['body']['stocks']
@@ -51,38 +69,39 @@ def rz_target_collect():
                 margin_rate = i['marginratefund']
                 target_list.append((stock_code, stock_name, margin_rate))
 
-            logger.info("broker_id={}采集招商证券标的证券及保证金比例数据结束".format(broker_id))
+            logger.info(f'采集招商证券标的证券及保证金比例数据结束共{int(len(target_list))}条')
+            df_result = super().data_deal(target_list, target_title)
             end_dt = datetime.datetime.now()
-            # 计算采集数据所需时间used_time
             used_time = (end_dt - start_dt).seconds
-            data_df = pd.DataFrame(target_list, columns=target_title)
-            if data_df is not None:
-                df_result = {
-                    'columns': target_title,
-                    'data': data_df.values.tolist()
-                }
-                data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), query_date
-                                              , exchange_mt_underlying_security, data_source, start_dt,
-                                              end_dt, used_time, url)
-                logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+            if df_result is not None:
+                super().data_insert(int(len(target_list)), df_result, actual_date,
+                                    exchange_mt_underlying_security,
+                                    data_source, start_dt, end_dt, used_time, url)
+                logger.info(f'入库信息,共{int(len(target_list))}条')
             else:
-                logger.error("采集数据为空，此次采集任务失败！")
+                raise Exception(f'采集数据条数为0，入库失败')
 
-    except Exception as es:
-        logger.error(es)
+            message = "招商证券标的证券数据采集完成"
+            super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
+                                      exchange_mt_underlying_security, data_source, message)
 
+            logger.info("招商证券标的证券数据采集完成")
 
-# 可充抵保证金证券及折算率采集
-def guaranty_collect():
-    query_date = time.strftime('%Y%m%d', time.localtime())
-    logger.info("broker_id={}开始采集可充抵保证金证券及折算率数据".format(broker_id))
-    url = 'https://www.cmschina.com/api/newone2019/rzrq/rzrqstockdiscount'
-    page_size = random_page_size()
-    params = {"pageSize": page_size, "pageNum": 1}
-    try:
-        start_dt = datetime.datetime.now()
-        response = requests.get(url=url, params=params, headers=get_headers(), timeout=5)
-        if response.status_code == 200:
+        except Exception as es:
+            logger.error(es)
+
+    # 可充抵保证金证券及折算率采集
+    @classmethod
+    def guaranty_collect(cls):
+        actual_date = datetime.date.today()
+        logger.info(f'开始采集招商证券可充抵保证金证券例数据{actual_date}')
+        url = 'https://www.cmschina.com/api/newone2019/rzrq/rzrqstockdiscount'
+        page_size = random_page_size()
+        params = {"pageSize": page_size, "pageNum": 1}
+        try:
+            start_dt = datetime.datetime.now()
+            proxies = super().get_proxies()
+            response = super().get_response(url, proxies, 0, get_headers(), params)
             text = json.loads(response.text)
             total = text['body']['totalNum']
             data_list = text['body']['stocks']
@@ -94,24 +113,26 @@ def guaranty_collect():
                 margin_rate = i['pledgerate']
                 target_list.append((stock_code, stock_name, margin_rate))
 
-            logger.info("broker_id={}采集可充抵保证金证券及折算率数据结束".format(broker_id))
+            logger.info(f'采集招商证券可充抵保证金证券数据结束共{int(len(target_list))}条')
+            df_result = super().data_deal(target_list, target_title)
             end_dt = datetime.datetime.now()
-            # 计算采集数据所需时间used_time
             used_time = (end_dt - start_dt).seconds
-            data_df = pd.DataFrame(target_list, columns=target_title)
-            if data_df is not None:
-                df_result = {
-                    'columns': target_title,
-                    'data': data_df.values.tolist()
-                }
-                data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), query_date
-                                              , exchange_mt_underlying_security, data_source, start_dt,
-                                              end_dt, used_time, url)
-                logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+            if df_result is not None:
+                super().data_insert(int(len(target_list)), df_result, actual_date,
+                                    exchange_mt_guaranty_security,
+                                    data_source, start_dt, end_dt, used_time, url)
+                logger.info(f'入库信息,共{int(len(target_list))}条')
             else:
-                logger.error("采集数据为空，此次采集任务失败！")
-    except Exception as es:
-        logger.error(es)
+                raise Exception(f'采集数据条数为0，入库失败')
+
+            message = "招商证券保证金证券数据采集完成"
+            super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
+                                      exchange_mt_guaranty_security, data_source, message)
+
+            logger.info("招商证券保证金证券数据采集完成")
+
+        except Exception as es:
+            logger.error(es)
 
 
 def random_page_size(mu=28888, sigma=78888):
@@ -126,10 +147,5 @@ def random_page_size(mu=28888, sigma=78888):
 
 
 if __name__ == '__main__':
-    rz_target_collect()
-    guaranty_collect()
-
-    # fire.Fire()
-
-    # python3 zs_securities_collect.py - rz_target_collect
-    # python3 zs_securities_collect.py - guaranty_collect
+    collector = CollectHandler()
+    collector.collect_data()

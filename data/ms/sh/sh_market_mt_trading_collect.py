@@ -1,53 +1,114 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# author yanpan
-# 2022/6/23 13:33
-# 上海交易所-市场融资融券交易总量/市场融资融券交易明细
-
+# @Author  : yanpan
+# @Time    : 2022/7/12 17:05
+# @Site    :
+# @Software: PyCharm
+# 上海交易所-融资融券交易汇总及详细数据
 import os
 import sys
+import json
+import time
+import xlrd2
+import datetime
+import os
+from configparser import ConfigParser
+from utils.deal_date import ComplexEncoder
+from utils.logs_utils import logger
+from data.ms.basehandler import BaseHandler
+from utils.remove_file import remove_file
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
-import json
-import traceback
-import datetime
-import pandas as pd
-import xlrd2
-from constants import USER_AGENTS
-import requests
-import datetime
-import fire
-import random
-import os
-from data.dao import data_deal
-from utils.proxy_utils import get_proxies
-from utils.logs_utils import logger
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 excel_file_path = os.path.join(base_dir, 'sh_balance.xls')
+
+base_dir = os.path.dirname(os.path.abspath(__file__))
+full_path = os.path.join(base_dir, '../../../config/config.ini')
+cf = ConfigParser()
+cf.read(full_path)
+paths = cf.get('excel-path', 'save_excel_file_path')
+save_excel_file_path = os.path.join(paths, '上交所融资融券.xls')
 
 data_type_market_mt_trading_amount = '0'  # 市场融资融券交易总量
 data_type_market_mt_trading_items = '1'  # 市场融资融券交易明细
 
 data_source_szse = '深圳交易所'
 data_source_sse = '上海交易所'
-broker_id = 1000099
 
 
-def download_excel(query_date=None):
-    logger.info("开始下载excel")
-    download_excel_url = "http://www.sse.com.cn/market/dealingdata/overview/margin/a/rzrqjygk20220623.xls"
-    if query_date is not None:
-        replace_str = 'rzrqjygk' + str(query_date).format("'%Y%m%d'").replace('-', '') + '.xls'
-        download_excel_url = download_excel_url.replace(download_excel_url.split('/')[-1], replace_str)
-    headers = {
-        'User-Agent': random.choice(USER_AGENTS)
-    }
-    response = requests.get(url=download_excel_url, proxies=get_proxies(), headers=headers, timeout=20)
+class CollectHandler(BaseHandler):
+
+    @classmethod
+    def collect_data(cls, query_date=None):
+        max_retry = 0
+        while max_retry < 3:
+            try:
+                start_dt = datetime.datetime.now()
+                actual_date = datetime.date.today() if query_date is None else query_date
+                logger.info(f'上交所数据采集开始{actual_date}')
+                download_excel_url = "http://www.sse.com.cn/market/dealingdata/overview/margin/a/rzrqjygk20220623.xls"
+                if query_date is not None:
+                    replace_str = 'rzrqjygk' + str(query_date).format("'%Y%m%d'").replace('-', '') + '.xls'
+                    download_excel_url = download_excel_url.replace(download_excel_url.split('/')[-1], replace_str)
+                proxies = super().get_proxies()
+                response = super().get_response(download_excel_url, proxies, 0)
+                download_excel(response, actual_date)
+                logger.info("excel下载完成，开始处理excel")
+                excel_file = xlrd2.open_workbook(excel_file_path, encoding_override="utf-8")
+                title_list = ['date', 'rzye', 'rzmre', 'rjyl', 'rjylje', 'rjmcl', 'rzrjye']
+                title_list_detail = ['date', 'bdzjdm', 'bdzjjc', 'rzye', 'rzmre', 'rzche', 'rjyl', 'rjmcl', 'rjchl']
+
+                data_list, total_row = handle_excel_total(excel_file, actual_date)
+                df_result = super().data_deal(data_list, title_list)
+                end_dt = datetime.datetime.now()
+                used_time = (end_dt - start_dt).seconds
+                logger.info(f'开始入库汇总信息,共{int(len(data_list))}条')
+                if int(len(data_list)) == total_row - 17:
+                    super().data_insert(int(len(data_list)), df_result, actual_date, data_type_market_mt_trading_amount,
+                                        data_source_sse, start_dt, end_dt, used_time, download_excel_url,
+                                        save_excel_file_path)
+                else:
+                    raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{total_row - 1}不一致，入库失败')
+                message = "上海交易所融资融券交易汇总数据采集完成"
+                super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
+                                          data_type_market_mt_trading_amount, data_source_sse, message)
+
+                data_list_detail, total_row_detail = handle_excel_detail(excel_file, actual_date)
+                df_result_detail = super().data_deal(data_list_detail, title_list_detail)
+                end_dt_detal = datetime.datetime.now()
+                used_time_detail = (end_dt_detal - start_dt).seconds
+                logger.info(f'开始入库详细信息,共{int(len(data_list_detail))}条')
+                if int(len(data_list_detail)) == total_row_detail - 1:
+                    super().data_insert(int(len(data_list_detail)), df_result_detail, actual_date,
+                                        data_type_market_mt_trading_items, data_source_sse, start_dt, end_dt_detal,
+                                        used_time_detail,
+                                        download_excel_url, save_excel_file_path)
+                else:
+                    raise Exception(f'采集数据条数{int(len(data_list_detail))}与官网数据条数{total_row_detail - 1}不一致，入库失败')
+                logger.info(f'上交所数据采集结束{datetime.date.today()}')
+                message_1 = "上海交易所融资融券交易详细数据采集完成"
+                super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
+                                          data_type_market_mt_trading_items, data_source_sse,
+                                          message_1)
+
+                break
+            except Exception as e:
+                time.sleep(3)
+                logger.error(e)
+            finally:
+                remove_file(excel_file_path)
+
+            max_retry += 1
+
+
+def download_excel(response, query_date=None):
     if response.status_code == 200:
         try:
             with open(excel_file_path, 'wb') as file:
+                file.write(response.content)  # 写excel到当前目录
+            with open(save_excel_file_path, 'wb') as file:
                 file.write(response.content)  # 写excel到当前目录
         except Exception as es:
             logger.error(es)
@@ -55,7 +116,8 @@ def download_excel(query_date=None):
         logger.info("上交所该日无数据:txt_date:{}".format(query_date))
 
 
-def handle_excel_total(excel_file, date, excel_file_path=None):
+# 汇总信息
+def handle_excel_total(excel_file, date):
     logger.info("开始处理excel")
     url = 'http://www.sse.com.cn/market/othersdata/margin/sum/'
     start_dt = datetime.datetime.now()
@@ -76,34 +138,14 @@ def handle_excel_total(excel_file, date, excel_file_path=None):
             rzrjye = float(str(row[5].value).replace(",", ""))  # 融资融券余额(元)
             data_list.append((date, rzye, rzmre, rjyl, rjylje, rjmcl, rzrjye))
 
-        logger.info("excel处理完成，开始处理数据")
-        end_dt = datetime.datetime.now()
-        # 计算采集数据所需时间used_time
-        used_time = (end_dt - start_dt).seconds
-        data_df = pd.DataFrame(data_list,
-                               columns=['date', 'rzye', 'rzmre', 'rjyl', 'rjylje', 'rjmcl', 'rzrjye'])
-        logger.info("上交所数据采集结束:{}".format(broker_id))
-        if data_df is not None:
-            if data_df.iloc[:, 0].size == 1:
-                df_result = {
-                    'columns': ['date', 'rzye', 'rzmre', 'rjyl', 'rjylje', 'rjmcl', 'rzrjye'],
-                    'data': data_df.values.tolist()
-                }
-                data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), date
-                                                   , data_type_market_mt_trading_amount, data_source_sse, start_dt,
-                                                   end_dt, used_time, url, excel_file_path)
-                logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
-            else:
-                logger.error("已采集数据与官网不一致，采集失败！")
-        else:
-            logger.error("数据采集失败！")
-        handle_excel_detail(excel_file, date, excel_file_path)
-
-    except Exception as es:
-        logger.error(es)
+        logger.info("excel处理完成，开始处理汇总数据")
+        return data_list, total_row
+    except Exception as e:
+        logger.error(e)
 
 
-def handle_excel_detail(excel_file, date, excel_file_path=None):
+# 详细信息
+def handle_excel_detail(excel_file, date):
     logger.info("开始解析excel，处理数据！")
     url = 'http://www.sse.com.cn/market/othersdata/margin/sum/'
     start_dt = datetime.datetime.now()
@@ -126,82 +168,12 @@ def handle_excel_detail(excel_file, date, excel_file_path=None):
             rjchl = str(row[7].value).replace(",", "")  # 融资偿还量
             data_list.append((date, bdzjdm, bdzjjc, rzye, rzmre, rzche, rjyl, rjmcl, rjchl))
 
-        end_dt = datetime.datetime.now()
-        # 计算采集数据所需时间used_time
-        used_time = (end_dt - start_dt).seconds
-        data_df = pd.DataFrame(data_list,
-                               columns=['date', 'bdzjdm', 'bdzjjc', 'rzye', 'rzmre', 'rzche', 'rjyl', 'rjmcl', 'rjchl'])
-        logger.info(f'已采集数据条数：{total_row-1}')
-        if data_df is not None:
-            if data_df.iloc[:, 0].size == total_row - 1:
-                df_result = {
-                    'columns': ['date', 'bdzjdm', 'bdzjjc', 'rzye', 'rzmre', 'rzche', 'rjyl', 'rjmcl', 'rjchl'],
-                    'data': data_df.values.tolist()
-                }
-                data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), date
-                                                   , data_type_market_mt_trading_items, data_source_sse, start_dt,
-                                                   end_dt, used_time, url, excel_file_path)
-                logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
-            else:
-                logger.error("已采集数据与官网不一致，采集失败！")
-        else:
-            logger.error("采集数据为空，采集失败！")
-
-    except Exception as es:
-        logger.error(es)
-
-
-def remove_file(file_path):
-    try:
-        if os.path.exists(file_path):
-            os.remove(file_path)
+        logger.info("excel处理完成，开始处理详细数据")
+        return data_list, total_row
     except Exception as e:
-        logger.info("删除文件异常:{}".format(e))
+        logger.error(e)
 
 
-def collect(query_date=None):
-    try:
-        actual_date = datetime.date.today() if query_date is None else query_date
-        logger.info("上交所数据采集日期actual_date:{}".format(actual_date))
-        download_excel(actual_date)
-        logger.info("excel下载完成，开始处理excel")
-        excel_file = xlrd2.open_workbook(excel_file_path, encoding_override="utf-8")
-        handle_excel_total(excel_file, actual_date, excel_file_path)
-    except Exception as es:
-        traceback.format_exc()
-        logger.info("es:{}", es)
-    finally:
-        remove_file(excel_file_path)
-
-
-def collect_history(begin_dt, end_dt):
-    # begin = datetime.datetime.strptime('20210605', '%Y%m%d')
-    begin = datetime.datetime.strptime(begin_dt, '%Y%m%d')
-    end = datetime.datetime.strptime(end_dt, '%Y%m%d')
-    b = begin.date()
-    e = end.date()
-
-    for k in range((e - b).days + 1):
-        cur_date = b + datetime.timedelta(days=k)
-        collect(cur_date)
-
-
-if __name__ == "__main__":
-    # download_excel()
-    # data_collect()
-    # collect("2022-05-23")
-    # collect_history('20220620', '20220623')
-    # query_date = '2022-06-02'
-    # download_excel_url = "http://www.sse.com.cn/market/dealingdata/overview/margin/a/rzrqjygk20220623.xls"
-    # replace_str = 'rzrqjygk' + str(query_date).format("'%Y%m%d'").replace('-', '') + '.xls'
-    # download_excel_url = download_excel_url.replace(download_excel_url.split('/')[-1], replace_str)
-    # print(download_excel_url)
-    # download_excel('20220601')
-    # excel_file = xlrd2.open_workbook(excel_file_path, encoding_override="utf-8")
-    # handle_excel_total(excel_file, '2022-06-01', excel_file_path)
-    # collect('20220606')
-    # collect_history('20220621', '20220624')
-    # fire.Fire()
-    collect()
-
-    # python3 sh_market_mt_trading_collect.py - collect_history 20220621 20220624
+if __name__ == '__main__':
+    collector = CollectHandler()
+    collector.collect_data()

@@ -6,13 +6,14 @@
 import os
 import sys
 
+from data.ms.basehandler import BaseHandler
+from utils.deal_date import ComplexEncoder
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 import json
 import time
-import pandas as pd
 from constants import *
-from data.dao import data_deal
 from utils.logs_utils import logger
 import datetime
 
@@ -27,114 +28,127 @@ exchange_mt_guaranty_and_underlying_security = '99'  # 融资融券可充抵保�
 data_source = '长江证券'
 
 
-# 长江证券标的证券及保证金比例采集
-def target_collect():
-    query_date = time.strftime('%Y%m%d', time.localtime())
-    logger.info("broker_id={}开始采集长江证券标的证券及保证金比例数据".format(broker_id))
-    url = 'https://www.95579.com/servlet/json'
-    params = {"funcNo": "902122", "i_page": 1, "i_perpage": 10000}  # 默认查询当天
-    try:
-        response = requests.get(url=url, params=params, headers=get_headers(), timeout=10)
-        if response.status_code == 200:
-            start_dt = datetime.datetime.now()
-            text = json.loads(response.text)
-            data_list = text['results']
-            target_list = []
-            if len(data_list) > 0:
-                target_title = ['market', 'stock_code', 'stock_name', 'rzbd', 'rqbz']
-                total = int(data_list[0]['total_rows'])
-                for i in data_list:
-                    stock_code = i['stock_code']
-                    stock_name = i['stock_name']
-                    rz_rate = i['fin_ratio']
-                    rq_rate = i['bail_ratio']
-                    # market = '深圳' if i['exchange_type'] == '2' else '上海'
-                    market = i['exchange_type']
-                    rzbd = i['rzbd']
-                    rqbd = i['rqbd']
-                    target_list.append((market, stock_code, stock_name, rzbd, rqbd))
-                logger.info(f'已采集数据条数：{total}')
-                logger.info("broker_id={}采集长江证券标的证券及保证金比例数据结束".format(broker_id))
-                end_dt = datetime.datetime.now()
-                # 计算采集数据所需时间used_time
-                used_time = (end_dt - start_dt).seconds
-                data_df = pd.DataFrame(target_list, columns=target_title)
-                if data_df is not None:
-                    df_result = {
-                        'columns': target_title,
-                        'data': data_df.values.tolist()
-                    }
-                    if data_df.iloc[:, 0].size == total:
-                        data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), query_date
-                                                      , exchange_mt_underlying_security, data_source, start_dt,
-                                                      end_dt, used_time, url)
-                        logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+class CollectHandler(BaseHandler):
+
+    @classmethod
+    def collect_data(cls):
+        max_retry = 0
+        while max_retry < 3:
+            try:
+                # 长江证券标的证券采集
+                cls.target_collect()
+                # 长江证券可充抵保证金采集
+                cls.guaranty_collect()
+
+                break
+            except Exception as e:
+                time.sleep(3)
+                logger.error(e)
+
+            max_retry += 1
+
+    @classmethod
+    def target_collect(cls):
+        actual_date = datetime.date.today()
+        logger.info(f'开始采集长江证券标的证券及保证金比例数据{actual_date}')
+        url = 'https://www.95579.com/servlet/json'
+        params = {"funcNo": "902122", "i_page": 1, "i_perpage": 10000}  # 默认查询当天
+        target_title = ['market', 'stock_code', 'stock_name', 'rzbd', 'rqbz']
+        try:
+            proxies = super().get_proxies()
+            response = super().get_response(url, proxies, 0, get_headers(), params)
+            if response.status_code == 200:
+                start_dt = datetime.datetime.now()
+                text = json.loads(response.text)
+                data_list = text['results']
+                target_list = []
+                if len(data_list) > 0:
+                    total = int(data_list[0]['total_rows'])
+                    for i in data_list:
+                        stock_code = i['stock_code']
+                        stock_name = i['stock_name']
+                        rz_rate = i['fin_ratio']
+                        rq_rate = i['bail_ratio']
+                        # market = '深圳' if i['exchange_type'] == '2' else '上海'
+                        market = i['exchange_type']
+                        rzbd = i['rzbd']
+                        rqbd = i['rqbd']
+                        target_list.append((market, stock_code, stock_name, rzbd, rqbd))
+                        logger.info(f'已采集数据条数：{int(len(target_list))}')
+
+                    logger.info(f'采集长江证券标的证券数据共{int(len(target_list))}条')
+                    df_result = super().data_deal(target_list, target_title)
+                    end_dt = datetime.datetime.now()
+                    used_time = (end_dt - start_dt).seconds
+                    if int(len(target_list)) == total:
+                        super().data_insert(int(len(target_list)), df_result, actual_date,
+                                            exchange_mt_underlying_security,
+                                            data_source, start_dt, end_dt, used_time, url)
+                        logger.info(f'入库信息,共{int(len(target_list))}条')
                     else:
-                        logger.error("采集数据条数与官网数据不一致，请检查重试！")
+                        raise Exception(f'采集数据条数{int(len(target_list))}与官网数据条数{total}不一致，入库失败')
+
+                    message = "长江证券标的证券数据采集完成"
+                    super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
+                                              exchange_mt_underlying_security, data_source, message)
+
+                    logger.info("长江证券标的证券数据采集完成")
                 else:
-                    logger.error("采集数据为空，此次采集任务失败！")
-            else:
-                logger.info("无长江证券标的证券及保证金比例数据")
+                    logger.info("无长江证券标的证券及保证金比例数据")
+                    raise Exception("无长江证券标的证券及保证金比例数据")
+        except Exception as es:
+            logger.error(es)
 
-    except Exception as es:
-        logger.error(es)
+    @classmethod
+    def guaranty_collect(cls):
+        actual_date = datetime.date.today()
+        logger.info(f'开始采集长江证券可充抵保证金证券数据{actual_date}')
+        url = 'https://www.95579.com/servlet/json'
+        params = {"funcNo": "902124", "i_page": 1, "i_perpage": 10000}  # 默认查询当天
+        target_title = ['market', 'stock_code', 'stock_name', 'discount_rate']
+        try:
+            proxies = super().get_proxies()
+            response = super().get_response(url, proxies, 0, get_headers(), params)
+            if response.status_code == 200:
+                start_dt = datetime.datetime.now()
+                text = json.loads(response.text)
+                data_list = text['results']
+                target_list = []
+                if len(data_list) > 0:
+                    total = int(data_list[0]['total_rows'])
+                    for i in data_list:
+                        stock_code = i['stock_code']
+                        stock_name = i['stock_name']
+                        discount_rate = i['assure_ratio']
+                        market = i['exchange_type']
+                        target_list.append((market, stock_code, stock_name, discount_rate))
+                        logger.info(f'已采集数据条数：{int(len(target_list))}')
 
-
-# 长江证券可充抵保证金证券及折算率采集
-def guaranty_collect():
-    query_date = time.strftime('%Y%m%d', time.localtime())
-    logger.info("broker_id={}开始采集长江证券可充抵保证金证券及折算率数据".format(broker_id))
-    url = 'https://www.95579.com/servlet/json'
-    params = {"funcNo": "902124", "i_page": 1, "i_perpage": 10000}  # 默认查询当天
-    try:
-        response = requests.post(url=url, params=params, headers=get_headers(), timeout=10)
-        if response.status_code == 200:
-            start_dt = datetime.datetime.now()
-            text = json.loads(response.text)
-            data_list = text['results']
-            target_list = []
-            if len(data_list) > 0:
-                target_title = ['market', 'stock_code', 'stock_name', 'discount_rate']
-                total = int(data_list[0]['total_rows'])
-                for i in data_list:
-                    stock_code = i['stock_code']
-                    stock_name = i['stock_name']
-                    discount_rate = i['assure_ratio']
-                    market = i['exchange_type']
-                    target_list.append((market, stock_code, stock_name, discount_rate))
-                logger.info(f'已采集数据条数：{total}')
-                logger.info("broker_id={}采集长江证券可充抵保证金证券及折算率数据采集结束".format(broker_id))
-                end_dt = datetime.datetime.now()
-                # 计算采集数据所需时间used_time
-                used_time = (end_dt - start_dt).seconds
-                data_df = pd.DataFrame(target_list, columns=target_title)
-                if data_df is not None:
-                    df_result = {
-                        'columns': target_title,
-                        'data': data_df.values.tolist()
-                    }
-                    if data_df.iloc[:, 0].size == total:
-                        data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), query_date
-                                                      , exchange_mt_guaranty_security, data_source, start_dt,
-                                                      end_dt, used_time, url)
-                        logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+                    logger.info(f'采集长江证券可充抵保证金证券数据,共{int(len(target_list))}条')
+                    df_result = super().data_deal(target_list, target_title)
+                    end_dt = datetime.datetime.now()
+                    used_time = (end_dt - start_dt).seconds
+                    if int(len(target_list)) == total:
+                        super().data_insert(int(len(target_list)), df_result, actual_date,
+                                            exchange_mt_guaranty_security,
+                                            data_source, start_dt, end_dt, used_time, url)
+                        logger.info(f'入库信息,共{int(len(target_list))}条')
                     else:
-                        logger.error("采集数据条数与官网数据不一致，请检查重试！")
+                        raise Exception(f'采集数据条数{int(len(target_list))}与官网数据条数{total}不一致，入库失败')
+
+                    message = "长江证券可充抵保证金证券数据采集完成"
+                    super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
+                                              exchange_mt_guaranty_security, data_source, message)
+
+                    logger.info("长江证券可充抵保证金证券数据采集完成")
                 else:
-                    logger.error("采集数据为空，此次采集任务失败！")
+                    logger.info("无长江证券可充抵保证金证券数据")
+                    raise Exception("无长江证券可充抵保证金证券数据")
 
-            else:
-                logger.info("无长江证券可充抵保证金证券及折算率数据")
-
-    except Exception as es:
-        logger.error(es)
+        except Exception as es:
+            logger.error(es)
 
 
 if __name__ == '__main__':
-    target_collect()
-    guaranty_collect()
-
-    # fire.Fire()
-
-    # python3 cj_securities_collect.py - target_collect
-    # python3 cj_securities_collect.py - guaranty_collect
+    collector = CollectHandler()
+    collector.collect_data()

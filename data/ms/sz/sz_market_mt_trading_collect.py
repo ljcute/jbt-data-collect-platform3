@@ -6,25 +6,32 @@
 
 import os
 import sys
+import time
+from configparser import ConfigParser
+
+from data.ms.basehandler import BaseHandler
+from utils.deal_date import ComplexEncoder
+from utils.remove_file import remove_file, random_double
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 import json
-import traceback
 import datetime
-import pandas as pd
 import xlrd2
-import fire
 from constants import USER_AGENTS
-import requests
 import random
 import os
-from data.dao import data_deal
-from utils.proxy_utils import get_proxies
 from utils.logs_utils import logger
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 excel_file_path = os.path.join(base_dir, 'sz_balance.xlsx')
+
+base_dir = os.path.dirname(os.path.abspath(__file__))
+full_path = os.path.join(base_dir, '../../../config/config.ini')
+cf = ConfigParser()
+cf.read(full_path)
+paths = cf.get('excel-path', 'save_excel_file_path')
+save_excel_file_path = os.path.join(paths, '深交所融资融券.xlsx')
 
 data_type_market_mt_trading_amount = '0'  # 市场融资融券交易总量
 data_type_market_mt_trading_items = '1'  # 市场融资融券交易明细
@@ -34,114 +41,142 @@ data_source_sse = '上海交易所'
 broker_id = 1000092
 
 
-def total_data_collect(query_date=None):
-    url = 'http://www.szse.cn/api/report/ShowReport/data'
-    headers = {
-        'User-Agent': random.choice(USER_AGENTS)
-    }
-    params = {
-        'SHOWTYPE': 'JSON',
-        'CATALOGID': '1837_xxpl',
-        'loading': 'first',
-        # 查历史可以传日期
-        'txtDate': query_date,
-        'random': random_double()
-    }
+class CollectHandler(BaseHandler):
 
-    try:
-        logger.info("broker_id={}开始采集深交所数据".format(broker_id))
+    @classmethod
+    def collect_data(cls, query_date=None):
+        max_retry = 0
+        while max_retry < 3:
+            try:
+                cls.total(query_date)
+                cls.item(query_date)
+                logger.info("深交所交易汇总及详细数据采集完成")
+                break
+            except Exception as e:
+                time.sleep(3)
+                logger.error(e)
+
+            max_retry += 1
+
+    @classmethod
+    def total(cls, query_date):
+        actual_date = datetime.date.today() if query_date is None else query_date
+        logger.info(f'深交所汇总数据采集开始{actual_date}')
+        url = 'http://www.szse.cn/api/report/ShowReport/data'
+        headers = {
+            'User-Agent': random.choice(USER_AGENTS)
+        }
+        params = {
+            'SHOWTYPE': 'JSON',
+            'CATALOGID': '1837_xxpl',
+            'loading': 'first',
+            # 查历史可以传日期
+            'txtDate': actual_date,
+            'random': random_double()
+        }
+
+        proxies = super().get_proxies()
+        title_list = ['jrrzye', 'jrrjye', 'jrrzrjye', 'jrrzmr', 'jrrjmc', 'jrrjyl']
+        start_dt = datetime.datetime.now()
+        response = super().get_response(url, proxies, 0, headers, params)
+        data_list = cls.total_deal(response)
+        df_result = super().data_deal(data_list, title_list)
+        end_dt = datetime.datetime.now()
+        used_time = (end_dt - start_dt).seconds
+        if data_list:
+            super().data_insert(int(len(data_list)), df_result, actual_date, data_type_market_mt_trading_amount,
+                                data_source_szse, start_dt, end_dt, used_time, url)
+            logger.info(f'数据入库信息,共{int(len(data_list))}条')
+        else:
+            raise Exception(f'采集数据失败，为{int(len(data_list))}条')
+        message = "深交所交易汇总数据采集完成"
+        super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
+                                  data_type_market_mt_trading_amount, data_source_szse, message)
+
+    @classmethod
+    def total_deal(cls, response):
         data_list = []
-        response = requests.get(url=url, proxies=get_proxies(), headers=headers, params=params, timeout=10)
-        if response.status_code == 200:
-            start_dt = datetime.datetime.now()
+        text = response.text
+        loads = json.loads(text)
+        zero_ele = loads[0]
+        if zero_ele['data']:
+            title_data = zero_ele['data'][0]
+            subname = zero_ele['metadata']['subname']  # 业务数据的交易日期
+            # 融资融券交易总量
+            jrrzye = title_data['jrrzye']  # 融资余额(亿元)
+            jrrjye = title_data['jrrjye']  # 融券余额(亿元)
+            jrrzrjye = title_data['jrrzrjye']  # 融资融券余额(亿元)
+            jrrzmr = title_data['jrrzmr']  # 融资买入额(亿元)
+            jrrjmc = title_data['jrrjmc']  # 融券卖出量(亿股/亿份)
+            jrrjyl = title_data['jrrjyl']  # 融券余量(亿股/亿份)
+            data_list.append((jrrzye, jrrjye, jrrzrjye, jrrzmr, jrrjmc, jrrjyl))
+            logger.info(f'已采集数据条数：{len(data_list)}')
+        else:
+            logger.error("没有找到符合条件的数据！")
 
-            text = response.text
-            loads = json.loads(text)
-            zero_ele = loads[0]
-            if zero_ele['data']:
-                title_data = zero_ele['data'][0]
-                subname = zero_ele['metadata']['subname']  # 业务数据的交易日期
-                # 融资融券交易总量
-                jrrzye = title_data['jrrzye']  # 融资余额(亿元)
-                jrrjye = title_data['jrrjye']  # 融券余额(亿元)
-                jrrzrjye = title_data['jrrzrjye']  # 融资融券余额(亿元)
-                jrrzmr = title_data['jrrzmr']  # 融资买入额(亿元)
-                jrrjmc = title_data['jrrjmc']  # 融券卖出量(亿股/亿份)
-                jrrjyl = title_data['jrrjyl']  # 融券余量(亿股/亿份)
-                data_list.append((jrrzye, jrrjye, jrrzrjye, jrrzmr, jrrjmc, jrrjyl))
+        return data_list
 
-                logger.info(f'已采集数据条数：{len(data_list)}')
-                logger.info("broker_id={}采集深交所数据结束".format(broker_id))
-                end_dt = datetime.datetime.now()
-                # 计算采集数据所需时间used_time
-                used_time = (end_dt - start_dt).seconds
-                data_df = pd.DataFrame(data_list,
-                                       columns=['jrrzye', 'jrrjye', 'jrrzrjye', 'jrrzmr', 'jrrjmc', 'jrrjyl'])
-                if data_df is not None:
-                    if data_df.iloc[:, 0].size == len(data_list) and (str(subname).replace("-", "")) == str(query_date):
-                        df_result = {
-                            'columns': ['jrrzye', 'jrrjye', 'jrrzrjye', 'jrrzmr', 'jrrjmc', 'jrrjyl'],
-                            'data': data_df.values.tolist()
-                        }
-                        data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), subname
-                                                      , data_type_market_mt_trading_amount, data_source_szse, start_dt,
-                                                      end_dt, used_time, url)
-                        logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
-                    else:
-                        logger.error("已采集数据与官网条数不一致，采集失败")
-                else:
-                    logger.error("采集数据失败")
-            else:
-                logger.error("没有找到符合条件的数据！")
+    @classmethod
+    def item(cls, query_date):
+        actual_date = datetime.date.today() if query_date is None else query_date
+        logger.info(f'深交所详细数据采集开始{actual_date}')
+        download_url = "https://www.szse.cn/api/report/ShowReport"
+        headers = {
+            'User-Agent': random.choice(USER_AGENTS)
+        }
+        params = {
+            'SHOWTYPE': 'xlsx',
+            'CATALOGID': '1837_xxpl',
+            'txtDate': actual_date,  # 查历史可以传日期
+            'random': random_double(),
+            'TABKEY': 'tab2'
+        }
+        proxies = super().get_proxies()
+        title_list = ['zqdm', 'zqjc', 'jrrzye', 'jrrzmr', 'jrrjyl', 'jrrjye', 'jrrjmc', 'jrrzrjye']
+        start_dt = datetime.datetime.now()
+        response = super().get_response(download_url, proxies, 0, headers, params)
+        data_list, total_row = cls.item_deal(response)
+        df_result = super().data_deal(data_list, title_list)
+        end_dt = datetime.datetime.now()
+        used_time = (end_dt - start_dt).seconds
+        if int(len(data_list)) == total_row - 1:
+            super().data_insert(int(len(data_list)), df_result, actual_date, data_type_market_mt_trading_items,
+                                data_source_szse, start_dt, end_dt, used_time, download_url)
+            logger.info(f'数据入库信息,共{int(len(data_list))}条')
+        else:
+            raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{total_row - 1}不一致，入库失败')
+        message = "深交所交易详细数据采集完成"
+        super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
+                                  data_type_market_mt_trading_items, data_source_szse, message)
 
-
-    except Exception as es:
-        logger.error(es)
-
-
-def download_excel(query_date=None):
-    # url = 'http://www.szse.cn/api/report/ShowReport?SHOWTYPE=xlsx&CATALOGID=1837_xxpl&txtDate=2022-04-26&random=0.9683071637992591&TABKEY=tab2'
-    download_url = "https://www.szse.cn/api/report/ShowReport"
-    headers = {
-        'User-Agent': random.choice(USER_AGENTS)
-    }
-    params = {
-        'SHOWTYPE': 'xlsx',
-        'CATALOGID': '1837_xxpl',
-        'txtDate': query_date,  # 查历史可以传日期
-        'random': random_double(),
-        'TABKEY': 'tab2'
-    }
-
-    try:
-        response = requests.get(url=download_url, headers=headers, params=params, timeout=20)
-        with open(excel_file_path, 'wb') as file:
-            file.write(response.content)  # 写excel到当前目录
-    except Exception as es:
-        logger.error(es)
-
-
-def random_double(mu=0.8999999999999999, sigma=0.1000000000000001):
-    """
-        访问深交所时需要随机数
-        :param mu:
-        :param sigma:
-        :return:
-    """
-    random_value = random.normalvariate(mu, sigma)
-    if random_value < 0:
-        random_value = mu
-    return random_value
-
-
-def handle_excel(excel_file, date, excel_file_path):
-    logger.info("开始处理excel")
-    download_url = "https://www.szse.cn/api/report/ShowReport"
-    start_dt = datetime.datetime.now()
-    sheet_0 = excel_file.sheet_by_index(0)
-    total_row = sheet_0.nrows
-    if total_row >= 1:
+    @classmethod
+    def item_deal(cls, response):
         try:
+            try:
+                logger.info("开始下载excel")
+                with open(excel_file_path, 'wb') as file:
+                    file.write(response.content)
+                with open(save_excel_file_path, 'wb') as file:
+                    file.write(response.content)
+                logger.info("excel下载完成")
+            except Exception as e:
+                logger.error(e)
+
+            excel_file = xlrd2.open_workbook(excel_file_path, encoding_override="utf-8")
+            data_list, total_row = cls.handle_excel(excel_file)
+            return data_list, total_row
+        except Exception as e:
+            logger.error(e)
+        finally:
+            remove_file(excel_file_path)
+
+    @classmethod
+    def handle_excel(cls, excel_file):
+        logger.info("开始处理excel")
+        sheet_0 = excel_file.sheet_by_index(0)
+        total_row = sheet_0.nrows
+        if total_row >= 1:
+            # try:
             data_list = []
             for i in range(1, total_row):  # 从第2行开始遍历
                 row = sheet_0.row(i)
@@ -150,86 +185,35 @@ def handle_excel(excel_file, date, excel_file_path):
 
                 zqdm = str(row[0].value).replace(",", "")  # 证券代码
                 zqjc = str(row[1].value).replace(",", "")  # 证券简称
-                jrrzye = float(str(row[3].value).replace(",", ""))  # 融资余额(元)
-                jrrzmr = float(str(row[2].value).replace(",", ""))  # 融资买入额(元)
-                jrrjyl = float(str(row[5].value).replace(",", ""))  # 融券余量(股/份)
-                jrrjye = float(str(row[6].value).replace(",", ""))  # 融券余额(元)
-                jrrjmc = float(str(row[4].value).replace(",", ""))  # 融券卖出量(股/份)
-                jrrzrjye = float(str(row[7].value).replace(",", ""))  # 融资融券余额(亿元)
+                jrrzye = str(row[3].value).replace(",", "")  # 融资余额(元)
+                jrrzmr = str(row[2].value).replace(",", "")  # 融资买入额(元)
+                jrrjyl = str(row[5].value).replace(",", "")  # 融券余量(股/份)
+                jrrjye = str(row[6].value).replace(",", "") # 融券余额(元)
+                jrrjmc = str(row[4].value).replace(",", "")  # 融券卖出量(股/份)
+                jrrzrjye = str(row[7].value).replace(",", "") # 融资融券余额(亿元)
                 data_list.append((zqdm, zqjc, jrrzye, jrrzmr, jrrjyl, jrrjye, jrrjmc, jrrzrjye))
 
-            end_dt = datetime.datetime.now()
-            # 计算采集数据所需时间used_time
-            used_time = (end_dt - start_dt).seconds
-            data_df = pd.DataFrame(data_list,
-                                   columns=['zqdm', 'zqjc', 'jrrzye', 'jrrzmr', 'jrrjyl', 'jrrjye', 'jrrjmc',
-                                            'jrrzrjye'])
-            logger.info(f'已采集数据条数：{total_row - 1}')
-            if data_df is not None:
-                if data_df.iloc[:, 0].size == total_row - 1:
-                    df_result = {
-                        'columns': ['zqdm', 'zqjc', 'jrrzye', 'jrrzmr', 'jrrjyl', 'jrrjye', 'jrrjmc', 'jrrzrjye'],
-                        'data': data_df.values.tolist()
-                    }
-                    data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), date
-                                                  , data_type_market_mt_trading_items, data_source_szse, start_dt,
-                                                  end_dt, used_time, download_url, excel_file_path)
-                else:
-                    logger.error("已采集数据与官网条数不一致，采集失败")
-            else:
-                logger.error("采集数据失败")
-        except Exception as es:
-            logger.error(es)
-    else:
-        logger.error("没有找到符合条件的数据！")
+            logger.info("excel处理结束")
+            return data_list, total_row
+            # except Exception as es:
+            #     logger.error(es)
+        else:
+            logger.error("没有找到符合条件的数据！")
 
 
-def remove_file(file_path):
-    try:
-        if os.path.exists(file_path):
-            os.remove(file_path)
-    except Exception as e:
-        logger.error("删除文件异常:{}".format(e))
 
-
-def collect(query_date=None):
-    try:
-        actual_date = datetime.date.today() if query_date is None else query_date
-        logger.info("深交所数据采集日期actual_date:{}".format(actual_date))
-        total_data_collect(actual_date)
-        logger.info("开始下载excel")
-        download_excel(actual_date)
-        logger.info("excel下载完成")
-        excel_file = xlrd2.open_workbook(excel_file_path, encoding_override="utf-8")
-        handle_excel(excel_file, actual_date, excel_file_path)
-    except Exception as es:
-        traceback.format_exc()
-        logger.error("es:{}", es)
-    finally:
-        remove_file(excel_file_path)
-
-
-def collect_history(begin_dt, end_dt):
-    # begin = datetime.datetime.strptime('20210605', '%Y%m%d')
-    begin = datetime.datetime.strptime(begin_dt, '%Y%m%d')
-    end = datetime.datetime.strptime(end_dt, '%Y%m%d')
-    b = begin.date()
-    e = end.date()
-
-    for k in range((e - b).days + 1):
-        cur_date = b + datetime.timedelta(days=k)
-        collect(cur_date)
+# def collect_history(begin_dt, end_dt):
+#     # begin = datetime.datetime.strptime('20210605', '%Y%m%d')
+#     begin = datetime.datetime.strptime(begin_dt, '%Y%m%d')
+#     end = datetime.datetime.strptime(end_dt, '%Y%m%d')
+#     b = begin.date()
+#     e = end.date()
+#
+#     for k in range((e - b).days + 1):
+#         cur_date = b + datetime.timedelta(days=k)
+#         collect(cur_date)
 
 
 if __name__ == "__main__":
-    # download_excel('2022-06-24')
-    # excel_file = xlrd2.open_workbook(excel_file_path, encoding_override="utf-8")
-    # handle_excel(excel_file, '2022-04-26')
-    # data_collect()
-    collect()
-    # collect_history('20220620', '20220621')
-    # total_data_collect('2022-06-24')
-
-    # fire.Fire()
-
-    # python3 sz_market_mt_trading_collect.py - collect_history 20220620 20220621
+    collector = CollectHandler()
+    collector.collect_data('2022-07-12')

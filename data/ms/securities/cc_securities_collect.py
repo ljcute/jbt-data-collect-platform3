@@ -5,19 +5,16 @@
 # 长城证券
 import os
 import sys
+from data.ms.basehandler import BaseHandler
+from utils.deal_date import ComplexEncoder
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 import json
 import time
-import pandas as pd
-from constants import *
-from data.dao import data_deal
+
 from utils.logs_utils import logger
 import datetime
-
-# 定义常量
-broker_id = 10011
 
 cc_headers = {
     'Connection': 'close',
@@ -33,199 +30,206 @@ exchange_mt_guaranty_and_underlying_security = '99'  # 融资融券可充抵保�
 data_source = '长城证券'
 
 
-# 长城证券融资标的券采集
-def rz_target_collect():
-    query_date = time.strftime('%Y%m%d', time.localtime())
-    logger.info("broker_id={}开始采集融资数据".format(broker_id))
-    url = 'http://www.cgws.com/was5/web/de.jsp'
-    page = 1
-    page_size = 5
-    is_continue = True
-    data_list = []
-    data_title = ['sec_code', 'sec_name', 'round_rate', 'date']
-    start_dt = datetime.datetime.now()
-    while is_continue:
-        params = {"page": page, "channelid": 257420, "searchword": 'KGNyZWRpdGZ1bmRjdHJsPTAp',
-                  "_": get_timestamp()}
-        try:
-            response = requests.get(url=url, params=params, headers=cc_headers, timeout=10)
-            text = json.loads(response.text)
-            row_list = text['rows']
-            total = 0
-            if row_list:
-                total = int(text['total'])
-            if total is not None and type(total) is not str and total > page * page_size:
-                is_continue = True
-                page = page + 1
-            else:
-                is_continue = False
-            for i in row_list:
-                sec_code = i['code']
-                if sec_code == "":  # 一页数据,遇到{"code":"","name":"","rate":"","pub_date":"","market":""}表示完结
-                    break
-                u_name = i['name'].replace('u', '\\u')  # 把u4fe1u7acbu6cf0转成\\u4fe1\\u7acb\\u6cf0
-                sec_name = u_name.encode().decode('unicode_escape')  # unicode转汉字
-                round_rate = i['rate']
-                date = i['pub_date']
-                data_list.append((sec_code, sec_name, round_rate, date))
-            logger.info(f'已采集数据条数：{total}')
-        except Exception as es:
-            logger.error(es)
+class CollectHandler(BaseHandler):
 
-    logger.info("broker_id={}采集融资数据结束".format(broker_id))
-    end_dt = datetime.datetime.now()
-    # 计算采集数据所需时间used_time
-    used_time = (end_dt - start_dt).seconds
-    data_df = pd.DataFrame(data_list, columns=data_title)
-    if data_df is not None:
-        df_result = {
-            'columns': data_title,
-            'data': data_df.values.tolist()
-        }
-        if data_df.iloc[:, 0].size == total:
-            data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), query_date
-                                          , exchange_mt_financing_underlying_security, data_source, start_dt,
-                                          end_dt, used_time, url)
-            logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+    @classmethod
+    def collect_data(cls):
+        max_retry = 0
+        while max_retry < 3:
+            try:
+                cls.rz_target_collect()
+                cls.rq_target_collect()
+                cls.guaranty_collect()
+
+                break
+            except Exception as e:
+                time.sleep(3)
+                logger.error(e)
+
+            max_retry += 1
+
+    @classmethod
+    def rz_target_collect(cls):
+        actual_date = datetime.date.today()
+        logger.info(f'开始采集融资标的券数据{actual_date}')
+        url = 'http://www.cgws.com/was5/web/de.jsp'
+        page = 1
+        page_size = 5
+        is_continue = True
+        data_list = []
+        title_list = ['sec_code', 'sec_name', 'round_rate', 'date']
+        start_dt = datetime.datetime.now()
+        while is_continue:
+            params = {"page": page, "channelid": 257420, "searchword": 'KGNyZWRpdGZ1bmRjdHJsPTAp',
+                      "_": get_timestamp()}
+            try:
+                # proxies = super().get_proxies()
+                # 长城证券请求不使用代理ip（每次翻页获取数据都要请求，ip消耗太大）
+                response = super().get_response(url, None, 0, cc_headers, params)
+                text = json.loads(response.text)
+                logger.info("开始处理融资标的券数据")
+                row_list = text['rows']
+                total = 0
+                if row_list:
+                    total = int(text['total'])
+                if total is not None and type(total) is not str and total > page * page_size:
+                    is_continue = True
+                    page = page + 1
+                else:
+                    is_continue = False
+                for i in row_list:
+                    sec_code = i['code']
+                    if sec_code == "":  # 一页数据,遇到{"code":"","name":"","rate":"","pub_date":"","market":""}表示完结
+                        break
+                    u_name = i['name'].replace('u', '\\u')  # 把u4fe1u7acbu6cf0转成\\u4fe1\\u7acb\\u6cf0
+                    sec_name = u_name.encode().decode('unicode_escape')  # unicode转汉字
+                    round_rate = i['rate']
+                    date = i['pub_date']
+                    data_list.append((sec_code, sec_name, round_rate, date))
+
+                logger.info(f'已采集数据条数：{int(len(data_list))}')
+            except Exception as es:
+                logger.error(es)
+
+        logger.info(f'采集融资标的券数据结束,共{int(len(data_list))}条')
+        df_result = super().data_deal(data_list, title_list)
+        end_dt = datetime.datetime.now()
+        used_time = (end_dt - start_dt).seconds
+        if int(len(data_list)) == total:
+            super().data_insert(int(len(data_list)), df_result, actual_date, exchange_mt_financing_underlying_security,
+                                data_source, start_dt, end_dt, used_time, url)
+            logger.info(f'入库信息,共{int(len(data_list))}条')
         else:
-            logger.error("采集数据条数与官网数据不一致，请检查重试！")
-    else:
-        logger.error("采集数据为空，此次采集任务失败！")
+            raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{total}不一致，入库失败')
 
+        message = "长城证券融资标的证券数据采集完成"
+        super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
+                                  exchange_mt_financing_underlying_security, data_source, message)
 
-# 长城证券融券标的券采集
-def rq_target_collect():
-    query_date = time.strftime('%Y%m%d', time.localtime())
-    logger.info("broker_id={}开始采集融券数据".format(broker_id))
-    url = 'http://www.cgws.com/was5/web/de.jsp'
-    page = 1
-    page_size = 5
-    is_continue = True
-    data_list = []
-    data_title = ['sec_code', 'sec_name', 'round_rate', 'date']
-    start_dt = datetime.datetime.now()
-    while is_continue:
-        params = {"page": page, "channelid": 257420, "searchword": 'KGNyZWRpdHN0a2N0cmw9MCk=',
-                  "_": get_timestamp()}
-        try:
-            response = requests.get(url=url, params=params, headers=cc_headers, timeout=10)
-            text = json.loads(response.text)
-            row_list = text['rows']
-            total = 0
-            if row_list:
-                total = int(text['total'])
-            if total is not None and type(total) is not str and total > page * page_size:
-                is_continue = True
-                page = page + 1
-            else:
-                is_continue = False
-            for i in row_list:
-                sec_code = i['code']
-                if sec_code == "":  # 一页数据,遇到{"code":"","name":"","rate":"","pub_date":"","market":""}表示完结
-                    break
-                u_name = i['name'].replace('u', '\\u')  # 把u4fe1u7acbu6cf0转成\\u4fe1\\u7acb\\u6cf0
-                sec_name = u_name.encode().decode('unicode_escape')  # unicode转汉字
-                round_rate = i['rate']
-                date = i['pub_date']
-                data_list.append((sec_code, sec_name, round_rate, date))
-            logger.info(f'已采集数据条数：{total}')
+        logger.info("长城证券融资标的证券数据采集完成")
 
-        except Exception as es:
-            logger.error(es)
+    @classmethod
+    def rq_target_collect(cls):
+        actual_date = datetime.date.today()
+        logger.info(f'开始采集融券标的券数据{actual_date}')
+        url = 'http://www.cgws.com/was5/web/de.jsp'
+        page = 1
+        page_size = 5
+        is_continue = True
+        data_list = []
+        title_list = ['sec_code', 'sec_name', 'round_rate', 'date']
+        start_dt = datetime.datetime.now()
+        while is_continue:
+            params = {"page": page, "channelid": 257420, "searchword": 'KGNyZWRpdHN0a2N0cmw9MCk=',
+                      "_": get_timestamp()}
+            try:
+                # proxies = super().get_proxies()
+                response = super().get_response(url, None, 0, cc_headers, params)
+                text = json.loads(response.text)
+                row_list = text['rows']
+                total = 0
+                if row_list:
+                    total = int(text['total'])
+                if total is not None and type(total) is not str and total > page * page_size:
+                    is_continue = True
+                    page = page + 1
+                else:
+                    is_continue = False
+                for i in row_list:
+                    sec_code = i['code']
+                    if sec_code == "":  # 一页数据,遇到{"code":"","name":"","rate":"","pub_date":"","market":""}表示完结
+                        break
+                    u_name = i['name'].replace('u', '\\u')  # 把u4fe1u7acbu6cf0转成\\u4fe1\\u7acb\\u6cf0
+                    sec_name = u_name.encode().decode('unicode_escape')  # unicode转汉字
+                    round_rate = i['rate']
+                    date = i['pub_date']
+                    data_list.append((sec_code, sec_name, round_rate, date))
+                logger.info(f'已采集数据条数：{int(len(data_list))}')
+            except Exception as es:
+                logger.error(es)
 
-    logger.info("broker_id={}采集融券数据结束".format(broker_id))
-    end_dt = datetime.datetime.now()
-    # 计算采集数据所需时间used_time
-    used_time = (end_dt - start_dt).seconds
-    data_df = pd.DataFrame(data_list, columns=data_title)
-    if data_df is not None:
-        df_result = {
-            'columns': data_title,
-            'data': data_df.values.tolist()
-        }
-        if data_df.iloc[:, 0].size == total:
-            data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), query_date
-                                          , exchange_mt_lending_underlying_security, data_source, start_dt,
-                                          end_dt, used_time, url)
-            logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+        logger.info(f'采集融券标的券数据结束,共{int(len(data_list))}条')
+        df_result = super().data_deal(data_list, title_list)
+        end_dt = datetime.datetime.now()
+        # 计算采集数据所需时间used_time
+        used_time = (end_dt - start_dt).seconds
+        if int(len(data_list)) == total:
+            super().data_insert(int(len(data_list)), df_result, actual_date, exchange_mt_lending_underlying_security,
+                                data_source, start_dt, end_dt, used_time, url)
+            logger.info(f'入库信息,共{int(len(data_list))}条')
         else:
-            logger.error("采集数据条数与官网数据不一致，请检查重试！")
-    else:
-        logger.error("采集数据为空，此次采集任务失败！")
+            raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{total}不一致，入库失败')
 
-# 长城证券担保券采集
-def guaranty_collect():
-    query_date = time.strftime('%Y%m%d', time.localtime())
-    logger.info("broker_id={}开始采集担保券数据".format(broker_id))
-    url = 'http://www.cgws.com/was5/web/de.jsp'
-    page = 1
-    page_size = 5
-    is_continue = True
-    data_list = []
-    data_title = ['sec_code', 'sec_name', 'round_rate', 'date']
-    start_dt = datetime.datetime.now()
-    while is_continue:
-        params = {"page": page, "channelid": 229873, "searchword": None,
-                  "_": get_timestamp()}
-        try:
-            response = requests.get(url=url, params=params, headers=cc_headers, timeout=20)
-            text = json.loads(response.text)
-            row_list = text['rows']
-            total = 0
-            if row_list:
-                total = int(text['total'])
-            if total is not None and type(total) is not str and total > page * page_size:
-                is_continue = True
-                page = page + 1
-            else:
-                is_continue = False
-            for i in row_list:
-                sec_code = i['code']
-                if sec_code == "":  # 一页数据,遇到{"code":"","name":"","rate":"","pub_date":"","market":""}表示完结
-                    break
-                u_name = i['name'].replace('u', '\\u')  # 把u4fe1u7acbu6cf0转成\\u4fe1\\u7acb\\u6cf0
-                sec_name = u_name.encode().decode('unicode_escape')  # unicode转汉字
-                round_rate = i['rate']
-                date = i['pub_date']
-                data_list.append((sec_code, sec_name, round_rate, date))
-            logger.info(f'已采集数据条数：{total}')
+        message = "长城证券融券标的证券数据采集完成"
+        super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
+                                  exchange_mt_lending_underlying_security, data_source, message)
 
-        except Exception as es:
-            logger.error(es)
+        logger.info("长城证券融券标的证券数据采集完成")
 
-    logger.info("broker_id={}采集担保券数据结束".format(broker_id))
-    end_dt = datetime.datetime.now()
-    # 计算采集数据所需时间used_time
-    used_time = (end_dt - start_dt).seconds
-    data_df = pd.DataFrame(data_list, columns=data_title)
-    if data_df is not None:
-        df_result = {
-            'columns': data_title,
-            'data': data_df.values.tolist()
-        }
-        if data_df.iloc[:, 0].size == total:
-            data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), query_date
-                                          , exchange_mt_guaranty_security, data_source, start_dt,
-                                          end_dt, used_time, url)
-            logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+    @classmethod
+    def guaranty_collect(cls):
+        actual_date = datetime.date.today()
+        logger.info(f'开始采集担保券数据{actual_date}')
+        url = 'http://www.cgws.com/was5/web/de.jsp'
+        page = 1
+        page_size = 5
+        is_continue = True
+        data_list = []
+        title_list = ['sec_code', 'sec_name', 'round_rate', 'date']
+        start_dt = datetime.datetime.now()
+        while is_continue:
+            params = {"page": page, "channelid": 229873, "searchword": None,
+                      "_": get_timestamp()}
+            try:
+                # proxies = super().get_proxies()
+                response = super().get_response(url, None, 0, cc_headers, params)
+                text = json.loads(response.text)
+                row_list = text['rows']
+                total = 0
+                if row_list:
+                    total = int(text['total'])
+                if total is not None and type(total) is not str and total > page * page_size:
+                    is_continue = True
+                    page = page + 1
+                else:
+                    is_continue = False
+                for i in row_list:
+                    sec_code = i['code']
+                    if sec_code == "":  # 一页数据,遇到{"code":"","name":"","rate":"","pub_date":"","market":""}表示完结
+                        break
+                    u_name = i['name'].replace('u', '\\u')  # 把u4fe1u7acbu6cf0转成\\u4fe1\\u7acb\\u6cf0
+                    sec_name = u_name.encode().decode('unicode_escape')  # unicode转汉字
+                    round_rate = i['rate']
+                    date = i['pub_date']
+                    data_list.append((sec_code, sec_name, round_rate, date))
+
+                logger.info(f'已采集数据条数：{int(len(data_list))}')
+            except Exception as es:
+                logger.error(es)
+
+        logger.info(f'采集担保券数据结束,共{int(len(data_list))}条')
+        df_result = super().data_deal(data_list, title_list)
+        end_dt = datetime.datetime.now()
+        # 计算采集数据所需时间used_time
+        used_time = (end_dt - start_dt).seconds
+        if int(len(data_list)) == total:
+            super().data_insert(int(len(data_list)), df_result, actual_date, exchange_mt_guaranty_security,
+                                data_source, start_dt, end_dt, used_time, url)
+            logger.info(f'入库信息,共{int(len(data_list))}条')
         else:
-            logger.error("采集数据条数与官网数据不一致，请检查重试！")
-    else:
-        logger.error("采集数据为空，此次采集任务失败！")
+            raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{total}不一致，入库失败')
+
+        message = "长城证券担保券数据采集完成"
+        super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
+                                  exchange_mt_guaranty_security, data_source, message)
+
+        logger.info("长城证券担保券数据采集完成")
+
 
 def get_timestamp():
     return int(time.time() * 1000)
 
 
 if __name__ == '__main__':
-    try:
-        rz_target_collect()
-        rq_target_collect()
-        guaranty_collect()
-    except Exception as es:
-        logger.error(es)
-    # fire.Fire()
-
-    # python3 cc_securities_collect.py - rz_target_collect
-    # python3 cc_securities_collect.py - rq_target_collect
-    # python3 cc_securities_collect.py - guaranty_collect
+    collector = CollectHandler()
+    collector.collect_data()

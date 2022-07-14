@@ -6,21 +6,20 @@
 
 import os
 import sys
+from configparser import ConfigParser
+
+from data.ms.basehandler import BaseHandler
+from utils.deal_date import ComplexEncoder
+from utils.remove_file import remove_file
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 
-import pandas as pd
 import json
 import time
-import traceback
 import xlrd2
-from utils.proxy_utils import get_proxies
-import requests
 import os
-import fire
 import datetime
-from data.dao import data_deal
 from utils.logs_utils import logger
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -32,75 +31,119 @@ exchange_mt_financing_underlying_security = '4'  # 融资融券融资标的证�
 exchange_mt_lending_underlying_security = '5'  # 融资融券融券标的证券
 exchange_mt_guaranty_and_underlying_security = '99'  # 融资融券可充抵保证金证券和融资融券标的证券
 
-broker_id = 10000
 
-sh_guaranty_file_path = './' + str(broker_id) + 'sh_guaranty.xls'
-sh_target_rz_file_path = './' + str(broker_id) + 'sh_target_rz.xls'
-sh_target_rq_file_path = './' + str(broker_id) + 'sh_target_rq.xls'
+sh_guaranty_file_path = './' + 'sh_guaranty.xls'
+sh_target_rz_file_path = './' + 'sh_target_rz.xls'
+sh_target_rq_file_path = './' + 'sh_target_rq.xls'
+
+base_dir = os.path.dirname(os.path.abspath(__file__))
+full_path = os.path.join(base_dir, '../../../config/config.ini')
+cf = ConfigParser()
+cf.read(full_path)
+paths = cf.get('excel-path', 'save_excel_file_path')
+save_excel_file_path_gu = os.path.join(paths, '上交所担保券.xls')
+save_excel_file_path_rz = os.path.join(paths, '上交所融资标的.xls')
+save_excel_file_path_rq = os.path.join(paths, '上交所融券标的.xls')
 
 data_source_szse = '深圳交易所'
 data_source_sse = '上海交易所'
 
 
-def get_data():
-    url_guaranty = "http://query.sse.com.cn//sseQuery/commonExcelDd.do?FLAG=003&sqlId=COMMON_SSE_FW_JYFW_RZRQ_JYXX_BDZQKCDBZJZQLB_RZRQKCDBZJ_L"
-    url_rz = "http://query.sse.com.cn//sseQuery/commonExcelDd.do?FLAG=001&sqlId=COMMON_SSE_FW_JYFW_RZRQ_JYXX_BDZQKCDBZJZQLB_RZMRBDZQ_L"
-    url_rq = "http://query.sse.com.cn//sseQuery/commonExcelDd.do?FLAG=002&sqlId=COMMON_SSE_FW_JYFW_RZRQ_JYXX_BDZQKCDBZJZQLB_RZMCBDZQ_L"
-    headers = {
-        'Accept': '*/*',
-        'Accept-Encoding': 'gzip, deflate',
-        'Accept-Language': 'zh-CN,zh;q=0.9',
-        'Connection': 'keep-alive',
-        'Cookie': 'yfx_c_g_u_id_10000042=_ck22060711191911485514723010297; '
-                  'VISITED_MENU=%5B%228307%22%2C%229729%22%5D; JSESSIONID=771FCD96DF812328467D7B327B093D35; '
-                  'gdp_user_id=gioenc-6e004388%2C3d26%2C59c4%2C838g%2C4063ea3a9528; '
-                  'ba17301551dcbaf9_gdp_session_id=4a6d84c6-2cd3-4b35-b7eb-4286992ff745; '
-                  'ba17301551dcbaf9_gdp_session_id_4a6d84c6-2cd3-4b35-b7eb-4286992ff745=true; '
-                  'yfx_f_l_v_t_10000042=f_t_1654571959111__r_t_1655691628385__v_t_1655692038721__r_c_5',
-        'Host': 'query.sse.com.cn',
-        'Referer': 'http://www.sse.com.cn/',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.64 Safari/537.36'
-    }
-    local_date = time.strftime('%Y-%m-%d', time.localtime())
-    try:
-        logger.info("上交所、担保券开始采集")
-        response = requests.get(url=url_guaranty, proxies=get_proxies(), headers=headers, timeout=5)
-        with open(sh_guaranty_file_path, 'wb') as file:
-            file.write(response.content)  # 写excel到当前目录
-            excel_file = xlrd2.open_workbook(sh_guaranty_file_path)
-            logger.info("上交所、担保券数据excel下载完成")
-            handle_excel(excel_file, local_date, sh_guaranty_file_path, exchange_mt_guaranty_security, data_source_sse)
+class CollectHandler(BaseHandler):
 
-        logger.info("上交所、融资开始采集")
-        response = requests.get(url=url_rz, headers=headers, timeout=5)
-        with open(sh_target_rz_file_path, 'wb') as file:
-            file.write(response.content)  # 写excel到当前目录
-            excel_file = xlrd2.open_workbook(sh_target_rz_file_path)
-            logger.info("上交所、融资数据excel下载完成")
-            handle_excel(excel_file, local_date, sh_target_rz_file_path, exchange_mt_financing_underlying_security,
-                         data_source_sse)
+    @classmethod
+    def collect_data(cls, query_date=None):
+        max_retry = 0
+        while max_retry < 3:
+            try:
+                actual_date = datetime.date.today() if query_date is None else query_date
+                logger.info(f'上交所数据采集开始{actual_date}')
+                url_guaranty = "http://query.sse.com.cn//sseQuery/commonExcelDd.do?FLAG=003&sqlId=COMMON_SSE_FW_JYFW_RZRQ_JYXX_BDZQKCDBZJZQLB_RZRQKCDBZJ_L"
+                url_rz = "http://query.sse.com.cn//sseQuery/commonExcelDd.do?FLAG=001&sqlId=COMMON_SSE_FW_JYFW_RZRQ_JYXX_BDZQKCDBZJZQLB_RZMRBDZQ_L"
+                url_rq = "http://query.sse.com.cn//sseQuery/commonExcelDd.do?FLAG=002&sqlId=COMMON_SSE_FW_JYFW_RZRQ_JYXX_BDZQKCDBZJZQLB_RZMCBDZQ_L"
+                headers = {
+                    'Accept': '*/*',
+                    'Accept-Encoding': 'gzip, deflate',
+                    'Accept-Language': 'zh-CN,zh;q=0.9',
+                    'Connection': 'keep-alive',
+                    'Cookie': 'yfx_c_g_u_id_10000042=_ck22060711191911485514723010297; '
+                              'VISITED_MENU=%5B%228307%22%2C%229729%22%5D; JSESSIONID=771FCD96DF812328467D7B327B093D35; '
+                              'gdp_user_id=gioenc-6e004388%2C3d26%2C59c4%2C838g%2C4063ea3a9528; '
+                              'ba17301551dcbaf9_gdp_session_id=4a6d84c6-2cd3-4b35-b7eb-4286992ff745; '
+                              'ba17301551dcbaf9_gdp_session_id_4a6d84c6-2cd3-4b35-b7eb-4286992ff745=true; '
+                              'yfx_f_l_v_t_10000042=f_t_1654571959111__r_t_1655691628385__v_t_1655692038721__r_c_5',
+                    'Host': 'query.sse.com.cn',
+                    'Referer': 'http://www.sse.com.cn/',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.64 Safari/537.36'
+                }
+                proxies = super().get_proxies()
+                title_list = ['biz_dt', 'sec_code', 'sec_name']
 
-        logger.info("上交所、融券开始采集")
-        response = requests.get(url=url_rq, headers=headers, timeout=5)
-        with open(sh_target_rq_file_path, 'wb') as file:
-            file.write(response.content)  # 写excel到当前目录
-            excel_file = xlrd2.open_workbook(sh_target_rq_file_path)
-            logger.info("上交所、融券数据excel下载完成")
-            handle_excel(excel_file, local_date, sh_target_rq_file_path, exchange_mt_lending_underlying_security,
-                         data_source_sse)
+                # 担保券
+                log_message_gu = "上交所担保券"
+                cls.deal_with(proxies, headers, url_guaranty, sh_guaranty_file_path, save_excel_file_path_gu,
+                              exchange_mt_guaranty_security, data_source_sse, title_list, actual_date, log_message_gu)
 
-    except Exception as es:
-        logger.error("采集上交所全量两融券异常,{}".format(es))
-        traceback.format_tb()
-    finally:
-        remove_file(sh_guaranty_file_path)
-        remove_file(sh_target_rz_file_path)
-        remove_file(sh_target_rq_file_path)
+                # 融资标的券
+                log_message_rz = "上交所融资标的券"
+                cls.deal_with(proxies, headers, url_rz, sh_target_rz_file_path, save_excel_file_path_rz,
+                              exchange_mt_financing_underlying_security, data_source_sse, title_list, actual_date,
+                              log_message_rz)
+
+                # 融券标的券
+                log_message_rq = "上交所融券标的券"
+                cls.deal_with(proxies, headers, url_rq, sh_target_rq_file_path, save_excel_file_path_rq,
+                              exchange_mt_lending_underlying_security, data_source_sse, title_list, actual_date,
+                              log_message_rq)
 
 
-def handle_excel(excel_file, date, excel_file_path, type, soure):
-    url = 'http://www.sse.com.cn/market/othersdata/margin/sum/'
-    start_dt = datetime.datetime.now()
+                logger.info("上交所融资融券数据采集完成")
+                break
+            except Exception as e:
+                time.sleep(3)
+                logger.error(e)
+            finally:
+                remove_file(sh_guaranty_file_path)
+                remove_file(sh_target_rz_file_path)
+                remove_file(sh_target_rq_file_path)
+
+            max_retry += 1
+
+    @classmethod
+    def deal_with(cls, proxies, headers, url, excel_path, save_excel_path, data_type, data_source, title_list,
+                  actual_date, log_message):
+        start_dt = datetime.datetime.now()
+        response = super().get_response(url, proxies, 0, headers)
+        download_excel(response, excel_path, save_excel_path, actual_date)
+        logger.info(f'{log_message}开始采集')
+        excel_file = xlrd2.open_workbook(excel_path, encoding_override="utf-8")
+        data_list, total_row = handle_excel(excel_file, actual_date)
+        df_result = super().data_deal(data_list, title_list)
+        end_dt = datetime.datetime.now()
+        used_time = (end_dt - start_dt).seconds
+        if int(len(data_list)) == total_row - 1:
+            super().data_insert(int(len(data_list)), df_result, actual_date, data_type,
+                                data_source, start_dt, end_dt, used_time, url, save_excel_path)
+            logger.info(f'{log_message}入库信息,共{int(len(data_list))}条')
+        else:
+            raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{total_row - 1}不一致，入库失败')
+        message_gu = log_message + "数据采集完成"
+        super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
+                                  data_type, data_source_sse, message_gu)
+
+
+def download_excel(response, excel_file_path, save_excel_file_path, query_date=None):
+        try:
+            with open(excel_file_path, 'wb') as file:
+                file.write(response.content)
+            with open(save_excel_file_path, 'wb') as file:
+                file.write(response.content)
+        except Exception as es:
+            logger.error(es)
+
+
+def handle_excel(excel_file, date):
+    logger.info("开始处理excel")
     sheet_0 = excel_file.sheet_by_index(0)
     total_row = sheet_0.nrows
     try:
@@ -115,42 +158,13 @@ def handle_excel(excel_file, date, excel_file_path, type, soure):
             sec_name = str(row[2].value)
             data_list.append((biz_dt, sec_code, sec_name))
 
-        logger.info("broker_id={}采集上交所数据结束".format(broker_id))
-        end_dt = datetime.datetime.now()
-        # 计算采集数据所需时间used_time
-        used_time = (end_dt - start_dt).seconds
-        data_df = pd.DataFrame(data_list, columns=['biz_dt', 'sec_code', 'sec_name'])
-        logger.info(f'已采集数据总条数：{total_row-1}')
-        if data_df is not None:
-            if data_df.iloc[:, 0].size == total_row - 1:
-                df_result = {
-                    'columns': ['biz_dt', 'sec_code', 'sec_name'],
-                    'data': data_df.values.tolist()
-                }
-                data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), date
-                                              , type, soure, start_dt,
-                                              end_dt, used_time, url, excel_file_path)
-                logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
-            else:
-                logger.error("采集数据条数与官网数据不一致，请检查重试！")
-        else:
-            logger.error("采集数据为空，此次采集任务失败！")
-
+        logger.info("采集上交所数据结束")
+        return data_list, total_row
 
     except Exception as es:
         logger.error(es)
 
 
-def remove_file(file_path):
-    try:
-        if os.path.exists(file_path):
-            os.remove(file_path)
-    except Exception as e:
-        logger.info("删除文件异常:{}".format(e))
-
-
 if __name__ == '__main__':
-    get_data()
-    # fire.Fire()
-
-    # python3 sh_exchange_mt_underlying_and_guaranty_security.py - get_data
+    collector = CollectHandler()
+    collector.collect_data()

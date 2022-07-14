@@ -6,22 +6,22 @@
 
 import os
 import sys
+import time
+from configparser import ConfigParser
+
+from data.ms.basehandler import BaseHandler
+from utils.deal_date import ComplexEncoder
+from utils.remove_file import remove_file, random_double
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 import json
-import traceback
-import pandas as pd
 import xlrd2
 from constants import USER_AGENTS
-import requests
 import random
 import os
-import fire
 import datetime
-from data.dao import data_deal
 import re
-from utils.proxy_utils import get_proxies
 from utils.logs_utils import logger
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -33,145 +33,114 @@ exchange_mt_financing_underlying_security = '4'  # 融资融券融资标的证�
 exchange_mt_lending_underlying_security = '5'  # 融资融券融券标的证券
 exchange_mt_guaranty_and_underlying_security = '99'  # 融资融券可充抵保证金证券和融资融券标的证券
 
+base_dir = os.path.dirname(os.path.abspath(__file__))
+full_path = os.path.join(base_dir, '../../../config/config.ini')
+cf = ConfigParser()
+cf.read(full_path)
+paths = cf.get('excel-path', 'save_excel_file_path')
+save_excel_file_path = os.path.join(paths, '深交所担保券.xlsx')
+
 data_source_szse = '深圳交易所'
 data_source_sse = '上海交易所'
-broker_id = 1000095
 
 regrex_pattern = re.compile(r"[(](.*?)[)]", re.S)  # 最小匹配,提取括号内容
 regrex_pattern2 = re.compile(r"[(](.*)[)]", re.S)  # 贪婪匹配
 
 
-def download_excel(query_date=None):
-    download_url = 'http://www.szse.cn/api/report/ShowReport'
-    headers = {
-        'User-Agent': random.choice(USER_AGENTS)
-    }
-    params = {
-        'SHOWTYPE': 'xlsx',
-        'CATALOGID': '1835_xxpl',
-        'TABKEY': 'tab1',
-        # 查历史可以传日期
-        'txtDate': query_date,
-        'random': random_double()
-    }
+class CollectHandler(BaseHandler):
 
-    try:
-        logger.info("broker_id={}开始采集深交所数据".format(broker_id))
-        response = requests.get(url=download_url, proxies=get_proxies(), headers=headers, params=params, timeout=20)
-        with open(excel_file_path, 'wb') as file:
-            file.write(response.content)  # 写excel到当前目录
-    except Exception as es:
-        logger.error(es)
+    @classmethod
+    def collect_data(cls, query_date=None):
+        max_retry = 0
+        while max_retry < 3:
+            try:
+                actual_date = datetime.date.today() if query_date is None else query_date
+                logger.info("深交所数据采集日期actual_date:{}".format(actual_date))
+                download_url = 'http://www.szse.cn/api/report/ShowReport'
+                headers = {
+                    'User-Agent': random.choice(USER_AGENTS)
+                }
+                params = {
+                    'SHOWTYPE': 'xlsx',
+                    'CATALOGID': '1835_xxpl',
+                    'TABKEY': 'tab1',
+                    # 查历史可以传日期
+                    'txtDate': actual_date,
+                    'random': random_double()
+                }
+                proxies = super().get_proxies()
+                title_list = ['zqdm', 'zqjc']
 
-
-def handle_excel(excel_file, date, excel_file_path):
-    logger.info("开始处理excel")
-    download_url = 'http://www.szse.cn/api/report/ShowReport'
-    start_dt = datetime.datetime.now()
-    sheet_0 = excel_file.sheet_by_index(0)
-    total_row = sheet_0.nrows
-
-    try:
-        if total_row > 1:
-            data_list = []
-            for i in range(1, total_row):
-                row = sheet_0.row(i)
-                if row is None:
-                    break
-
-                zqdm = str(row[0].value)  # 证券代码
-                zqjc = str(row[1].value)  # 证券简称
-                data_list.append((zqdm, zqjc))
-            logger.info(f'已采集数据条数：{total_row - 1}')
-            logger.info("broker_id={}采集深交所数据结束".format(broker_id))
-            end_dt = datetime.datetime.now()
-            # 计算采集数据所需时间used_time
-            used_time = (end_dt - start_dt).seconds
-            data_df = pd.DataFrame(data_list, columns=['zqdm', 'zqjc'])
-            if data_df is not None:
-                if data_df.iloc[:, 0].size == total_row - 1:
-                    df_result = {
-                        'columns': ['zqdm', 'zqjc'],
-                        'data': data_df.values.tolist()
-                    }
-                    data_deal.insert_data_collect(json.dumps(df_result, ensure_ascii=False), date
-                                                  , exchange_mt_guaranty_security, data_source_szse, start_dt,
-                                                  end_dt, used_time, download_url, excel_file_path)
-                    logger.info("broker_id={}数据采集完成，已成功入库！".format(broker_id))
+                start_dt = datetime.datetime.now()
+                response = super().get_response(download_url, proxies, 0, headers, params)
+                logger.info("开始下载excel")
+                cls.download_excel(response)
+                logger.info("excel下载完成")
+                excel_file = xlrd2.open_workbook(excel_file_path, encoding_override="utf-8")
+                data_list, total_row = cls.handle_excel(excel_file, actual_date)
+                df_result = super().data_deal(data_list, title_list)
+                end_dt = datetime.datetime.now()
+                used_time = (end_dt - start_dt).seconds
+                if int(len(data_list)) == total_row - 1:
+                    super().data_insert(int(len(data_list)), df_result, actual_date, exchange_mt_guaranty_security,
+                                        data_source_szse, start_dt, end_dt, used_time, download_url,
+                                        save_excel_file_path)
+                    logger.info(f'入库信息,共{int(len(data_list))}条')
                 else:
-                    logger.error("已采集数据与官网条数不一致，采集失败")
+                    raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{total_row - 1}不一致，入库失败')
+
+                message = "深交所融资融券可充抵保证金证券数据采集完成"
+                super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
+                                          exchange_mt_guaranty_security, data_source_szse, message)
+
+                logger.info("深交所融资融券可充抵保证金证券数据采集完成")
+
+                break
+            except Exception as e:
+                time.sleep(3)
+                logger.error(e)
+            finally:
+                remove_file(excel_file_path)
+
+            max_retry += 1
+
+    @classmethod
+    def download_excel(cls, response):
+        try:
+            with open(excel_file_path, 'wb') as file:
+                file.write(response.content)
+            with open(save_excel_file_path, 'wb') as file:
+                file.write(response.content)
+        except Exception as es:
+            logger.error(es)
+
+    @classmethod
+    def handle_excel(cls, excel_file, actual_date):
+        logger.info("开始处理excel")
+        sheet_0 = excel_file.sheet_by_index(0)
+        total_row = sheet_0.nrows
+        try:
+            if total_row > 1:
+                data_list = []
+                for i in range(1, total_row):
+                    row = sheet_0.row(i)
+                    if row is None:
+                        break
+
+                    zqdm = str(row[0].value)  # 证券代码
+                    zqjc = str(row[1].value)  # 证券简称
+                    data_list.append((zqdm, zqjc))
+
+                logger.info(f'已采集数据条数：{total_row - 1}')
+                return data_list, total_row
             else:
-                logger.error("采集数据失败")
-        else:
-            logger.info("深交所该日无数据:txt_date:{}".format(date))
+                logger.info("深交所该日无数据:txt_date:{}".format(actual_date))
 
-    except Exception as es:
-        logger.error(es)
-
-
-def remove_file(file_path):
-    try:
-        if os.path.exists(file_path):
-            os.remove(file_path)
-    except Exception as e:
-        logger.info("删除文件异常:{}".format(e))
-
-
-def random_double(mu=0.8999999999999999, sigma=0.1000000000000001):
-    """
-        访问深交所时需要随机数
-        :param mu:
-        :param sigma:
-        :return:
-    """
-    random_value = random.normalvariate(mu, sigma)
-    if random_value < 0:
-        random_value = mu
-    return random_value
-
-
-def exchange_mt_guaranty_security_collect(query_date=None, query_end_data=None):
-    if query_end_data is None:
-        if query_date is None:
-            query_date = datetime.date.today()
-        else:
-            query_date = datetime.datetime.strptime(str(query_date).replace("-", ""), '%Y%m%d').date()
-        try:
-            actual_date = datetime.date.today() if query_date is None else query_date
-            logger.info("深交所数据采集日期actual_date:{}".format(actual_date))
-            logger.info("开始下载excel")
-            download_excel(actual_date)
-            logger.info("excel下载完成")
-            excel_file = xlrd2.open_workbook(excel_file_path, encoding_override="utf-8")
-            handle_excel(excel_file, actual_date, excel_file_path)
         except Exception as es:
-            traceback.format_exc()
-            logger.info("es:{}", es)
-        finally:
-            remove_file(excel_file_path)
-    else:
-        try:
-            begin = datetime.datetime.strptime(query_date, '%Y%m%d')
-            end = datetime.datetime.strptime(query_end_data, '%Y%m%d')
-            b = begin.date()
-            e = end.date()
+            logger.error(es)
 
-            for k in range((e - b).days + 1):
-                cur_date = b + datetime.timedelta(days=k)
-                exchange_mt_guaranty_security_collect(query_date=cur_date)
-        except Exception as es:
-            traceback.format_exc()
-            logger.info("es:{}", es)
-        finally:
-            remove_file(excel_file_path)
 
 
 if __name__ == '__main__':
-    # exchange_mt_guaranty_security_collect('2022-06-27')
-    # download_excel('2022-06-27')
-    # excel_file = xlrd2.open_workbook(excel_file_path, encoding_override="utf-8")
-    # handle_excel(excel_file, '2022-06-27', excel_file_path)
-    exchange_mt_guaranty_security_collect()
-    # fire.Fire()
-
-    # python3 sz_exchange_mt_guaranty_security_collect.py - exchange_mt_guaranty_security_collect 20220613 20220615
+    collector = CollectHandler()
+    collector.collect_data()
