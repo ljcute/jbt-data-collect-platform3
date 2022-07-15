@@ -9,12 +9,14 @@ import sys
 import time
 from configparser import ConfigParser
 
+
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(BASE_DIR)
 from data.ms.basehandler import BaseHandler
 from utils.deal_date import ComplexEncoder
 from utils.remove_file import remove_file, random_double
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-sys.path.append(BASE_DIR)
 import json
 import xlrd2
 from constants import USER_AGENTS

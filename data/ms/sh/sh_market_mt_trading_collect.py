@@ -13,13 +13,14 @@ import xlrd2
 import datetime
 import os
 from configparser import ConfigParser
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(BASE_DIR)
+
 from utils.deal_date import ComplexEncoder
 from utils.logs_utils import logger
 from data.ms.basehandler import BaseHandler
 from utils.remove_file import remove_file
-
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-sys.path.append(BASE_DIR)
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 excel_file_path = os.path.join(base_dir, 'sh_balance.xls')

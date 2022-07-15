@@ -8,11 +8,13 @@ import os
 import sys
 from configparser import ConfigParser
 
-from data.ms.basehandler import BaseHandler
-from utils.deal_date import ComplexEncoder
+
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
+from data.ms.basehandler import BaseHandler
+from utils.deal_date import ComplexEncoder
+
 
 import os
 import json

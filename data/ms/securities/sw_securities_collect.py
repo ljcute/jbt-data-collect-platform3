@@ -7,11 +7,13 @@
 import os
 import sys
 
-from data.ms.basehandler import BaseHandler
-from utils.deal_date import ComplexEncoder
+
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
+
+from data.ms.basehandler import BaseHandler
+from utils.deal_date import ComplexEncoder
 import json
 from selenium.webdriver.common.by import By
 import time

@@ -6,7 +6,11 @@
 # @File    : basehandler.py
 import json
 import os
+import sys
 from configparser import ConfigParser
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(BASE_DIR)
 
 import pandas as pd
 import requests
