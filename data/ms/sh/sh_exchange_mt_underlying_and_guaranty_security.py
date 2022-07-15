@@ -39,7 +39,7 @@ sh_target_rq_file_path = './' + 'sh_target_rq.xls'
 base_dir = os.path.dirname(os.path.abspath(__file__))
 full_path = os.path.join(base_dir, '../../../config/config.ini')
 cf = ConfigParser()
-cf.read(full_path)
+cf.read(full_path,encoding='utf-8')
 paths = cf.get('excel-path', 'save_excel_file_path')
 save_excel_file_path_gu = os.path.join(paths, '上交所担保券.xls')
 save_excel_file_path_rz = os.path.join(paths, '上交所融资标的.xls')

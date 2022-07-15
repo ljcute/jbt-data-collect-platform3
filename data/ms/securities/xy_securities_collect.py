@@ -8,8 +8,6 @@ import os
 import sys
 from configparser import ConfigParser
 
-
-
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 from data.ms.basehandler import BaseHandler
@@ -23,7 +21,6 @@ import xlrd2
 from utils.logs_utils import logger
 import datetime
 
-
 target_excel_name = '兴业证券融资融券标的证券及保证金比例明细表'
 guaranty_excel_name = '兴业证券融资融券可充抵保证金证券及折算率明细表'
 
@@ -33,7 +30,7 @@ target_file_path = './' + 'target.xlsx'
 base_dir = os.path.dirname(os.path.abspath(__file__))
 full_path = os.path.join(base_dir, '../../../config/config.ini')
 cf = ConfigParser()
-cf.read(full_path)
+cf.read(full_path, encoding='utf-8')
 paths = cf.get('excel-path', 'save_excel_file_path')
 save_excel_file_path_bd = os.path.join(paths, '兴业证券标的券.xlsx')
 save_excel_file_path_bzj = os.path.join(paths, '兴业证券保证金券.xlsx')

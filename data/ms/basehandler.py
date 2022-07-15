@@ -19,12 +19,12 @@ from data.dao import data_deal
 from utils.proxy_utils import get_proxies
 from utils.logs_utils import logger
 from selenium import webdriver
-from kafka import KafkaProducer, KafkaConsumer
+from kafka.producer import KafkaProducer
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 full_path = os.path.join(base_dir, '../../config/config.ini')
 cf = ConfigParser()
-cf.read(full_path)
+cf.read(full_path, encoding='utf-8')
 kafkaList = cf.get('kafka', 'kafkaList')
 topic = cf.get('kafka', 'topic')
 use_proxy = cf.get('proxy-switch', 'use_proxy')
@@ -78,7 +78,6 @@ class BaseHandler(object):
         else:
             logger.error("use_proxy参数有误，请检查")
             raise Exception("use_proxy参数有误，请检查")
-
 
     @classmethod
     def parsing(cls, response, driver):

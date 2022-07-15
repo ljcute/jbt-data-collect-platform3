@@ -14,7 +14,7 @@ base_dir = os.path.dirname(os.path.abspath(__file__))
 full_path = os.path.join(base_dir, 'config/config.ini')
 
 cf = ConfigParser()
-cf.read(full_path)
+cf.read(full_path,encoding='utf-8')
 
 host = cf.get('mysql', 'host')
 port = cf.getint('mysql', 'port')

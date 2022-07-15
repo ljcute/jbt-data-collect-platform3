@@ -42,7 +42,7 @@ all_file_path = './' + str(broker_id) + 'all.xls'
 base_dir = os.path.dirname(os.path.abspath(__file__))
 full_path = os.path.join(base_dir, '../../../config/config.ini')
 cf = ConfigParser()
-cf.read(full_path)
+cf.read(full_path,encoding='utf-8')
 paths = cf.get('excel-path', 'save_excel_file_path')
 save_excel_file_path = os.path.join(paths, '中信建投证券三种数据整合.xls')
 

@@ -20,7 +20,7 @@ none_proxy = {'http': None, 'https': None}
 base_dir = os.path.dirname(os.path.abspath(__file__))
 full_path = os.path.join(base_dir, '../config/config.ini')
 cf = ConfigParser()
-cf.read(full_path)
+cf.read(full_path,encoding='utf-8')
 proxy_retry_time = cf.get('proxy', 'proxy_retry_time')
 proxy_sleep_time = cf.get('proxy', 'proxy_sleep_time')
 
