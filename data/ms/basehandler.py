@@ -23,6 +23,7 @@ cf = ConfigParser()
 cf.read(full_path)
 kafkaList = cf.get('kafka', 'kafkaList')
 topic = cf.get('kafka', 'topic')
+use_proxy = cf.get('proxy-switch', 'use_proxy')
 
 
 # 数据采集基类
@@ -55,15 +56,25 @@ class BaseHandler(object):
 
     @classmethod
     def get_proxies(cls):
-        logger.info("开始获取代理ip......")
-        proxies = get_proxies()
-        if proxies['http'] is None and proxies['https'] is None:
-            logger.error("无可用代理ip，停止采集")
-            raise Exception("无可用代理ip，停止采集")
+        """
+        use_proxy ==0 表示使用代理 ==1 表示不使用代理
+        """
+        if int(use_proxy) == 0:
+            logger.info("开始获取代理ip......")
+            proxies = get_proxies()
+            if proxies['http'] is None and proxies['https'] is None:
+                logger.error("无可用代理ip，停止采集")
+                raise Exception("无可用代理ip，停止采集")
+            else:
+                logger.info("==================获取代理ip成功!====================")
+                return proxies
+        elif int(use_proxy) == 1:
+            logger.info("此次数据采集不使用代理！")
+            return None
         else:
-            logger.info("==================获取代理ip成功!====================")
-            return proxies
-        return proxies
+            logger.error("use_proxy参数有误，请检查")
+            raise Exception("use_proxy参数有误，请检查")
+
 
     @classmethod
     def parsing(cls, response, driver):
