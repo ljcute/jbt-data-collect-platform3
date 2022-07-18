@@ -16,7 +16,7 @@ def get_log_info():
         'crit': logging.CRITICAL
     }
 
-    filename = '../../../logs.log'
+    filename = '../../../logs/logs.log'
     logger = logging.getLogger(filename)
     fmt = '%(asctime)s - %(pathname)s[line:%(lineno)d] - %(levelname)s: %(message)s'
     format_str = logging.Formatter(fmt)
@@ -24,7 +24,7 @@ def get_log_info():
     # handler = logging.FileHandler(log_path)
     sh = logging.StreamHandler()
     sh.setFormatter(format_str)
-    th = handlers.TimedRotatingFileHandler(filename=filename, when='D', backupCount=3, encoding='utf-8')
+    th = handlers.TimedRotatingFileHandler(filename=filename, when='MIDNIGHT', interval=1, backupCount=7, encoding='utf-8')
     th.setFormatter(format_str)
     logger.addHandler(sh)
     logger.addHandler(th)
