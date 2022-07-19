@@ -53,7 +53,7 @@ class CollectHandler(BaseHandler):
     @classmethod
     def rz_target_collect(cls):
         actual_date = datetime.date.today()
-        logger.info(f'开始采集融资标的券数据{actual_date}')
+        logger.info(f'开始采集长城证券融资标的券数据{actual_date}')
         url = 'http://www.cgws.com/was5/web/de.jsp'
         page = 1
         page_size = 5
@@ -61,13 +61,12 @@ class CollectHandler(BaseHandler):
         data_list = []
         title_list = ['sec_code', 'sec_name', 'round_rate', 'date']
         start_dt = datetime.datetime.now()
+        proxies = super().get_proxies()
         while is_continue:
             params = {"page": page, "channelid": 257420, "searchword": 'KGNyZWRpdGZ1bmRjdHJsPTAp',
                       "_": get_timestamp()}
             try:
-                # proxies = super().get_proxies()
-                # 长城证券请求不使用代理ip（每次翻页获取数据都要请求，ip消耗太大）
-                response = super().get_response(url, None, 0, cc_headers, params)
+                response = super().get_response(url, proxies, 0, cc_headers, params)
                 text = json.loads(response.text)
                 logger.info("开始处理融资标的券数据")
                 row_list = text['rows']
@@ -113,7 +112,7 @@ class CollectHandler(BaseHandler):
     @classmethod
     def rq_target_collect(cls):
         actual_date = datetime.date.today()
-        logger.info(f'开始采集融券标的券数据{actual_date}')
+        logger.info(f'开始采集长城证券融券标的券数据{actual_date}')
         url = 'http://www.cgws.com/was5/web/de.jsp'
         page = 1
         page_size = 5
@@ -121,12 +120,12 @@ class CollectHandler(BaseHandler):
         data_list = []
         title_list = ['sec_code', 'sec_name', 'round_rate', 'date']
         start_dt = datetime.datetime.now()
+        proxies = super().get_proxies()
         while is_continue:
             params = {"page": page, "channelid": 257420, "searchword": 'KGNyZWRpdHN0a2N0cmw9MCk=',
                       "_": get_timestamp()}
             try:
-                # proxies = super().get_proxies()
-                response = super().get_response(url, None, 0, cc_headers, params)
+                response = super().get_response(url, proxies, 0, cc_headers, params)
                 text = json.loads(response.text)
                 row_list = text['rows']
                 total = 0
@@ -171,7 +170,7 @@ class CollectHandler(BaseHandler):
     @classmethod
     def guaranty_collect(cls):
         actual_date = datetime.date.today()
-        logger.info(f'开始采集担保券数据{actual_date}')
+        logger.info(f'开始采集长城证券担保券数据{actual_date}')
         url = 'http://www.cgws.com/was5/web/de.jsp'
         page = 1
         page_size = 5
@@ -179,12 +178,12 @@ class CollectHandler(BaseHandler):
         data_list = []
         title_list = ['sec_code', 'sec_name', 'round_rate', 'date']
         start_dt = datetime.datetime.now()
+        proxies = super().get_proxies()
         while is_continue:
             params = {"page": page, "channelid": 229873, "searchword": None,
                       "_": get_timestamp()}
             try:
-                # proxies = super().get_proxies()
-                response = super().get_response(url, None, 0, cc_headers, params)
+                response = super().get_response(url, proxies, 0, cc_headers, params)
                 text = json.loads(response.text)
                 row_list = text['rows']
                 total = 0

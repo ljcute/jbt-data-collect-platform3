@@ -85,12 +85,13 @@ class BaseHandler(object):
         pass
 
     @classmethod
-    def get_response(cls, url, proxies, request_type, headers=None, params=None, data=None, ):
+    def get_response(cls, url, proxies, request_type, headers=None, params=None, data=None, allow_redirects=None):
         logger.info("开始获取网页请求......")
         try:
             response = None
             if request_type == 0:
-                response = requests.get(url=url, params=params, proxies=proxies, headers=headers, timeout=10)
+                response = requests.get(url=url, params=params, proxies=proxies, headers=headers,
+                                        allow_redirects=allow_redirects, timeout=10)
             elif request_type == 1:
                 response = requests.post(url=url, data=data, proxies=proxies, headers=headers, timeout=10)
             else:
@@ -103,11 +104,22 @@ class BaseHandler(object):
     def get_driver(cls):
         logger.info("开始获取webdriver......")
         try:
-            options = webdriver.FirefoxOptions()
-            options.add_argument("--headless")
-            driver = webdriver.Firefox(options=options)
-            driver.implicitly_wait(10)
-            return driver
+            proxies = get_proxies()
+            if proxies['http'] is None and proxies['https'] is None:
+                logger.error("无可用代理ip，停止采集")
+                raise Exception("无可用代理ip，停止采集")
+            else:
+                logger.info("==================获取代理ip成功!====================")
+                proxy = proxies
+                if proxy is not None:
+                    proxy = proxy['http']
+                options = webdriver.FirefoxOptions()
+                options.add_argument("--headless")
+                options.add_argument("--proxy-server={}".format(proxy))
+                driver = webdriver.Firefox(options=options)
+                driver.implicitly_wait(10)
+                logger.info("==================webdriver走代理ip成功!====================")
+                return driver
         except Exception as e:
             logger.error(e)
 

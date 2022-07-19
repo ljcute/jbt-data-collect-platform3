@@ -8,8 +8,6 @@ import os
 import sys
 from configparser import ConfigParser
 
-
-
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 
@@ -42,7 +40,7 @@ all_file_path = './' + str(broker_id) + 'all.xls'
 base_dir = os.path.dirname(os.path.abspath(__file__))
 full_path = os.path.join(base_dir, '../../../config/config.ini')
 cf = ConfigParser()
-cf.read(full_path,encoding='utf-8')
+cf.read(full_path, encoding='utf-8')
 paths = cf.get('excel-path', 'save_excel_file_path')
 save_excel_file_path = os.path.join(paths, '中信建投证券三种数据整合.xls')
 
@@ -74,6 +72,19 @@ class CollectHandler(BaseHandler):
         # 在代码中加入UserAgent信息即可。
 
         try:
+            proxies = super().get_proxies()
+            proxy = None
+            if proxies is not None:
+                proxy_1 = proxies['http']
+            else:
+                logger.error(f'代理{proxies}获取失败，停止采集！')
+                raise Exception(f'代理{proxies}获取失败，停止采集！')
+            proxy_1 = proxy_1[7:]
+            proxy_dict = {}
+            proxy_dict['http'] = proxy_1
+            handle = urllib.request.ProxyHandler(proxies=proxy_dict)
+            opener = urllib.request.build_opener(handle)
+            urllib.request.install_opener(opener)
             req = urllib.request.Request(url=url, headers=get_headers())
             html_utf8 = urllib.request.urlopen(req, timeout=10).read().decode('utf-8')
             soup = BeautifulSoup(html_utf8, 'html.parser')
@@ -104,6 +115,7 @@ class CollectHandler(BaseHandler):
                         excel_file = xlrd2.open_workbook(all_file_path)
                         cls.do_all_collect(excel_file, all_file_path, url)
                         logger.info("处理excel完成")
+
         except Exception as es:
             logger.error(es)
         finally:
@@ -149,7 +161,8 @@ class CollectHandler(BaseHandler):
             used_time = (end_dt - start_dt).seconds
 
             if df_result is not None:
-                super().data_insert(int(len(data_list)), df_result, actual_date, exchange_mt_guaranty_and_underlying_security,
+                super().data_insert(int(len(data_list)), df_result, actual_date,
+                                    exchange_mt_guaranty_and_underlying_security,
                                     data_source, start_dt, end_dt, used_time, url,
                                     save_excel_file_path)
                 logger.info(f'入库信息,共{int(len(data_list))}条')

@@ -7,6 +7,7 @@
 # @Software: PyCharm
 import os
 import random
+import time
 
 from utils.logs_utils import logger
 
@@ -30,3 +31,18 @@ def random_double(mu=0.8999999999999999, sigma=0.1000000000000001):
     if random_value < 0:
         random_value = mu
     return random_value
+
+
+def random_page_size(mu=28888, sigma=78888):
+    """
+    获取随机分页数
+    :param mu:
+    :param sigma:
+    :return:
+    """
+    random_value = random.randint(mu, sigma)  # Return random integer in range [a, b], including both end points.
+    return random_value
+
+
+def get_timestamp():
+    return int(time.time() * 1000)
