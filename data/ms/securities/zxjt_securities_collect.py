@@ -48,11 +48,15 @@ save_excel_file_path = os.path.join(paths, '中信建投证券三种数据整合
 class CollectHandler(BaseHandler):
 
     @classmethod
-    def collect_data(cls, query_date=None):
+    def collect_data(cls, business_type):
         max_retry = 0
         while max_retry < 3:
             try:
-                cls.all_collect()
+                if business_type:
+                    if business_type == 99:
+                        cls.all_collect()
+                    else:
+                        logger.error(f'business_type{business_type}输入有误，请检查！')
 
                 break
 
@@ -197,4 +201,5 @@ def remove_file(file_path):
 
 if __name__ == '__main__':
     collector = CollectHandler()
+    # collector.collect_data(99)
     collector.collect_data()

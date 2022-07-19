@@ -6,7 +6,6 @@
 import os
 import sys
 
-
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 
@@ -35,13 +34,19 @@ data_source = '长城证券'
 class CollectHandler(BaseHandler):
 
     @classmethod
-    def collect_data(cls):
+    def collect_data(cls, business_type):
         max_retry = 0
         while max_retry < 3:
             try:
-                cls.rz_target_collect()
-                cls.rq_target_collect()
-                cls.guaranty_collect()
+                if business_type:
+                    if business_type == 4:
+                        cls.rz_target_collect()
+                    elif business_type == 5:
+                        cls.rq_target_collect()
+                    elif business_type == 2:
+                        cls.guaranty_collect()
+                    else:
+                        logger.error(f'business_type{business_type}输入有误，请检查！')
 
                 break
             except Exception as e:
@@ -233,4 +238,5 @@ def get_timestamp():
 
 if __name__ == '__main__':
     collector = CollectHandler()
+    # collector.collect_data(5)
     collector.collect_data()

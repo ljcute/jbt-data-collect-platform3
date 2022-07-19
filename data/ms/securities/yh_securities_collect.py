@@ -40,16 +40,22 @@ data_source = '中国银河证券'
 class CollectHandler(BaseHandler):
 
     @classmethod
-    def collect_data(cls):
+    def collect_data(cls, business_type):
         max_retry = 0
         while max_retry < 3:
             try:
-                # 银河证券融资标的证券采集
-                cls.rz_target_collect()
-                # 银河证券融券标的证券采集
-                cls.rq_target_collect()
-                # 银河证券可充抵保证金证券采集
-                cls.guaranty_collect()
+                if business_type:
+                    if business_type == 4:
+                        # 银河证券融资标的证券采集
+                        cls.rz_target_collect()
+                    elif business_type == 5:
+                        # 银河证券融券标的证券采集
+                        cls.rq_target_collect()
+                    elif business_type == 2:
+                        # 银河证券可充抵保证金证券采集
+                        cls.guaranty_collect()
+                    else:
+                        logger.error(f'business_type{business_type}输入有误，请检查！')
 
                 break
             except Exception as e:
@@ -227,4 +233,5 @@ class CollectHandler(BaseHandler):
 
 if __name__ == '__main__':
     collector = CollectHandler()
+    # collector.collect_data(3)
     collector.collect_data()

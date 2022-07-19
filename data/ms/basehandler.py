@@ -61,9 +61,9 @@ class BaseHandler(object):
     @classmethod
     def get_proxies(cls):
         """
-        use_proxy ==0 表示使用代理 ==1 表示不使用代理
+        use_proxy ==1 表示使用代理 ==0 表示不使用代理
         """
-        if int(use_proxy) == 0:
+        if int(use_proxy) == 1:
             logger.info("开始获取代理ip......")
             proxies = get_proxies()
             if proxies['http'] is None and proxies['https'] is None:
@@ -72,7 +72,7 @@ class BaseHandler(object):
             else:
                 logger.info("==================获取代理ip成功!====================")
                 return proxies
-        elif int(use_proxy) == 1:
+        elif int(use_proxy) == 0:
             logger.info("此次数据采集不使用代理！")
             return None
         else:
@@ -104,22 +104,30 @@ class BaseHandler(object):
     def get_driver(cls):
         logger.info("开始获取webdriver......")
         try:
-            proxies = get_proxies()
-            if proxies['http'] is None and proxies['https'] is None:
-                logger.error("无可用代理ip，停止采集")
-                raise Exception("无可用代理ip，停止采集")
+            if int(use_proxy) == 1:
+                proxies = get_proxies()
+                if proxies['http'] is None and proxies['https'] is None:
+                    logger.error("无可用代理ip，停止采集")
+                    raise Exception("无可用代理ip，停止采集")
+                else:
+                    logger.info("==================获取代理ip成功!====================")
+                    proxy = proxies
+                    if proxy is not None:
+                        proxy = proxy['http']
+                    options = webdriver.FirefoxOptions()
+                    options.add_argument("--headless")
+                    options.add_argument("--proxy-server={}".format(proxy))
+                    driver = webdriver.Firefox(options=options)
+                    driver.implicitly_wait(10)
+                    logger.info("==================webdriver走代理ip成功!====================")
+                    return driver
+            elif int(use_proxy) == 0:
+                logger.info("此次数据采集不使用代理！")
+                raise Exception("此次数据采集不使用代理,获取driver失败")
             else:
-                logger.info("==================获取代理ip成功!====================")
-                proxy = proxies
-                if proxy is not None:
-                    proxy = proxy['http']
-                options = webdriver.FirefoxOptions()
-                options.add_argument("--headless")
-                options.add_argument("--proxy-server={}".format(proxy))
-                driver = webdriver.Firefox(options=options)
-                driver.implicitly_wait(10)
-                logger.info("==================webdriver走代理ip成功!====================")
-                return driver
+                logger.error("use_proxy参数有误，请检查")
+                raise Exception("use_proxy参数有误，请检查")
+
         except Exception as e:
             logger.error(e)
 

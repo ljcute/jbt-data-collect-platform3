@@ -47,14 +47,19 @@ data_source = '兴业证券'
 class CollectHandler(BaseHandler):
 
     @classmethod
-    def collect_data(cls):
+    def collect_data(cls, business_type):
         max_retry = 0
         while max_retry < 3:
             try:
-                # 兴业证券标的相关数据采集
-                cls.target_collect_task()
-                # 兴业证券保证金相关数据采集
-                cls.guaranty_collect_task()
+                if business_type:
+                    if business_type == 3:
+                        # 兴业证券标的相关数据采集
+                        cls.target_collect_task()
+                    elif business_type == 2:
+                        # 兴业证券保证金相关数据采集
+                        cls.guaranty_collect_task()
+                    else:
+                        logger.error(f'business_type{business_type}输入有误，请检查！')
 
                 break
             except Exception as e:
@@ -219,4 +224,5 @@ def remove_file(file_path):
 
 if __name__ == '__main__':
     collector = CollectHandler()
+    # collector.collect_data(3)
     collector.collect_data()

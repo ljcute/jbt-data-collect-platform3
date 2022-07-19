@@ -33,14 +33,19 @@ data_source = '招商证券'
 class CollectHandler(BaseHandler):
 
     @classmethod
-    def collect_data(cls):
+    def collect_data(cls, business_type):
         max_retry = 0
         while max_retry < 3:
             try:
-                # 招商证券标的证券采集
-                cls.rz_target_collect()
-                # 招商证券保证金证券
-                cls.guaranty_collect()
+                if business_type:
+                    if business_type == 3:
+                        # 招商证券标的证券采集
+                        cls.rz_target_collect()
+                    elif business_type == 2:
+                        # 招商证券保证金证券
+                        cls.guaranty_collect()
+                    else:
+                        logger.error(f'business_type{business_type}输入有误，请检查！')
 
                 break
             except Exception as e:
@@ -151,4 +156,5 @@ def random_page_size(mu=28888, sigma=78888):
 
 if __name__ == '__main__':
     collector = CollectHandler()
-    collector.collect_data()
+    # collector.collect_data(3)
+    collector.collect_data(2)
