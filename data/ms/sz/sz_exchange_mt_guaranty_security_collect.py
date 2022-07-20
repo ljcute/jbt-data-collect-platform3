@@ -9,8 +9,6 @@ import sys
 import time
 from configparser import ConfigParser
 
-
-
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 from data.ms.basehandler import BaseHandler
@@ -38,7 +36,7 @@ exchange_mt_guaranty_and_underlying_security = '99'  # 融资融券可充抵保�
 base_dir = os.path.dirname(os.path.abspath(__file__))
 full_path = os.path.join(base_dir, '../../../config/config.ini')
 cf = ConfigParser()
-cf.read(full_path,encoding='utf-8')
+cf.read(full_path, encoding='utf-8')
 paths = cf.get('excel-path', 'save_excel_file_path')
 save_excel_file_path = os.path.join(paths, '深交所担保券.xlsx')
 
@@ -142,7 +140,6 @@ class CollectHandler(BaseHandler):
             logger.error(es)
 
 
-
 if __name__ == '__main__':
     collector = CollectHandler()
-    collector.collect_data()
+    collector.collect_data(sys.argv[1])
