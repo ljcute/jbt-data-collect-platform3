@@ -38,6 +38,7 @@ class CollectHandler(BaseHandler):
         max_retry = 0
         while max_retry < 3:
             try:
+                logger.info(f'重试第{max_retry}次')
                 if business_type:
                     if business_type == 4:
                         cls.rz_target_collect()
@@ -72,6 +73,8 @@ class CollectHandler(BaseHandler):
                       "_": get_timestamp()}
             try:
                 response = super().get_response(url, proxies, 0, cc_headers, params)
+                if response is None or response.status_code != 200:
+                    logger.error(f'请求失败！{response}')
                 text = json.loads(response.text)
                 logger.info("开始处理融资标的券数据")
                 row_list = text['rows']
@@ -96,6 +99,7 @@ class CollectHandler(BaseHandler):
                 logger.info(f'已采集数据条数：{int(len(data_list))}')
             except Exception as es:
                 logger.error(es)
+                is_continue = False
 
         logger.info(f'采集融资标的券数据结束,共{int(len(data_list))}条')
         df_result = super().data_deal(data_list, title_list)
@@ -238,5 +242,5 @@ def get_timestamp():
 
 if __name__ == '__main__':
     collector = CollectHandler()
-    # collector.collect_data(5)
-    collector.collect_data(eval(sys.argv[1]))
+    collector.collect_data(4)
+    # collector.collect_data(eval(sys.argv[1]))
