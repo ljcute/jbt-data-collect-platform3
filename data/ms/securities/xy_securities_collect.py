@@ -32,8 +32,8 @@ full_path = os.path.join(base_dir, '../../../config/config.ini')
 cf = ConfigParser()
 cf.read(full_path, encoding='utf-8')
 paths = cf.get('excel-path', 'save_excel_file_path')
-save_excel_file_path_bd = os.path.join(paths, '兴业证券标的券.xlsx')
-save_excel_file_path_bzj = os.path.join(paths, '兴业证券保证金券.xlsx')
+save_excel_file_path_bd = os.path.join(paths, "兴业证券标的券{}.xlsx".format(datetime.date.today()))
+save_excel_file_path_bzj = os.path.join(paths, "兴业证券保证金券{}.xlsx".format(datetime.date.today()))
 
 exchange_mt_guaranty_security = '2'  # 融资融券可充抵保证金证券
 exchange_mt_underlying_security = '3'  # 融资融券标的证券

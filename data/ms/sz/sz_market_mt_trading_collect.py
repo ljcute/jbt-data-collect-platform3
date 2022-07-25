@@ -31,7 +31,7 @@ full_path = os.path.join(base_dir, '../../../config/config.ini')
 cf = ConfigParser()
 cf.read(full_path, encoding='utf-8')
 paths = cf.get('excel-path', 'save_excel_file_path')
-save_excel_file_path = os.path.join(paths, '深交所融资融券.xlsx')
+save_excel_file_path = os.path.join(paths, "深交所融资融券{}.xlsx".format(datetime.date.today()))
 
 data_type_market_mt_trading_amount = '0'  # 市场融资融券交易总量
 data_type_market_mt_trading_items = '1'  # 市场融资融券交易明细

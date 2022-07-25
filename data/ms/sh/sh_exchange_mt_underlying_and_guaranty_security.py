@@ -40,9 +40,9 @@ full_path = os.path.join(base_dir, '../../../config/config.ini')
 cf = ConfigParser()
 cf.read(full_path, encoding='utf-8')
 paths = cf.get('excel-path', 'save_excel_file_path')
-save_excel_file_path_gu = os.path.join(paths, '上交所担保券.xls')
-save_excel_file_path_rz = os.path.join(paths, '上交所融资标的.xls')
-save_excel_file_path_rq = os.path.join(paths, '上交所融券标的.xls')
+save_excel_file_path_gu = os.path.join(paths, "上交所担保券{}.xls".format(datetime.date.today()))
+save_excel_file_path_rz = os.path.join(paths, "上交所融资标的券{}.xls".format(datetime.date.today()))
+save_excel_file_path_rq = os.path.join(paths, "上交所融券标的券{}.xls".format(datetime.date.today()))
 
 data_source_szse = '深圳交易所'
 data_source_sse = '上海交易所'

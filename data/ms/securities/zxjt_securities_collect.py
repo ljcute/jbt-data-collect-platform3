@@ -42,7 +42,7 @@ full_path = os.path.join(base_dir, '../../../config/config.ini')
 cf = ConfigParser()
 cf.read(full_path, encoding='utf-8')
 paths = cf.get('excel-path', 'save_excel_file_path')
-save_excel_file_path = os.path.join(paths, '中信建投证券三种数据整合.xls')
+save_excel_file_path = os.path.join(paths, "中信建投证券三种数据整合{}.xls".format(datetime.date.today()))
 
 
 class CollectHandler(BaseHandler):

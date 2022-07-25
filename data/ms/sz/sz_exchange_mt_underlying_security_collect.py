@@ -40,7 +40,7 @@ full_path = os.path.join(base_dir, '../../../config/config.ini')
 cf = ConfigParser()
 cf.read(full_path,encoding='utf-8')
 paths = cf.get('excel-path', 'save_excel_file_path')
-save_excel_file_path = os.path.join(paths, '深交所标的券.xlsx')
+save_excel_file_path = os.path.join(paths, "深交所标的券{}.xlsx".format(datetime.date.today()))
 
 data_source_szse = '深圳交易所'
 data_source_sse = '上海交易所'
