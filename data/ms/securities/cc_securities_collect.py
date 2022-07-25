@@ -135,6 +135,8 @@ class CollectHandler(BaseHandler):
                       "_": get_timestamp()}
             try:
                 response = super().get_response(url, proxies, 0, cc_headers, params)
+                if response is None or response.status_code != 200:
+                    logger.error(f'请求失败！{response}')
                 text = json.loads(response.text)
                 row_list = text['rows']
                 total = 0
@@ -157,6 +159,7 @@ class CollectHandler(BaseHandler):
                 logger.info(f'已采集数据条数：{int(len(data_list))}')
             except Exception as es:
                 logger.error(es)
+                is_continue = False
 
         logger.info(f'采集融券标的券数据结束,共{int(len(data_list))}条')
         df_result = super().data_deal(data_list, title_list)
@@ -193,6 +196,8 @@ class CollectHandler(BaseHandler):
                       "_": get_timestamp()}
             try:
                 response = super().get_response(url, proxies, 0, cc_headers, params)
+                if response is None or response.status_code != 200:
+                    logger.error(f'请求失败！{response}')
                 text = json.loads(response.text)
                 row_list = text['rows']
                 total = 0
@@ -216,6 +221,7 @@ class CollectHandler(BaseHandler):
                 logger.info(f'已采集数据条数：{int(len(data_list))}')
             except Exception as es:
                 logger.error(es)
+                is_continue = False
 
         logger.info(f'采集担保券数据结束,共{int(len(data_list))}条')
         df_result = super().data_deal(data_list, title_list)
