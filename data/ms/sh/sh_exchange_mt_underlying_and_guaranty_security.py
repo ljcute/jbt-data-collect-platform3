@@ -167,4 +167,7 @@ def handle_excel(excel_file, date):
 
 if __name__ == '__main__':
     collector = CollectHandler()
-    collector.collect_data(sys.argv[1])
+    if len(sys.argv) > 1:
+        collector.collect_data(sys.argv[1])
+    else:
+        collector.collect_data()

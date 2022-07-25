@@ -29,7 +29,7 @@ excel_file_path = os.path.join(base_dir, 'sz_balance.xlsx')
 base_dir = os.path.dirname(os.path.abspath(__file__))
 full_path = os.path.join(base_dir, '../../../config/config.ini')
 cf = ConfigParser()
-cf.read(full_path,encoding='utf-8')
+cf.read(full_path, encoding='utf-8')
 paths = cf.get('excel-path', 'save_excel_file_path')
 save_excel_file_path = os.path.join(paths, '深交所融资融券.xlsx')
 
@@ -188,9 +188,9 @@ class CollectHandler(BaseHandler):
                 jrrzye = str(row[3].value).replace(",", "")  # 融资余额(元)
                 jrrzmr = str(row[2].value).replace(",", "")  # 融资买入额(元)
                 jrrjyl = str(row[5].value).replace(",", "")  # 融券余量(股/份)
-                jrrjye = str(row[6].value).replace(",", "") # 融券余额(元)
+                jrrjye = str(row[6].value).replace(",", "")  # 融券余额(元)
                 jrrjmc = str(row[4].value).replace(",", "")  # 融券卖出量(股/份)
-                jrrzrjye = str(row[7].value).replace(",", "") # 融资融券余额(亿元)
+                jrrzrjye = str(row[7].value).replace(",", "")  # 融资融券余额(亿元)
                 data_list.append((zqdm, zqjc, jrrzye, jrrzmr, jrrjyl, jrrjye, jrrjmc, jrrzrjye))
 
             logger.info("excel处理结束")
@@ -199,7 +199,6 @@ class CollectHandler(BaseHandler):
             #     logger.error(es)
         else:
             logger.error("没有找到符合条件的数据！")
-
 
 
 # def collect_history(begin_dt, end_dt):
@@ -217,4 +216,7 @@ class CollectHandler(BaseHandler):
 if __name__ == "__main__":
     collector = CollectHandler()
     # collector.collect_data('2022-07-12')
-    collector.collect_data(sys.argv[1])
+    if len(sys.argv) > 1:
+        collector.collect_data(sys.argv[1])
+    else:
+        collector.collect_data()

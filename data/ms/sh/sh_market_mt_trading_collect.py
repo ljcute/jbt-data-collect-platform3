@@ -28,7 +28,7 @@ excel_file_path = os.path.join(base_dir, 'sh_balance.xls')
 base_dir = os.path.dirname(os.path.abspath(__file__))
 full_path = os.path.join(base_dir, '../../../config/config.ini')
 cf = ConfigParser()
-cf.read(full_path,encoding='utf-8')
+cf.read(full_path, encoding='utf-8')
 paths = cf.get('excel-path', 'save_excel_file_path')
 save_excel_file_path = os.path.join(paths, '上交所融资融券.xls')
 
@@ -47,7 +47,7 @@ class CollectHandler(BaseHandler):
         while max_retry < 3:
             try:
                 start_dt = datetime.datetime.now()
-                actual_date = datetime.date.today() if query_date is None else query_date
+                actual_date = datetime.date.today() if query_date is None or query_date == '' else query_date
                 logger.info(f'上交所数据采集开始{actual_date}')
                 download_excel_url = "http://www.sse.com.cn/market/dealingdata/overview/margin/a/rzrqjygk20220623.xls"
                 if query_date is not None:
@@ -177,4 +177,7 @@ def handle_excel_detail(excel_file, date):
 
 if __name__ == '__main__':
     collector = CollectHandler()
-    collector.collect_data(sys.argv[1])
+    if len(sys.argv) > 1:
+        collector.collect_data(sys.argv[1])
+    else:
+        collector.collect_data()
