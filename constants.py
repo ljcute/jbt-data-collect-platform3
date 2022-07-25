@@ -5,6 +5,9 @@
 import requests
 import random
 
+ignore_error_log = ['Bad Gateway', 'Read timed out', 'ConnectionResetError',
+                    'Cannot connect to proxy', 'ConnectTimeoutError', 'Max retries exceeded with url']
+
 USER_AGENTS = [
     "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; AcooBrowser; .NET CLR 1.1.4322; .NET CLR 2.0.50727)",
     "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.0; Acoo Browser; SLCC1; .NET CLR 2.0.50727; Media Center PC 5.0; .NET CLR 3.0.04506)",
@@ -65,6 +68,13 @@ def get_http_session(pool_connections, pool_maxsize, max_retries):
 session = get_http_session(20, 100, 3)
 
 
-if __name__ == '__main__':
+def not_ignore_error(exception):
+    str_e = str(exception)
+    for i in ignore_error_log:  # 如果包含这些日志就不打印出来
+        if i in str_e:
+            return False  # False表示不需要打印
+    return True
 
+
+if __name__ == '__main__':
     print(get_headers())

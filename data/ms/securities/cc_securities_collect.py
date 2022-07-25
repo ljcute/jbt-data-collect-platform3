@@ -37,8 +37,8 @@ class CollectHandler(BaseHandler):
     def collect_data(cls, business_type):
         max_retry = 0
         while max_retry < 3:
+            logger.info(f'重试第{max_retry}次')
             try:
-                logger.info(f'重试第{max_retry}次')
                 if business_type:
                     if business_type == 4:
                         cls.rz_target_collect()

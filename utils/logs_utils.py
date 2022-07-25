@@ -17,6 +17,7 @@ def get_log_info():
     }
 
     filename = '../../../logs/logs.log'
+    # filename = 'logs/logs.log'
     logger = logging.getLogger(filename)
     fmt = '%(asctime)s - %(pathname)s[line:%(lineno)d] - %(levelname)s: %(message)s'
     format_str = logging.Formatter(fmt)

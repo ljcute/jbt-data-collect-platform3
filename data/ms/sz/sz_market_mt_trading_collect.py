@@ -47,6 +47,7 @@ class CollectHandler(BaseHandler):
     def collect_data(cls, query_date=None):
         max_retry = 0
         while max_retry < 3:
+            logger.info(f'重试第{max_retry}次')
             try:
                 cls.total(query_date)
                 cls.item(query_date)

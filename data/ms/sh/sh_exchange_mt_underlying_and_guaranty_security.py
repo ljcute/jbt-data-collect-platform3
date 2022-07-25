@@ -31,7 +31,6 @@ exchange_mt_financing_underlying_security = '4'  # 融资融券融资标的证�
 exchange_mt_lending_underlying_security = '5'  # 融资融券融券标的证券
 exchange_mt_guaranty_and_underlying_security = '99'  # 融资融券可充抵保证金证券和融资融券标的证券
 
-
 sh_guaranty_file_path = './' + 'sh_guaranty.xls'
 sh_target_rz_file_path = './' + 'sh_target_rz.xls'
 sh_target_rq_file_path = './' + 'sh_target_rq.xls'
@@ -39,7 +38,7 @@ sh_target_rq_file_path = './' + 'sh_target_rq.xls'
 base_dir = os.path.dirname(os.path.abspath(__file__))
 full_path = os.path.join(base_dir, '../../../config/config.ini')
 cf = ConfigParser()
-cf.read(full_path,encoding='utf-8')
+cf.read(full_path, encoding='utf-8')
 paths = cf.get('excel-path', 'save_excel_file_path')
 save_excel_file_path_gu = os.path.join(paths, '上交所担保券.xls')
 save_excel_file_path_rz = os.path.join(paths, '上交所融资标的.xls')
@@ -55,6 +54,7 @@ class CollectHandler(BaseHandler):
     def collect_data(cls, query_date=None):
         max_retry = 0
         while max_retry < 3:
+            logger.info(f'重试第{max_retry}次')
             try:
                 actual_date = datetime.date.today() if query_date is None else query_date
                 logger.info(f'上交所数据采集开始{actual_date}')
@@ -96,7 +96,6 @@ class CollectHandler(BaseHandler):
                               exchange_mt_lending_underlying_security, data_source_sse, title_list, actual_date,
                               log_message_rq)
 
-
                 logger.info("上交所融资融券数据采集完成")
                 break
             except Exception as e:
@@ -133,13 +132,13 @@ class CollectHandler(BaseHandler):
 
 
 def download_excel(response, excel_file_path, save_excel_file_path, query_date=None):
-        try:
-            with open(excel_file_path, 'wb') as file:
-                file.write(response.content)
-            with open(save_excel_file_path, 'wb') as file:
-                file.write(response.content)
-        except Exception as es:
-            logger.error(es)
+    try:
+        with open(excel_file_path, 'wb') as file:
+            file.write(response.content)
+        with open(save_excel_file_path, 'wb') as file:
+            file.write(response.content)
+    except Exception as es:
+        logger.error(es)
 
 
 def handle_excel(excel_file, date):

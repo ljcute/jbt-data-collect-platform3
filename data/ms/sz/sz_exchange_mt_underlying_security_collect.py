@@ -56,6 +56,7 @@ class CollectHandler(BaseHandler):
     def collect_data(cls, query_date=None):
         max_retry = 0
         while max_retry < 3:
+            logger.info(f'重试第{max_retry}次')
             try:
                 actual_date = datetime.date.today() if query_date is None else query_date
                 logger.info("深交所数据采集日期actual_date:{}".format(actual_date))
