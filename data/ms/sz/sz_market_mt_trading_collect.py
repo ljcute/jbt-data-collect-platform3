@@ -9,6 +9,8 @@ import sys
 import time
 from configparser import ConfigParser
 
+from selenium.webdriver.common.by import By
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 
@@ -60,8 +62,23 @@ class CollectHandler(BaseHandler):
             max_retry += 1
 
     @classmethod
+    def get_trade_date(cls):
+        try:
+            logger.info(f'开始获取深圳交易所最新交易日日期')
+            driver = super().get_driver()
+            url = 'http://www.szse.cn/disclosure/margin/margin/index.html'
+            driver.get(url)
+            time.sleep(3)
+            trade_date = driver.find_elements(By.XPATH, '/html/body/div[5]/div/div[2]/div/div/div[4]/div[1]/div[1]/div[1]/span[2]')[0].text
+            logger.info(f'深圳交易所最新交易日日期为{trade_date}')
+            return trade_date
+        except Exception as e:
+            logger.error(e)
+
+    @classmethod
     def total(cls, query_date):
         actual_date = datetime.date.today() if query_date is None else query_date
+        trade_date = cls.get_trade_date() if query_date is None else query_date
         logger.info(f'深交所汇总数据采集开始{actual_date}')
         url = 'http://www.szse.cn/api/report/ShowReport/data'
         headers = {
@@ -72,7 +89,7 @@ class CollectHandler(BaseHandler):
             'CATALOGID': '1837_xxpl',
             'loading': 'first',
             # 查历史可以传日期
-            'txtDate': actual_date,
+            'txtDate': trade_date,
             'random': random_double()
         }
 
@@ -80,22 +97,22 @@ class CollectHandler(BaseHandler):
         title_list = ['jrrzye', 'jrrjye', 'jrrzrjye', 'jrrzmr', 'jrrjmc', 'jrrjyl']
         start_dt = datetime.datetime.now()
         response = super().get_response(url, proxies, 0, headers, params)
-        data_list = cls.total_deal(response)
+        data_list = cls.total_deal(response, actual_date)
         df_result = super().data_deal(data_list, title_list)
         end_dt = datetime.datetime.now()
         used_time = (end_dt - start_dt).seconds
         if data_list:
-            super().data_insert(int(len(data_list)), df_result, actual_date, data_type_market_mt_trading_amount,
+            super().data_insert(int(len(data_list)), df_result, trade_date, data_type_market_mt_trading_amount,
                                 data_source_szse, start_dt, end_dt, used_time, url)
             logger.info(f'数据入库信息,共{int(len(data_list))}条')
         else:
             raise Exception(f'采集数据失败，为{int(len(data_list))}条')
         message = "深交所交易汇总数据采集完成"
-        super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
+        super().kafka_mq_producer(json.dumps(trade_date, cls=ComplexEncoder),
                                   data_type_market_mt_trading_amount, data_source_szse, message)
 
     @classmethod
-    def total_deal(cls, response):
+    def total_deal(cls, response, actual_date):
         data_list = []
         text = response.text
         loads = json.loads(text)
@@ -113,13 +130,15 @@ class CollectHandler(BaseHandler):
             data_list.append((jrrzye, jrrjye, jrrzrjye, jrrzmr, jrrjmc, jrrjyl))
             logger.info(f'已采集数据条数：{len(data_list)}')
         else:
-            logger.error("没有找到符合条件的数据！")
+            logger.error(f'该查询日期{actual_date}暂无相关交易数据！')
 
         return data_list
 
     @classmethod
     def item(cls, query_date):
         actual_date = datetime.date.today() if query_date is None else query_date
+        trade_date = cls.get_trade_date() if query_date is None else query_date
+
         logger.info(f'深交所详细数据采集开始{actual_date}')
         download_url = "https://www.szse.cn/api/report/ShowReport"
         headers = {
@@ -128,7 +147,7 @@ class CollectHandler(BaseHandler):
         params = {
             'SHOWTYPE': 'xlsx',
             'CATALOGID': '1837_xxpl',
-            'txtDate': actual_date,  # 查历史可以传日期
+            'txtDate': trade_date,  # 查历史可以传日期
             'random': random_double(),
             'TABKEY': 'tab2'
         }
@@ -136,22 +155,22 @@ class CollectHandler(BaseHandler):
         title_list = ['zqdm', 'zqjc', 'jrrzye', 'jrrzmr', 'jrrjyl', 'jrrjye', 'jrrjmc', 'jrrzrjye']
         start_dt = datetime.datetime.now()
         response = super().get_response(download_url, proxies, 0, headers, params)
-        data_list, total_row = cls.item_deal(response)
+        data_list, total_row = cls.item_deal(response, actual_date)
         df_result = super().data_deal(data_list, title_list)
         end_dt = datetime.datetime.now()
         used_time = (end_dt - start_dt).seconds
         if int(len(data_list)) == total_row - 1:
-            super().data_insert(int(len(data_list)), df_result, actual_date, data_type_market_mt_trading_items,
+            super().data_insert(int(len(data_list)), df_result, trade_date, data_type_market_mt_trading_items,
                                 data_source_szse, start_dt, end_dt, used_time, download_url)
             logger.info(f'数据入库信息,共{int(len(data_list))}条')
         else:
             raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{total_row - 1}不一致，入库失败')
         message = "深交所交易详细数据采集完成"
-        super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
+        super().kafka_mq_producer(json.dumps(trade_date, cls=ComplexEncoder),
                                   data_type_market_mt_trading_items, data_source_szse, message)
 
     @classmethod
-    def item_deal(cls, response):
+    def item_deal(cls, response, actual_date):
         try:
             try:
                 logger.info("开始下载excel")
@@ -164,7 +183,7 @@ class CollectHandler(BaseHandler):
                 logger.error(e)
 
             excel_file = xlrd2.open_workbook(excel_file_path, encoding_override="utf-8")
-            data_list, total_row = cls.handle_excel(excel_file)
+            data_list, total_row = cls.handle_excel(excel_file, actual_date)
             return data_list, total_row
         except Exception as e:
             logger.error(e)
@@ -172,7 +191,7 @@ class CollectHandler(BaseHandler):
             remove_file(excel_file_path)
 
     @classmethod
-    def handle_excel(cls, excel_file):
+    def handle_excel(cls, excel_file, actual_date):
         logger.info("开始处理excel")
         sheet_0 = excel_file.sheet_by_index(0)
         total_row = sheet_0.nrows
@@ -199,7 +218,7 @@ class CollectHandler(BaseHandler):
             # except Exception as es:
             #     logger.error(es)
         else:
-            logger.error("没有找到符合条件的数据！")
+            logger.error(f'该查询日期{actual_date}暂无相关交易数据！')
 
 
 # def collect_history(begin_dt, end_dt):

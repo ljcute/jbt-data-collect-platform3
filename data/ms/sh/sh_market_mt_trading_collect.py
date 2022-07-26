@@ -14,6 +14,8 @@ import datetime
 import os
 from configparser import ConfigParser
 
+from selenium.webdriver.common.by import By
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 
@@ -48,41 +50,45 @@ class CollectHandler(BaseHandler):
             logger.info(f'重试第{max_retry}次')
             try:
                 start_dt = datetime.datetime.now()
-                actual_date = datetime.date.today() if query_date is None or query_date == '' else query_date
+                actual_date = datetime.date.today() if query_date is None else query_date
+                trade_date = cls.get_trade_date() if query_date is None else query_date
+                logger.info(f'上交所最新交易日期==================为{trade_date}')
                 logger.info(f'上交所数据采集开始{actual_date}')
                 download_excel_url = "http://www.sse.com.cn/market/dealingdata/overview/margin/a/rzrqjygk20220623.xls"
-                replace_str = 'rzrqjygk' + str(actual_date).format("'%Y%m%d'").replace('-', '') + '.xls'
+                replace_str = 'rzrqjygk' + str(trade_date).format("'%Y%m%d'").replace('-', '') + '.xls'
                 download_excel_url = download_excel_url.replace(download_excel_url.split('/')[-1], replace_str)
                 proxies = super().get_proxies()
                 response = super().get_response(download_excel_url, proxies, 0)
+                if response is None:
+                    raise Exception(f'请求失败，无当前交易日{trade_date}数据')
                 download_excel(response, actual_date)
                 logger.info("excel下载完成，开始处理excel")
                 excel_file = xlrd2.open_workbook(excel_file_path, encoding_override="utf-8")
                 title_list = ['date', 'rzye', 'rzmre', 'rjyl', 'rjylje', 'rjmcl', 'rzrjye']
                 title_list_detail = ['date', 'bdzjdm', 'bdzjjc', 'rzye', 'rzmre', 'rzche', 'rjyl', 'rjmcl', 'rjchl']
 
-                data_list, total_row = handle_excel_total(excel_file, actual_date)
+                data_list, total_row = handle_excel_total(excel_file, trade_date)
                 df_result = super().data_deal(data_list, title_list)
                 end_dt = datetime.datetime.now()
                 used_time = (end_dt - start_dt).seconds
                 logger.info(f'开始入库汇总信息,共{int(len(data_list))}条')
                 if int(len(data_list)) == total_row - 17:
-                    super().data_insert(int(len(data_list)), df_result, actual_date, data_type_market_mt_trading_amount,
+                    super().data_insert(int(len(data_list)), df_result, trade_date, data_type_market_mt_trading_amount,
                                         data_source_sse, start_dt, end_dt, used_time, download_excel_url,
                                         save_excel_file_path)
                 else:
                     raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{total_row - 1}不一致，入库失败')
                 message = "上海交易所融资融券交易汇总数据采集完成"
-                super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
+                super().kafka_mq_producer(json.dumps(trade_date, cls=ComplexEncoder),
                                           data_type_market_mt_trading_amount, data_source_sse, message)
 
-                data_list_detail, total_row_detail = handle_excel_detail(excel_file, actual_date)
+                data_list_detail, total_row_detail = handle_excel_detail(excel_file, trade_date)
                 df_result_detail = super().data_deal(data_list_detail, title_list_detail)
                 end_dt_detal = datetime.datetime.now()
                 used_time_detail = (end_dt_detal - start_dt).seconds
                 logger.info(f'开始入库详细信息,共{int(len(data_list_detail))}条')
                 if int(len(data_list_detail)) == total_row_detail - 1:
-                    super().data_insert(int(len(data_list_detail)), df_result_detail, actual_date,
+                    super().data_insert(int(len(data_list_detail)), df_result_detail, trade_date,
                                         data_type_market_mt_trading_items, data_source_sse, start_dt, end_dt_detal,
                                         used_time_detail,
                                         download_excel_url, save_excel_file_path)
@@ -90,7 +96,7 @@ class CollectHandler(BaseHandler):
                     raise Exception(f'采集数据条数{int(len(data_list_detail))}与官网数据条数{total_row_detail - 1}不一致，入库失败')
                 logger.info(f'上交所数据采集结束{datetime.date.today()}')
                 message_1 = "上海交易所融资融券交易详细数据采集完成"
-                super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
+                super().kafka_mq_producer(json.dumps(trade_date, cls=ComplexEncoder),
                                           data_type_market_mt_trading_items, data_source_sse,
                                           message_1)
 
@@ -102,6 +108,20 @@ class CollectHandler(BaseHandler):
                 remove_file(excel_file_path)
 
             max_retry += 1
+
+    @classmethod
+    def get_trade_date(cls):
+        try:
+            logger.info(f'开始获取上海交易所最新交易日日期')
+            driver = super().get_driver()
+            url = 'http://www.sse.com.cn/market/othersdata/margin/detail/'
+            driver.get(url)
+            time.sleep(3)
+            trade_date = driver.find_elements(By.XPATH, '/html/body/div[8]/div/div[2]/div/div[1]/div[1]/div[1]/table/tbody/tr/td[1]')[0].text
+            logger.info(f'上海交易所最新交易日日期为{trade_date}')
+            return trade_date
+        except Exception as e:
+            logger.error(e)
 
 
 def download_excel(response, query_date=None):
