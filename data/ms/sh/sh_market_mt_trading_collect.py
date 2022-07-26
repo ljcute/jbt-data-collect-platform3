@@ -51,9 +51,8 @@ class CollectHandler(BaseHandler):
                 actual_date = datetime.date.today() if query_date is None or query_date == '' else query_date
                 logger.info(f'上交所数据采集开始{actual_date}')
                 download_excel_url = "http://www.sse.com.cn/market/dealingdata/overview/margin/a/rzrqjygk20220623.xls"
-                if query_date is not None:
-                    replace_str = 'rzrqjygk' + str(query_date).format("'%Y%m%d'").replace('-', '') + '.xls'
-                    download_excel_url = download_excel_url.replace(download_excel_url.split('/')[-1], replace_str)
+                replace_str = 'rzrqjygk' + str(actual_date).format("'%Y%m%d'").replace('-', '') + '.xls'
+                download_excel_url = download_excel_url.replace(download_excel_url.split('/')[-1], replace_str)
                 proxies = super().get_proxies()
                 response = super().get_response(download_excel_url, proxies, 0)
                 download_excel(response, actual_date)
