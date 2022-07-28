@@ -228,8 +228,8 @@ class CollectHandler(BaseHandler):
 
         is_continue = True
         proxies = super().get_proxies()
+        retry_count = 5
         while is_continue and start_page <= end_page:
-            retry_count = 30
             params = {"pageNum": start_page, "type": 2, "_": remove_file.get_timestamp(),
                       "stamp": search_date}  # type=3表示融资
             try:
@@ -239,6 +239,7 @@ class CollectHandler(BaseHandler):
             except Exception as e:
                 logger.error(e)
                 if retry_count > 0:
+                    retry_count = retry_count - 1
                     time.sleep(5)
                     continue
 
