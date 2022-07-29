@@ -182,8 +182,8 @@ class CollectHandler(BaseHandler):
 
         hs_is_continue = ss_is_continue = True
         proxies = super().get_proxies()
+        retry_count = 5
         while (hs_is_continue or ss_is_continue) and hs_page <= end_page and ss_page <= end_page:
-            retry_count = 300
             data = {'date': search_date, 'hsPage': hs_page, 'hsPageSize': page_size, 'ssPage': ss_page,
                     'ssPageSize': page_size}
 
@@ -194,7 +194,9 @@ class CollectHandler(BaseHandler):
                 ss_data_list = text['result']['bdSs']
             except Exception as e:
                 logger.error(e)
+                hs_is_continue = ss_is_continue = False
                 if retry_count > 0:
+                    retry_count = retry_count - 1
                     time.sleep(5)
                     continue
 
@@ -372,8 +374,9 @@ class CollectHandler(BaseHandler):
                 ss_data_list = text['result']['dbSs']
             except Exception as e:
                 logger.error(e)
+                hs_is_continue = ss_is_continue = False
                 if retry_count > 0:
-                    retry_count = retry_count -1
+                    retry_count = retry_count - 1
                     time.sleep(5)
                     continue
 

@@ -128,8 +128,8 @@ class CollectHandler(BaseHandler):
 
         is_continue = True
         proxies = super().get_proxies()
+        retry_count = 5
         while is_continue and start_page <= end_page:
-            retry_count = 30
             params = {"pageNum": start_page, "type": 3, "_": remove_file.get_timestamp(),
                       "stamp": search_date}  # type=3表示融资
             try:
@@ -138,7 +138,9 @@ class CollectHandler(BaseHandler):
                 finance_list = text['finance']
             except Exception as e:
                 logger.error(e)
+                is_continue = False
                 if retry_count > 0:
+                    retry_count = retry_count - 1
                     time.sleep(5)
                     continue
 
@@ -238,6 +240,7 @@ class CollectHandler(BaseHandler):
                 security_list = text['security']
             except Exception as e:
                 logger.error(e)
+                is_continue = False
                 if retry_count > 0:
                     retry_count = retry_count - 1
                     time.sleep(5)
@@ -329,8 +332,8 @@ class CollectHandler(BaseHandler):
 
         is_continue = True
         proxies = super().get_proxies()
+        retry_count = 5
         while is_continue and start_page <= end_page:
-            retry_count = 30
             params = {"pageNum": start_page, "type": 1, "_": remove_file.get_timestamp(),
                       "stamp": search_date}  # type=3表示融资
             try:
@@ -339,7 +342,9 @@ class CollectHandler(BaseHandler):
                 offset_list = text['offset']
             except Exception as e:
                 logger.error(e)
+                is_continue = False
                 if retry_count > 0:
+                    retry_count = retry_count -1
                     time.sleep(5)
                     continue
 
