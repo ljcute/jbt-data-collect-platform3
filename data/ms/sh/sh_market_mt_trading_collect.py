@@ -78,7 +78,7 @@ class CollectHandler(BaseHandler):
                                         save_excel_file_path)
                 else:
                     raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{total_row - 1}不一致，入库失败')
-                message = "上海交易所融资融券交易汇总数据采集完成"
+                message = "sh_market_mt_trading_collect"
                 super().kafka_mq_producer(json.dumps(trade_date, cls=ComplexEncoder),
                                           data_type_market_mt_trading_amount, data_source_sse, message)
 
@@ -95,7 +95,7 @@ class CollectHandler(BaseHandler):
                 else:
                     raise Exception(f'采集数据条数{int(len(data_list_detail))}与官网数据条数{total_row_detail - 1}不一致，入库失败')
                 logger.info(f'上交所数据采集结束{datetime.date.today()}')
-                message_1 = "上海交易所融资融券交易详细数据采集完成"
+                message_1 = "sh_market_mt_trading_collect"
                 super().kafka_mq_producer(json.dumps(trade_date, cls=ComplexEncoder),
                                           data_type_market_mt_trading_items, data_source_sse,
                                           message_1)

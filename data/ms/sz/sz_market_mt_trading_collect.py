@@ -107,7 +107,7 @@ class CollectHandler(BaseHandler):
             logger.info(f'数据入库信息,共{int(len(data_list))}条')
         else:
             raise Exception(f'采集数据失败，为{int(len(data_list))}条')
-        message = "深交所交易汇总数据采集完成"
+        message = "sz_market_mt_trading_collect"
         super().kafka_mq_producer(json.dumps(trade_date, cls=ComplexEncoder),
                                   data_type_market_mt_trading_amount, data_source_szse, message)
 
@@ -165,7 +165,7 @@ class CollectHandler(BaseHandler):
             logger.info(f'数据入库信息,共{int(len(data_list))}条')
         else:
             raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{total_row - 1}不一致，入库失败')
-        message = "深交所交易详细数据采集完成"
+        message = "sz_market_mt_trading_collect"
         super().kafka_mq_producer(json.dumps(trade_date, cls=ComplexEncoder),
                                   data_type_market_mt_trading_items, data_source_szse, message)
 

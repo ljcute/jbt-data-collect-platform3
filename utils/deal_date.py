@@ -22,6 +22,7 @@ class ComplexEncoder(json.JSONEncoder):
 
 # search_date = 2020-07-12
 def date_to_stamp(search_date):
+    search_date = str(search_date)
     timeArray = time.strptime(search_date, "%Y-%m-%d")
     timestamp = time.mktime(timeArray)
     date_stamp = int(timestamp) * 1000

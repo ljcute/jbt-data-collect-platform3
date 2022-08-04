@@ -92,7 +92,9 @@ class CollectHandler(BaseHandler):
                                 note = i['NOTE']
                                 data_list.append((stock_code, stock_name, rz_rate, rq_rate, status, date, note))
                                 logger.info(f'已采集数据条数为：{int(len(data_list))}')
-
+                    else:
+                        logger.error(f'请求失败，respones.status={response.status_code}')
+                        raise Exception(f'请求失败，respones.status={response.status_code}')
 
                 logger.info(f'采集中泰证券标的证券数据共{int(len(data_list))}条')
                 df_result = super().data_deal(data_list, data_title)
@@ -178,6 +180,7 @@ class CollectHandler(BaseHandler):
             end_page = 100000
 
         is_continue = True
+        retry_count = 5
         proxies = super().get_proxies()
         while is_continue and start_page <= end_page:
             params = {"action": "GetEarnestmoneyNoticesPager", "pageindex": start_page, "date": date_to_stamp(search_date)}
@@ -186,10 +189,18 @@ class CollectHandler(BaseHandler):
 
             try:
                 response = super().get_response(url, proxies, 0, headers, params)
+                if response is None or response.status_code != 200:
+                    logger.error(f'请求失败，respones.status={response}')
+                    raise Exception(f'请求失败，respones.status={response}')
                 text = json.loads(response.text)
                 all_data_list = text['Items']
             except Exception as e:
                 logger.error(e)
+                is_continue = False
+                if retry_count > 0:
+                    retry_count = retry_count - 1
+                    time.sleep(5)
+                    continue
 
             if is_continue and len(all_data_list) > 0:
                 for i in all_data_list:

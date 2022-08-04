@@ -7,7 +7,10 @@
 import json
 import os
 import sys
+import traceback
 from configparser import ConfigParser
+
+from kafka.errors import kafka_errors
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(BASE_DIR)
@@ -159,21 +162,31 @@ class BaseHandler(object):
 
     @classmethod
     def kafka_mq_producer(cls, biz_dt, data_type, data_source, message):
-        logger.info("开始发送mq消息......")
-        producer = KafkaProducer(bootstrap_servers=kafkaList, key_serializer=lambda k: json.dumps(k).encode('utf-8'),
-                                 value_serializer=lambda v: json.dumps(v).encode('utf-8'))
 
-        msg = {'user_id': 960529, 'biz_dt': biz_dt, 'data_type': data_type, 'data_source': data_source,
-               'message': message}
-        future = producer.send(topic, value=json.dumps(msg), key=msg['user_id'])
+        logger.info("开始发送mq消息......")
+        producer = KafkaProducer(bootstrap_servers=kafkaList,
+                                 key_serializer=lambda k: json.dumps(k).encode(),
+                                 value_serializer=lambda v: json.dumps(v).encode())
+
+        msg = {
+            "user_id": 960529,
+            "biz_dt": biz_dt,
+            "data_type": data_type,
+            "data_source": data_source,
+            "message": message
+        }
+
+        future = producer.send(topic, value=str(msg), key=msg['user_id'], partition=0)
+        print(f'send{str(msg)}')
         try:
             record_metadata = future.get(timeout=30)
             logger.info(f'topic partition:{record_metadata.partition}')
             logger.info("发送mq消息结束......")
-        except Exception as e:
+        except kafka_errors as e:
             logger.error(e)
+            traceback.format_exc()
 
 
 if __name__ == '__main__':
     s = BaseHandler()
-    s.kafka_mq_producer('20220202', '1', '1', '555')
+    s.kafka_mq_producer('20220801', '4', '长城证券', 'cc_securities_collect')
