@@ -84,6 +84,16 @@ class CollectHandler(BaseHandler):
             response = super().get_response(url, proxies, 1, headers, None, data)
             data_list = []
             data_title = ['stock_code', 'stock_name', 'rz_rate', 'rq_rate', 'date']
+            # 请求失败。重试三次
+            retry_count = 3
+            if response is None:
+                while retry_count > 0:
+                    response = super().get_response(url, proxies, 1, headers, None, data)
+                    if response is not None:
+                        break
+                    else:
+                        retry_count = retry_count - 1
+                        continue
 
             if response.status_code == 200:
                 text = json.loads(response.text)
@@ -120,7 +130,7 @@ class CollectHandler(BaseHandler):
                 df_result = super().data_deal(data_list, data_title)
                 end_dt = datetime.datetime.now()
                 used_time = (end_dt - start_dt).seconds
-                if int(len(data_list)) == total:
+                if int(len(data_list)) == total and int(len(data_list)) > 0 and total > 0:
                     super().data_insert(int(len(data_list)), df_result, search_date,
                                         exchange_mt_underlying_security,
                                         data_source, start_dt, end_dt, used_time, url)
@@ -171,6 +181,17 @@ class CollectHandler(BaseHandler):
             response = super().get_response(url, proxies, 1, headers, None, data)
             data_list = []
             data_title = ['market', 'stock_code', 'stock_name', 'rate', 'date', 'status', 'stockgroup_name']
+
+            # 请求失败。重试三次
+            retry_count = 3
+            if response is None:
+                while retry_count > 0:
+                    response = super().get_response(url, proxies, 1, headers, None, data)
+                    if response is not None:
+                        break
+                    else:
+                        retry_count = retry_count - 1
+                        continue
 
             if response.status_code == 200:
                 text = json.loads(response.text)
@@ -232,11 +253,12 @@ class CollectHandler(BaseHandler):
 
 if __name__ == '__main__':
     collector = CollectHandler()
+    collector.collect_data(3)
     # collector.collect_data(search_date='2022-07-18')
     # collector.collect_data(eval(sys.argv[1]), sys.argv[2])
-    if len(sys.argv) > 2:
-        collector.collect_data(eval(sys.argv[1]), sys.argv[2])
-    elif len(sys.argv) == 2:
-        collector.collect_data(eval(sys.argv[1]))
-    elif len(sys.argv) < 2:
-        raise Exception(f'business_type为必输参数')
+    # if len(sys.argv) > 2:
+    #     collector.collect_data(eval(sys.argv[1]), sys.argv[2])
+    # elif len(sys.argv) == 2:
+    #     collector.collect_data(eval(sys.argv[1]))
+    # elif len(sys.argv) < 2:
+    #     raise Exception(f'business_type为必输参数')

@@ -69,7 +69,7 @@ class CollectHandler(BaseHandler):
         page_size = 20
         is_continue = True
         total = None
-        retry_count = 30
+        retry_count = 3
         data_list = []
         data_title = ['stock_name', 'stock_code', 'rate', 'date']
         start_dt = datetime.datetime.now()
@@ -80,7 +80,7 @@ class CollectHandler(BaseHandler):
             try:
                 response = super().get_response(url, proxies, 0, get_headers(), params)
                 if response.status_code == 200:
-                    text = json.loads(response.text)
+                    text = json.loads(response)
                     total = text['count']
                     result = text['result']
                     soup = BeautifulSoup(result, 'html.parser')
@@ -97,6 +97,8 @@ class CollectHandler(BaseHandler):
                     retry_count = retry_count - 1
                     time.sleep(5)
                     continue
+                else:
+                    is_continue = False
 
             if total is not None and type(total) is not str and total > page * page_size:
                 is_continue = True
@@ -121,7 +123,7 @@ class CollectHandler(BaseHandler):
         df_result = super().data_deal(data_list, data_title)
         end_dt = datetime.datetime.now()
         used_time = (end_dt - start_dt).seconds
-        if int(len(data_list)) == int(total):
+        if int(len(data_list)) == int(total) and int(len(data_list)) > 0 and int(total) > 0:
             super().data_insert(int(len(data_list)), df_result, search_date,
                                 exchange_mt_financing_underlying_security,
                                 data_source, start_dt, end_dt, used_time, url)
@@ -143,7 +145,7 @@ class CollectHandler(BaseHandler):
         page_size = 20
         is_continue = True
         total = None
-        retry_count = 30
+        retry_count = 3
         data_list = []
         data_title = ['stock_name', 'stock_code', 'rate', 'date']
         start_dt = datetime.datetime.now()
@@ -171,6 +173,8 @@ class CollectHandler(BaseHandler):
                     retry_count = retry_count - 1
                     time.sleep(5)
                     continue
+                else:
+                    is_continue = False
 
             if total is not None and type(total) is not str and total > page * page_size:
                 is_continue = True
@@ -195,7 +199,7 @@ class CollectHandler(BaseHandler):
         df_result = super().data_deal(data_list, data_title)
         end_dt = datetime.datetime.now()
         used_time = (end_dt - start_dt).seconds
-        if int(len(data_list)) == int(total):
+        if int(len(data_list)) == int(total) and int(len(data_list)) > 0 and int(total) > 0:
             super().data_insert(int(len(data_list)), df_result, search_date,
                                 exchange_mt_lending_underlying_security,
                                 data_source, start_dt, end_dt, used_time, url)
@@ -217,7 +221,7 @@ class CollectHandler(BaseHandler):
         page_size = 20
         is_continue = True
         total = None
-        retry_count = 30
+        retry_count = 3
         data_list = []
         data_title = ['stock_name', 'stock_code', 'rate', 'date']
         start_dt = datetime.datetime.now()
@@ -247,6 +251,8 @@ class CollectHandler(BaseHandler):
                     retry_count = retry_count - 1
                     time.sleep(5)
                     continue
+                else:
+                    is_continue = False
 
             if total is not None and type(total) is not str and total > page * page_size:
                 is_continue = True
@@ -271,7 +277,7 @@ class CollectHandler(BaseHandler):
         df_result = super().data_deal(data_list, data_title)
         end_dt = datetime.datetime.now()
         used_time = (end_dt - start_dt).seconds
-        if int(len(data_list)) == int(total):
+        if int(len(data_list)) == int(total) and int(len(data_list)) > 0 and int(total) > 0:
             super().data_insert(int(len(data_list)), df_result, search_date,
                                 exchange_mt_guaranty_security,
                                 data_source, start_dt, end_dt, used_time, url)
@@ -288,10 +294,11 @@ class CollectHandler(BaseHandler):
 
 if __name__ == '__main__':
     collector = CollectHandler()
-    # collector.collect_data(2, '2022-07-12')
-    if len(sys.argv) > 2:
-        collector.collect_data(eval(sys.argv[1]), sys.argv[2])
-    elif len(sys.argv) == 2:
-        collector.collect_data(eval(sys.argv[1]))
-    elif len(sys.argv) < 2:
-        raise Exception(f'business_type为必输参数')
+    # collector.collect_data(4, '2022-07-12')
+    collector.collect_data(4)
+    # if len(sys.argv) > 2:
+    #     collector.collect_data(eval(sys.argv[1]), sys.argv[2])
+    # elif len(sys.argv) == 2:
+    #     collector.collect_data(eval(sys.argv[1]))
+    # elif len(sys.argv) < 2:
+    #     raise Exception(f'business_type为必输参数')

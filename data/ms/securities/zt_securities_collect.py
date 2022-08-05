@@ -70,6 +70,17 @@ class CollectHandler(BaseHandler):
             start_dt = datetime.datetime.now()
             proxies = super().get_proxies()
             response = super().get_response(url, proxies, 0, headers, params)
+            # 请求失败。重试三次
+            retry_count = 3
+            if response is None:
+                while retry_count > 0:
+                    response = super().get_response(url, proxies, 0, headers, params)
+                    if response is not None:
+                        break
+                    else:
+                        retry_count = retry_count - 1
+                        continue
+
             if response.status_code == 200:
                 text = json.loads(response.text)
                 total = int(text['PageTotal'])
@@ -100,7 +111,7 @@ class CollectHandler(BaseHandler):
                 df_result = super().data_deal(data_list, data_title)
                 end_dt = datetime.datetime.now()
                 used_time = (end_dt - start_dt).seconds
-                if int(len(data_list)) == int(len(df_result['data'])):
+                if int(len(data_list)) == int(len(df_result['data'])) and int(len(data_list)) > 0 and int(len(df_result['data'])) > 0:
                     super().data_insert(int(len(data_list)), df_result, search_date,
                                         exchange_mt_underlying_security,
                                         data_source, start_dt, end_dt, used_time, url)
@@ -153,7 +164,7 @@ class CollectHandler(BaseHandler):
                 end_dt = datetime.datetime.now()
                 used_time = (end_dt - start_dt).seconds
                 total = int(len(df_result['data']))
-                if int(len(total_data_list)) == int(len(df_result['data'])):
+                if int(len(total_data_list)) == int(len(df_result['data'])) and int(len(total_data_list)) > 0 and int(len(df_result['data'])) > 0:
                     super().data_insert(int(len(total_data_list)), df_result, search_date,
                                         exchange_mt_guaranty_security,
                                         data_source, start_dt, end_dt, used_time, url)
@@ -180,7 +191,7 @@ class CollectHandler(BaseHandler):
             end_page = 100000
 
         is_continue = True
-        retry_count = 5
+        retry_count = 3
         proxies = super().get_proxies()
         while is_continue and start_page <= end_page:
             params = {"action": "GetEarnestmoneyNoticesPager", "pageindex": start_page, "date": date_to_stamp(search_date)}
@@ -196,11 +207,12 @@ class CollectHandler(BaseHandler):
                 all_data_list = text['Items']
             except Exception as e:
                 logger.error(e)
-                is_continue = False
                 if retry_count > 0:
                     retry_count = retry_count - 1
                     time.sleep(5)
                     continue
+                else:
+                    is_continue = False
 
             if is_continue and len(all_data_list) > 0:
                 for i in all_data_list:
