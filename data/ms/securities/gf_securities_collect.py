@@ -80,7 +80,7 @@ class CollectHandler(BaseHandler):
             try:
                 response = super().get_response(url, proxies, 0, get_headers(), params)
                 if response.status_code == 200:
-                    text = json.loads(response)
+                    text = json.loads(response.text)
                     total = text['count']
                     result = text['result']
                     soup = BeautifulSoup(result, 'html.parser')
