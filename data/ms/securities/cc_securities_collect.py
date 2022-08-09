@@ -105,7 +105,7 @@ class CollectHandler(BaseHandler):
         df_result = super().data_deal(data_list, title_list)
         end_dt = datetime.datetime.now()
         used_time = (end_dt - start_dt).seconds
-        if int(len(data_list)) == total:
+        if int(len(data_list)) == total and int(len(data_list)) > 0 and total > 0:
             super().data_insert(int(len(data_list)), df_result, actual_date, exchange_mt_financing_underlying_security,
                                 data_source, start_dt, end_dt, used_time, url)
             logger.info(f'入库信息,共{int(len(data_list))}条')
@@ -166,7 +166,7 @@ class CollectHandler(BaseHandler):
         end_dt = datetime.datetime.now()
         # 计算采集数据所需时间used_time
         used_time = (end_dt - start_dt).seconds
-        if int(len(data_list)) == total:
+        if int(len(data_list)) == total and int(len(data_list)) > 0 and total >0:
             super().data_insert(int(len(data_list)), df_result, actual_date, exchange_mt_lending_underlying_security,
                                 data_source, start_dt, end_dt, used_time, url)
             logger.info(f'入库信息,共{int(len(data_list))}条')
@@ -228,7 +228,7 @@ class CollectHandler(BaseHandler):
         end_dt = datetime.datetime.now()
         # 计算采集数据所需时间used_time
         used_time = (end_dt - start_dt).seconds
-        if int(len(data_list)) == total:
+        if int(len(data_list)) == total and int(len(data_list))> 0 and total>0:
             super().data_insert(int(len(data_list)), df_result, actual_date, exchange_mt_guaranty_security,
                                 data_source, start_dt, end_dt, used_time, url)
             logger.info(f'入库信息,共{int(len(data_list))}条')

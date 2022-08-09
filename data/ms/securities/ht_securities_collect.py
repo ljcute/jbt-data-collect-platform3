@@ -126,7 +126,7 @@ class CollectHandler(BaseHandler):
                 df_result = super().data_deal(total_data_list, data_title)
                 end_dt = datetime.datetime.now()
                 used_time = (end_dt - start_dt).seconds
-                if int(len(total_data_list)) == db_total_count:
+                if int(len(total_data_list)) == db_total_count and int(len(total_data_list))>0 and db_total_count>0:
                     super().data_insert(int(len(total_data_list)), df_result, search_date,
                                         exchange_mt_underlying_security,
                                         data_source, start_dt, end_dt, used_time, url)
@@ -306,7 +306,7 @@ class CollectHandler(BaseHandler):
                 end_dt = datetime.datetime.now()
                 used_time = (end_dt - start_dt).seconds
 
-                if int(len(total_data_list)) == db_total_count:
+                if int(len(total_data_list)) == db_total_count and int(len(total_data_list))>0 and db_total_count > 0:
                     super().data_insert(int(len(total_data_list)), df_result, search_date,
                                         exchange_mt_guaranty_security,
                                         data_source, start_dt, end_dt, used_time, url)

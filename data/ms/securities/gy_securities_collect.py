@@ -87,7 +87,7 @@ class CollectHandler(BaseHandler):
                     total_count = len(df_result['data'])
                     end_dt = datetime.datetime.now()
                     used_time = (end_dt - start_dt).seconds
-                    if int(len(data_list)) == int(total_count):
+                    if int(len(data_list)) == int(total_count) and int(len(data_list)) > 0 and int(total_count) > 0:
                         super().data_insert(int(len(data_list)), df_result, search_date,
                                             exchange_mt_financing_underlying_security,
                                             data_source, start_dt, end_dt, used_time, url)
@@ -138,7 +138,7 @@ class CollectHandler(BaseHandler):
                     total_count = len(df_result['data'])
                     end_dt = datetime.datetime.now()
                     used_time = (end_dt - start_dt).seconds
-                    if int(len(data_list)) == int(total_count):
+                    if int(len(data_list)) == int(total_count) and int(len(data_list)) > 0 and int(total_count) > 0:
                         super().data_insert(int(len(data_list)), df_result, search_date,
                                             exchange_mt_lending_underlying_security,
                                             data_source, start_dt, end_dt, used_time, url)
@@ -188,7 +188,7 @@ class CollectHandler(BaseHandler):
                     total_count = len(df_result['data'])
                     end_dt = datetime.datetime.now()
                     used_time = (end_dt - start_dt).seconds
-                    if int(len(data_list)) == int(total_count):
+                    if int(len(data_list)) == int(total_count) and int(len(data_list)) > 0 and int(total_count) >0:
                         super().data_insert(int(len(data_list)), df_result, search_date,
                                             exchange_mt_lending_underlying_security,
                                             data_source, start_dt, end_dt, used_time, url)
