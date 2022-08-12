@@ -253,12 +253,12 @@ class CollectHandler(BaseHandler):
 
 if __name__ == '__main__':
     collector = CollectHandler()
-    collector.collect_data(3)
+    # collector.collect_data(3)
     # collector.collect_data(search_date='2022-07-18')
     # collector.collect_data(eval(sys.argv[1]), sys.argv[2])
-    # if len(sys.argv) > 2:
-    #     collector.collect_data(eval(sys.argv[1]), sys.argv[2])
-    # elif len(sys.argv) == 2:
-    #     collector.collect_data(eval(sys.argv[1]))
-    # elif len(sys.argv) < 2:
-    #     raise Exception(f'business_type为必输参数')
+    if len(sys.argv) > 2:
+        collector.collect_data(eval(sys.argv[1]), sys.argv[2])
+    elif len(sys.argv) == 2:
+        collector.collect_data(eval(sys.argv[1]))
+    elif len(sys.argv) < 2:
+        raise Exception(f'business_type为必输参数')
