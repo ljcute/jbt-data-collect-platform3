@@ -155,7 +155,7 @@ class CollectHandler(BaseHandler):
             proxies = super().get_proxies()
             response = super().get_response(url, proxies, 1, headers, None, data)
             data_list = []
-            data_title = ['sec_code', 'sec_name', 'discount_rate', 'market']
+            data_title = ['sec_code', 'sec_name', 'discount_rate', 'stock_group_name', 'stock_type', 'market']
             if response.status_code == 200:
                 text = json.loads(response.text)
                 total = text['data']['total']
@@ -165,8 +165,10 @@ class CollectHandler(BaseHandler):
                         sec_code = i['STOCK_CODE']
                         sec_name = i['STOCK_NAME']
                         discount_rate = i['ASSURE_RATIO']  # 融资保证金比例
+                        stock_group_name = i['stockgroup_no'] # 1为A组 ，none为B组 ，4为C组， 5为D组，6为E，7为F
+                        stock_type = i['STOCK_TYPE']
                         market = i['MARKET']  # 融券保证金比例
-                        data_list.append((sec_code, sec_name, discount_rate, market))
+                        data_list.append((sec_code, sec_name, discount_rate, stock_group_name, stock_type, market))
                         logger.info(f'已采集完成数据条数：{int(len(data_list))}')
 
                     logger.info(f'采集财通证券可充抵保证金证券数据共{int(len(data_list))}条')
