@@ -172,9 +172,9 @@ class CollectHandler(BaseHandler):
                                     save_excel_file_path)
                 logger.info(f'入库信息,共{int(len(data_list))}条')
             else:
-                raise Exception("采集数据条数为0，入库失败")
+                raise Exception("采集数据条数为0，需要重新采集")
 
-            message = "中信建投数据采集完成"
+            message = "zxjt_securities_collect"
             super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
                                       exchange_mt_guaranty_and_underlying_security, data_source, message)
 

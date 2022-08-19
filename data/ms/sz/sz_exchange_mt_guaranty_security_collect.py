@@ -88,9 +88,9 @@ class CollectHandler(BaseHandler):
                                         save_excel_file_path)
                     logger.info(f'入库信息,共{int(len(data_list))}条')
                 else:
-                    raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{total_row - 1}不一致，入库失败')
+                    raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{total_row - 1}不一致，采集程序存在抖动，需要重新采集')
 
-                message = "深交所融资融券可充抵保证金证券数据采集完成"
+                message = "sz_exchange_mt_guaranty_security_collect"
                 super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
                                           exchange_mt_guaranty_security, data_source_szse, message)
 

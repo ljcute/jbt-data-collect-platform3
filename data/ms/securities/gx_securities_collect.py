@@ -93,9 +93,9 @@ class CollectHandler(BaseHandler):
                                             data_source, start_dt, end_dt, used_time, url)
                         logger.info(f'入库信息,共{int(len(data_list))}条')
                     else:
-                        raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{int(total_count)}不一致，入库失败')
+                        raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{int(total_count)}不一致，采集程序存在抖动，需要重新采集')
 
-                    message = "国信证券融资标的证券数据采集完成"
+                    message = "gx_securities_collect"
                     super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
                                               exchange_mt_financing_underlying_security, data_source, message)
 
@@ -143,9 +143,9 @@ class CollectHandler(BaseHandler):
                                             data_source, start_dt, end_dt, used_time, url)
                         logger.info(f'入库信息,共{int(len(data_list))}条')
                     else:
-                        raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{int(total_count)}不一致，入库失败')
+                        raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{int(total_count)}不一致，采集程序存在抖动，需要重新采集')
 
-                    message = "国信证券融券标的证券数据采集完成"
+                    message = "gx_securities_collect"
                     super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
                                               exchange_mt_lending_underlying_security, data_source, message)
 
@@ -192,9 +192,9 @@ class CollectHandler(BaseHandler):
                                             data_source, start_dt, end_dt, used_time, url)
                         logger.info(f'入库信息,共{int(len(data_list))}条')
                     else:
-                        raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{int(total_count)}不一致，入库失败')
+                        raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{int(total_count)}不一致，采集程序存在抖动，需要重新采集')
 
-                    message = "国信证券可充抵保证金证券数据采集完成"
+                    message = "gx_securities_collect"
                     super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
                                               exchange_mt_guaranty_security, data_source, message)
 

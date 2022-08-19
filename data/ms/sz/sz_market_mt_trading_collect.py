@@ -106,7 +106,7 @@ class CollectHandler(BaseHandler):
                                 data_source_szse, start_dt, end_dt, used_time, url)
             logger.info(f'数据入库信息,共{int(len(data_list))}条')
         else:
-            raise Exception(f'采集数据失败，为{int(len(data_list))}条')
+            raise Exception(f'采集数据失败，为{int(len(data_list))}条，需要重新采集')
         message = "sz_market_mt_trading_collect"
         super().kafka_mq_producer(json.dumps(trade_date, cls=ComplexEncoder),
                                   data_type_market_mt_trading_amount, data_source_szse, message)

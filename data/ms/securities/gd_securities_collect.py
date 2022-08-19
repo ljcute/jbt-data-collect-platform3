@@ -104,9 +104,9 @@ class CollectHandler(BaseHandler):
                                     data_source, start_dt, end_dt, used_time, url)
                 logger.info(f'入库信息,共{int(len(original_data_list))}条')
             else:
-                raise Exception(f'采集数据条数为0，采集失败')
+                raise Exception(f'采集数据条数为0，需要重新采集')
 
-            message = "光大证券融资融券标的证券数据采集完成"
+            message = "gd_securities_collect"
             super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
                                       exchange_mt_underlying_security, data_source, message)
 
@@ -180,9 +180,9 @@ class CollectHandler(BaseHandler):
                                     data_source, start_dt, end_dt, used_time, url)
                 logger.info(f'入库信息,共{int(len(original_data_list))}条')
             else:
-                raise Exception(f'采集数据条数为0，采集失败')
+                raise Exception(f'采集数据条数为0，需要重新采集')
 
-            message = "光大证券可充抵保证金证券数据采集完成"
+            message = "gd_securities_collect"
             super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
                                       exchange_mt_guaranty_security, data_source, message)
 
