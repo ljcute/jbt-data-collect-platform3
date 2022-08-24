@@ -106,9 +106,9 @@ class CollectHandler(BaseHandler):
             else:
                 raise Exception(f'采集数据条数为0，需要重新采集')
 
-            message = "gd_securities_collect"
-            super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
-                                      exchange_mt_underlying_security, data_source, message)
+            # message = "gd_securities_collect"
+            # super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
+            #                           exchange_mt_underlying_security, data_source, message)
 
             logger.info("光大证券融资融券标的证券数据采集完成")
         except Exception as es:

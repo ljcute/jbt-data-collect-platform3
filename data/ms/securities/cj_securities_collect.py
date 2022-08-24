@@ -6,7 +6,6 @@
 import os
 import sys
 
-
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 
@@ -60,7 +59,7 @@ class CollectHandler(BaseHandler):
         logger.info(f'开始采集长江证券标的证券及保证金比例数据{actual_date}')
         url = 'https://www.95579.com/servlet/json'
         params = {"funcNo": "902122", "i_page": 1, "i_perpage": 10000}  # 默认查询当天
-        target_title = ['market', 'stock_code', 'stock_name', 'rzbd', 'rqbz']
+        target_title = ['market', 'stock_code', 'stock_name', 'rz_rate', 'rq_rate']
         try:
             proxies = super().get_proxies()
             response = super().get_response(url, proxies, 0, get_headers(), params)
@@ -80,7 +79,7 @@ class CollectHandler(BaseHandler):
                         market = i['exchange_type']
                         rzbd = i['rzbd']
                         rqbd = i['rqbd']
-                        target_list.append((market, stock_code, stock_name, rzbd, rqbd))
+                        target_list.append((market, stock_code, stock_name, rz_rate, rq_rate))
                         logger.info(f'已采集数据条数：{int(len(target_list))}')
 
                     logger.info(f'采集长江证券标的证券数据共{int(len(target_list))}条')
@@ -95,9 +94,9 @@ class CollectHandler(BaseHandler):
                     else:
                         raise Exception(f'采集数据条数{int(len(target_list))}与官网数据条数{total}不一致，采集程序存在抖动，需要重新采集')
 
-                    message = "cj_securities_collect"
-                    super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
-                                              exchange_mt_underlying_security, data_source, message)
+                    # message = "cj_securities_collect"
+                    # super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
+                    #                           exchange_mt_underlying_security, data_source, message)
 
                     logger.info("长江证券标的证券数据采集完成")
                 else:
@@ -135,7 +134,7 @@ class CollectHandler(BaseHandler):
                     df_result = super().data_deal(target_list, target_title)
                     end_dt = datetime.datetime.now()
                     used_time = (end_dt - start_dt).seconds
-                    if int(len(target_list)) == total and int(len(target_list)) > 0 and total >0:
+                    if int(len(target_list)) == total and int(len(target_list)) > 0 and total > 0:
                         super().data_insert(int(len(target_list)), df_result, actual_date,
                                             exchange_mt_guaranty_security,
                                             data_source, start_dt, end_dt, used_time, url)

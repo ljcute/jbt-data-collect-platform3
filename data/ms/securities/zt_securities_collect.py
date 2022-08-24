@@ -165,7 +165,7 @@ class CollectHandler(BaseHandler):
                 used_time = (end_dt - start_dt).seconds
                 total = int(len(df_result['data']))
                 if int(len(total_data_list)) == int(len(df_result['data'])) and int(len(total_data_list)) > 0 and int(len(df_result['data'])) > 0:
-                    super().data_insert(int(len(total_data_list)), df_result, search_date,
+                    super().data_insert(int(len(total_data_list)), df_result, json.dumps(search_date),
                                         exchange_mt_guaranty_security,
                                         data_source, start_dt, end_dt, used_time, url)
                     logger.info(f'入库信息,共{int(len(total_data_list))}条')
@@ -187,6 +187,7 @@ class CollectHandler(BaseHandler):
         logger.info(f'进入此线程{start_page}')
         url = 'https://www.95538.cn/rzrq/data/Handler.ashx'
         data_list = []
+        all_data_list = []
         if end_page is None:
             end_page = 100000
 

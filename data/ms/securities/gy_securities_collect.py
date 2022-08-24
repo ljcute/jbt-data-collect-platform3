@@ -190,7 +190,7 @@ class CollectHandler(BaseHandler):
                     used_time = (end_dt - start_dt).seconds
                     if int(len(data_list)) == int(total_count) and int(len(data_list)) > 0 and int(total_count) >0:
                         super().data_insert(int(len(data_list)), df_result, search_date,
-                                            exchange_mt_lending_underlying_security,
+                                            exchange_mt_guaranty_security,
                                             data_source, start_dt, end_dt, used_time, url)
                         logger.info(f'入库信息,共{int(len(data_list))}条')
                     else:
@@ -198,7 +198,7 @@ class CollectHandler(BaseHandler):
 
                     message = "gy_securities_collect"
                     super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
-                                              exchange_mt_lending_underlying_security, data_source, message)
+                                              exchange_mt_guaranty_security, data_source, message)
 
                     logger.info("国元证券可充抵保证金证券数据采集完成")
             else:
