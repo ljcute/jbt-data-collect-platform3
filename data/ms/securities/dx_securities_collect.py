@@ -191,7 +191,7 @@ class CollectHandler(BaseHandler):
 
             message = "dx_securities_collect"
             super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
-                                      exchange_mt_underlying_security, data_source, message)
+                                      exchange_mt_guaranty_security, data_source, message)
 
             logger.info("东兴证券可充抵保证金担保券数据采集完成")
 
