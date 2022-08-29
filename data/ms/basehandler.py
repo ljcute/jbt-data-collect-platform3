@@ -137,16 +137,18 @@ class BaseHandler(object):
     @classmethod
     def data_deal(cls, data_list, title_list):
         logger.info("开始进行数据处理......")
-        try:
-            if data_list and title_list:
-                data_df = pd.DataFrame(data=data_list, columns=title_list)
-                if data_df is not None:
-                    df_result = {'columns': title_list, 'data': data_df.values.tolist()}
-                    return df_result
-            else:
-                raise Exception('参数data_list,title_list为空，请检查')
-        except Exception as e:
-            logger.error(e)
+        if data_list and title_list:
+            data_df = pd.DataFrame(data=data_list, columns=title_list)
+            if data_df is not None:
+                df_result = {'columns': title_list, 'data': data_df.values.tolist()}
+                logger.info(f'df_result:{df_result}')
+                return df_result
+        else:
+            raise Exception('参数data_list,title_list为空，请检查')
+        # try:
+        #
+        # except Exception as e:
+        #     logger.error(e)
 
     @classmethod
     def data_insert(cls, record_num, data_info, date, data_type, data_source, start_dt,
@@ -189,4 +191,5 @@ class BaseHandler(object):
 
 if __name__ == '__main__':
     s = BaseHandler()
-    s.kafka_mq_producer('20220801', '4', '长城证券', 'cc_securities_collect')
+    # s.kafka_mq_producer('20220725', '3', '华泰证券', 'ht_securities_collect')
+    s.kafka_mq_producer('20220826', '1', '深圳交易所', 'sz_market_mt_trading_collect')
