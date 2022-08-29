@@ -152,7 +152,7 @@ class CollectHandler(BaseHandler):
                 jrrzmr = str(row[0].value).replace(",", "")  # 融资买入额(亿元)
                 jrrjmc = str(row[2].value).replace(",", "")  # 融券卖出量(亿股/亿份)
                 jrrjyl = str(row[3].value).replace(",", "")  # 融券余量(亿股/亿份)
-                data_list.append((jrrzye, jrrjye, jrrzrjye, jrrzmr, jrrjmc, jrrjyl))
+                data_list.append([jrrzye, jrrjye, jrrzrjye, jrrzmr, jrrjmc, jrrjyl])
 
             logger.info("excel处理结束")
             return data_list, total_row
