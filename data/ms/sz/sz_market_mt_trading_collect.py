@@ -27,6 +27,7 @@ from utils.logs_utils import logger
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 excel_file_path = os.path.join(base_dir, 'sz_balance.xlsx')
+excel_file_path_anthoer = os.path.join(base_dir, 'sz_balance_total.xlsx')
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 full_path = os.path.join(base_dir, '../../../config/config.ini')
@@ -34,6 +35,7 @@ cf = ConfigParser()
 cf.read(full_path, encoding='utf-8')
 paths = cf.get('excel-path', 'save_excel_file_path')
 save_excel_file_path = os.path.join(paths, "深交所融资融券{}.xlsx".format(datetime.date.today()))
+save_excel_file_path_total = os.path.join(paths, "深交所融资融券交易总量{}.xlsx".format(datetime.date.today()))
 
 data_type_market_mt_trading_amount = '0'  # 市场融资融券交易总量
 data_type_market_mt_trading_items = '1'  # 市场融资融券交易明细
@@ -80,24 +82,23 @@ class CollectHandler(BaseHandler):
         actual_date = datetime.date.today() if query_date is None else query_date
         trade_date = cls.get_trade_date() if query_date is None else query_date
         logger.info(f'深交所汇总数据采集开始{actual_date}')
-        url = 'http://www.szse.cn/api/report/ShowReport/data'
+        logger.info(f'深圳交易所最新交易日日期为{trade_date}')
+
+        url = 'http://www.szse.cn/api/report/ShowReport?SHOWTYPE=xlsx&CATALOGID=1837_xxpl&TABKEY=tab1'
         headers = {
             'User-Agent': random.choice(USER_AGENTS)
         }
         params = {
-            'SHOWTYPE': 'JSON',
-            'CATALOGID': '1837_xxpl',
-            'loading': 'first',
-            # 查历史可以传日期
-            'txtDate': trade_date,
-            'random': random_double()
+            'txtDate': trade_date,  # 查历史可以传日期
+            'random': random_double(),
         }
-
+        # ss_url = 'http://www.szse.cn/api/report/ShowReport?SHOWTYPE=xlsx&CATALOGID=1837_xxpl&TABKEY=tab1&txtDate=2022-08-26&random=0.6332194803268989'
         proxies = super().get_proxies()
         title_list = ['jrrzye', 'jrrjye', 'jrrzrjye', 'jrrzmr', 'jrrjmc', 'jrrjyl']
         start_dt = datetime.datetime.now()
         response = super().get_response(url, proxies, 0, headers, params)
-        data_list = cls.total_deal(response, actual_date)
+        data_list = cls.total_deal(response, trade_date)
+        logger.info(f'data_list:{data_list}')
         df_result = super().data_deal(data_list, title_list)
         end_dt = datetime.datetime.now()
         used_time = (end_dt - start_dt).seconds
@@ -113,26 +114,50 @@ class CollectHandler(BaseHandler):
 
     @classmethod
     def total_deal(cls, response, actual_date):
-        data_list = []
-        text = response.text
-        loads = json.loads(text)
-        zero_ele = loads[0]
-        if zero_ele['data']:
-            title_data = zero_ele['data'][0]
-            subname = zero_ele['metadata']['subname']  # 业务数据的交易日期
-            # 融资融券交易总量
-            jrrzye = title_data['jrrzye']  # 融资余额(亿元)
-            jrrjye = title_data['jrrjye']  # 融券余额(亿元)
-            jrrzrjye = title_data['jrrzrjye']  # 融资融券余额(亿元)
-            jrrzmr = title_data['jrrzmr']  # 融资买入额(亿元)
-            jrrjmc = title_data['jrrjmc']  # 融券卖出量(亿股/亿份)
-            jrrjyl = title_data['jrrjyl']  # 融券余量(亿股/亿份)
-            data_list.append((jrrzye, jrrjye, jrrzrjye, jrrzmr, jrrjmc, jrrjyl))
-            logger.info(f'已采集数据条数：{len(data_list)}')
+        try:
+            try:
+                logger.info("开始下载excel")
+                with open(excel_file_path_anthoer, 'wb') as file:
+                    file.write(response.content)
+                with open(save_excel_file_path_total, 'wb') as file:
+                    file.write(response.content)
+                logger.info("excel下载完成")
+            except Exception as e:
+                logger.error(e)
+
+            excel_file = xlrd2.open_workbook(excel_file_path_anthoer, encoding_override="utf-8")
+            data_list, total_row = cls.handle_excel_total(excel_file, actual_date)
+            return data_list, total_row
+        except Exception as e:
+            logger.error(e)
+        finally:
+            remove_file(excel_file_path_anthoer)
+
+    @classmethod
+    def handle_excel_total(cls, excel_file, actual_date):
+        logger.info("开始处理excel")
+        sheet_0 = excel_file.sheet_by_index(0)
+        total_row = sheet_0.nrows
+        if total_row >= 1:
+            data_list = []
+            for i in range(1, total_row):
+                row = sheet_0.row(i)
+                if row is None:
+                    break
+
+                jrrzye = str(row[1].value).replace(",", "")  # 融资余额(亿元)
+                jrrjye = str(row[4].value).replace(",", "")  # 融券余额(亿元)
+                jrrzrjye = str(row[5].value).replace(",", "")  # 融资融券余额(亿元)
+                jrrzmr = str(row[0].value).replace(",", "")  # 融资买入额(亿元)
+                jrrjmc = str(row[2].value).replace(",", "")  # 融券卖出量(亿股/亿份)
+                jrrjyl = str(row[3].value).replace(",", "")  # 融券余量(亿股/亿份)
+                data_list.append((jrrzye, jrrjye, jrrzrjye, jrrzmr, jrrjmc, jrrjyl))
+
+            logger.info("excel处理结束")
+            return data_list, total_row
         else:
             logger.error(f'该查询日期{actual_date}暂无相关交易数据！')
 
-        return data_list
 
     @classmethod
     def item(cls, query_date):
