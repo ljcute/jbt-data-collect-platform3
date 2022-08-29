@@ -52,14 +52,14 @@ class CollectHandler(BaseHandler):
         max_retry = 0
         while max_retry < 3:
             logger.info(f'重试第{max_retry}次')
-            try:
-                cls.total(query_date)
-                cls.item(query_date)
-                logger.info("深交所交易汇总及详细数据采集完成")
-                break
-            except Exception as e:
-                time.sleep(3)
-                logger.error(e)
+            # try:
+            cls.total(query_date)
+            # cls.item(query_date)
+            logger.info("深交所交易汇总及详细数据采集完成")
+            break
+            # except Exception as e:
+            time.sleep(3)
+            logger.error(e)
 
             max_retry += 1
 
@@ -100,6 +100,7 @@ class CollectHandler(BaseHandler):
         data_list = cls.total_deal(response, trade_date)
         logger.info(f'data_list:{data_list}')
         df_result = super().data_deal(data_list, title_list)
+        logger.info(f'df_result:{df_result}')
         end_dt = datetime.datetime.now()
         used_time = (end_dt - start_dt).seconds
         if data_list:
