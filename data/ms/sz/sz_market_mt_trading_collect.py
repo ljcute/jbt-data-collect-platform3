@@ -140,7 +140,6 @@ class CollectHandler(BaseHandler):
         sheet_0 = excel_file.sheet_by_index(0)
         total_row = sheet_0.nrows
         if total_row >= 1:
-            data_list = []
             for i in range(1, total_row):
                 row = sheet_0.row(i)
                 if row is None:
@@ -152,7 +151,7 @@ class CollectHandler(BaseHandler):
                 jrrzmr = str(row[0].value).replace(",", "")  # 融资买入额(亿元)
                 jrrjmc = str(row[2].value).replace(",", "")  # 融券卖出量(亿股/亿份)
                 jrrjyl = str(row[3].value).replace(",", "")  # 融券余量(亿股/亿份)
-                data_list.append([jrrzye, jrrjye, jrrzrjye, jrrzmr, jrrjmc, jrrjyl])
+                data_list = [jrrzye, jrrjye, jrrzrjye, jrrzmr, jrrjmc, jrrjyl]
 
             logger.info("excel处理结束")
             return data_list, total_row
