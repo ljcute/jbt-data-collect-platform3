@@ -182,6 +182,7 @@ class CollectHandler(BaseHandler):
         response = super().get_response(download_url, proxies, 0, headers, params)
         data_list, total_row = cls.item_deal(response, actual_date)
         df_result = super().data_deal(data_list, title_list)
+        logger.info(f'df_result:{df_result}')
         end_dt = datetime.datetime.now()
         used_time = (end_dt - start_dt).seconds
         if int(len(data_list)) == total_row - 1:
