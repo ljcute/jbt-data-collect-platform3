@@ -52,16 +52,16 @@ class CollectHandler(BaseHandler):
         max_retry = 0
         while max_retry < 3:
             logger.info(f'重试第{max_retry}次')
-            # try:
-            cls.total(query_date)
-            # cls.item(query_date)
-            logger.info("深交所交易汇总及详细数据采集完成")
-            break
-            # except Exception as e:
-            time.sleep(3)
-            logger.error(e)
+            try:
+                cls.total(query_date)
+                cls.item(query_date)
+                logger.info("深交所交易汇总及详细数据采集完成")
+                break
+            except Exception as e:
+                time.sleep(3)
+                logger.error(e)
 
-            max_retry += 1
+                max_retry += 1
 
     @classmethod
     def get_trade_date(cls):
@@ -97,7 +97,7 @@ class CollectHandler(BaseHandler):
         title_list = ['jrrzye', 'jrrjye', 'jrrzrjye', 'jrrzmr', 'jrrjmc', 'jrrjyl']
         start_dt = datetime.datetime.now()
         response = super().get_response(url, proxies, 0, headers, params)
-        data_list = cls.total_deal(response, trade_date)
+        data_list, total = cls.total_deal(response, trade_date)
         logger.info(f'data_list:{data_list}')
         df_result = super().data_deal(data_list, title_list)
         logger.info(f'df_result:{df_result}')
@@ -127,8 +127,8 @@ class CollectHandler(BaseHandler):
                 logger.error(e)
 
             excel_file = xlrd2.open_workbook(excel_file_path_anthoer, encoding_override="utf-8")
-            data_list, total_row = cls.handle_excel_total(excel_file, actual_date)
-            return data_list, total_row
+            data_list, total = cls.handle_excel_total(excel_file, actual_date)
+            return data_list, total
         except Exception as e:
             logger.error(e)
         finally:
@@ -139,6 +139,7 @@ class CollectHandler(BaseHandler):
         logger.info("开始处理excel")
         sheet_0 = excel_file.sheet_by_index(0)
         total_row = sheet_0.nrows
+        data_list = []
         if total_row >= 1:
             for i in range(1, total_row):
                 row = sheet_0.row(i)
@@ -151,7 +152,7 @@ class CollectHandler(BaseHandler):
                 jrrzmr = str(row[0].value).replace(",", "")  # 融资买入额(亿元)
                 jrrjmc = str(row[2].value).replace(",", "")  # 融券卖出量(亿股/亿份)
                 jrrjyl = str(row[3].value).replace(",", "")  # 融券余量(亿股/亿份)
-                data_list = [jrrzye, jrrjye, jrrzrjye, jrrzmr, jrrjmc, jrrjyl]
+                data_list.append((jrrzye, jrrjye, jrrzrjye, jrrzmr, jrrjmc, jrrjyl))
 
             logger.info("excel处理结束")
             return data_list, total_row
