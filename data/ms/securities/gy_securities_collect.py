@@ -69,7 +69,7 @@ class CollectHandler(BaseHandler):
         try:
             start_dt = datetime.datetime.now()
             data_list = []
-            data_title = ['stock_name', 'stock_code', 'rz_rate']
+            data_title = ['stock_name', 'stock_code', 'rz_rate', 'market']
             proxies = super().get_proxies()
             response = session.post(url=url, data=data, headers=get_headers(), proxies=proxies)
             if response.status_code == 200:
@@ -80,7 +80,8 @@ class CollectHandler(BaseHandler):
                         stock_name = i['secu_name']
                         stock_code = i['secu_code']
                         rz_rate = i['rz_ratio']
-                        data_list.append((stock_name, stock_code, rz_rate))
+                        market = '深圳' if str(i['stkex']) == '0' else '上海'
+                        data_list.append((stock_name, stock_code, rz_rate, market))
 
                     logger.info(f'采集国元证券融资标的证券数据共total_data_list:{len(data_list)}条')
                     df_result = super().data_deal(data_list, data_title)
@@ -120,7 +121,7 @@ class CollectHandler(BaseHandler):
         try:
             start_dt = datetime.datetime.now()
             data_list = []
-            data_title = ['stock_name', 'stock_code', 'rq_rate']
+            data_title = ['stock_name', 'stock_code', 'rq_rate', 'market']
             proxies = super().get_proxies()
             response = session.post(url=url, data=data, headers=get_headers(), proxies=proxies)
             if response.status_code == 200:
@@ -131,7 +132,8 @@ class CollectHandler(BaseHandler):
                         stock_name = i['secu_name']
                         stock_code = i['secu_code']
                         rq_rate = i['rq_ratio']
-                        data_list.append((stock_name, stock_code, rq_rate))
+                        market = '深圳' if str(i['stkex']) == '0' else '上海'
+                        data_list.append((stock_name, stock_code, rq_rate, market))
 
                     logger.info(f'采集国元证券融券标的证券数据共total_data_list:{len(data_list)}条')
                     df_result = super().data_deal(data_list, data_title)
@@ -170,7 +172,7 @@ class CollectHandler(BaseHandler):
         try:
             start_dt = datetime.datetime.now()
             data_list = []
-            data_title = ['stock_name', 'stock_code', 'exchange_rate']
+            data_title = ['stock_name', 'stock_code', 'exchange_rate', 'market']
             proxies = super().get_proxies()
             response = session.post(url=url, data=data, headers=get_headers(), proxies=proxies)
             if response.status_code == 200:
@@ -181,7 +183,8 @@ class CollectHandler(BaseHandler):
                         stock_name = i['secu_name']
                         stock_code = i['secu_code']
                         exchange_rate = i['exchange_rate']
-                        data_list.append((stock_name, stock_code, exchange_rate))
+                        market = '深圳' if str(i['stkex']) == '0' else '上海'
+                        data_list.append((stock_name, stock_code, exchange_rate, market))
 
                     logger.info(f'采集国元证券可充抵保证金证券数据共total_data_list:{len(data_list)}条')
                     df_result = super().data_deal(data_list, data_title)

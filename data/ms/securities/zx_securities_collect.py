@@ -83,7 +83,7 @@ class CollectHandler(BaseHandler):
             proxies = super().get_proxies()
             response = super().get_response(url, proxies, 1, headers, None, data)
             data_list = []
-            data_title = ['stock_code', 'stock_name', 'rz_rate', 'rq_rate', 'date']
+            data_title = ['stock_code', 'stock_name', 'rz_rate', 'rq_rate', 'date', 'markert']
             # 请求失败。重试三次
             retry_count = 3
             if response is None:
@@ -123,7 +123,8 @@ class CollectHandler(BaseHandler):
                             rz_rate = i['rzPercent']
                             rq_rate = i['rqPercent']
                             date = i['dataDate']
-                            data_list.append((stock_code, stock_name, rz_rate, rq_rate, date))
+                            markert = i['exchangeCode']
+                            data_list.append((stock_code, stock_name, rz_rate, rq_rate, date, markert))
                             logger.info(f'已采集数据条数为：{int(len(data_list))}')
 
                 logger.info(f'采集中信证券融资融券标的证券数据共{int(len(data_list))}条')

@@ -88,7 +88,7 @@ class CollectHandler(BaseHandler):
             proxies = super().get_proxies()
             response = super().get_response(url, proxies, 1, headers, None, data)
             data_list = []
-            data_title = ['sec_code', 'sec_name', 'rz_rate', 'rq_rate']
+            data_title = ['sec_code', 'sec_name', 'rz_rate', 'rq_rate', 'market']
             if response.status_code == 200:
                 text = json.loads(response.text)
                 total = text['data']['total']
@@ -99,7 +99,8 @@ class CollectHandler(BaseHandler):
                         sec_name = i['STOCK_NAME']
                         rz_rate = i['FIN_RATIO']  # 融资保证金比例
                         rq_rate = i['SLO_RATIO']  # 融券保证金比例
-                        data_list.append((sec_code, sec_name, rz_rate, rq_rate))
+                        market = '深圳' if i['EXCHANGE_TYPE'] == '2' else '上海'
+                        data_list.append((sec_code, sec_name, rz_rate, rq_rate, market))
                         logger.info(f'已采集数据条数为：{int(len(data_list))}')
 
                     logger.info(f'采集财通证券融资融券标的证券数据共{int(len(data_list))}条')

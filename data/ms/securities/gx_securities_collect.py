@@ -77,7 +77,7 @@ class CollectHandler(BaseHandler):
                 total_count = text['data'][0]['count']
                 if all_data_list:
                     for i in all_data_list:
-                        market = i['sc']  # 1为深圳 0为上海
+                        market = '深圳' if str(i['sc']) == '1' else '上海'
                         stock_code = i['zqdm']
                         stock_name = i['zqmc']
                         rate = i['rzbzjbl']
@@ -127,7 +127,7 @@ class CollectHandler(BaseHandler):
                 total_count = text['data'][0]['count']
                 if all_data_list:
                     for i in all_data_list:
-                        market = i['sc']  # 1为深圳 0为上海
+                        market = '深圳' if str(i['sc']) == '1' else '上海'
                         stock_code = i['zqdm']
                         stock_name = i['zqmc']
                         rate = i['rzbzjbl']

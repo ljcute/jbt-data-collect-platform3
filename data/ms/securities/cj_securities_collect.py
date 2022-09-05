@@ -75,8 +75,7 @@ class CollectHandler(BaseHandler):
                         stock_name = i['stock_name']
                         rz_rate = i['fin_ratio']
                         rq_rate = i['bail_ratio']
-                        # market = '深圳' if i['exchange_type'] == '2' else '上海'
-                        market = i['exchange_type']
+                        market = '深圳' if i['exchange_type'] == '2' else '上海'
                         rzbd = i['rzbd']
                         rqbd = i['rqbd']
                         target_list.append((market, stock_code, stock_name, rz_rate, rq_rate))
@@ -126,7 +125,7 @@ class CollectHandler(BaseHandler):
                         stock_code = i['stock_code']
                         stock_name = i['stock_name']
                         discount_rate = i['assure_ratio']
-                        market = i['exchange_type']
+                        market = '深圳' if i['exchange_type'] == '2' else '上海'
                         target_list.append((market, stock_code, stock_name, discount_rate))
                         logger.info(f'已采集数据条数：{int(len(target_list))}')
 

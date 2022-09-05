@@ -65,7 +65,7 @@ class CollectHandler(BaseHandler):
         page_size = 5
         is_continue = True
         data_list = []
-        title_list = ['sec_code', 'sec_name', 'round_rate', 'date']
+        title_list = ['sec_code', 'sec_name', 'round_rate', 'date', 'market']
         start_dt = datetime.datetime.now()
         proxies = super().get_proxies()
         while is_continue:
@@ -92,9 +92,10 @@ class CollectHandler(BaseHandler):
                         break
                     u_name = i['name'].replace('u', '\\u')  # 把u4fe1u7acbu6cf0转成\\u4fe1\\u7acb\\u6cf0
                     sec_name = u_name.encode().decode('unicode_escape')  # unicode转汉字
+                    market = '深圳' if i['market'] == "0" else '上海'
                     round_rate = i['rate']
                     date = i['pub_date']
-                    data_list.append((sec_code, sec_name, round_rate, date))
+                    data_list.append((sec_code, sec_name, round_rate, date, market))
 
                 logger.info(f'已采集数据条数：{int(len(data_list))}')
             except Exception as es:
@@ -127,7 +128,7 @@ class CollectHandler(BaseHandler):
         page_size = 5
         is_continue = True
         data_list = []
-        title_list = ['sec_code', 'sec_name', 'round_rate', 'date']
+        title_list = ['sec_code', 'sec_name', 'round_rate', 'date', 'market']
         start_dt = datetime.datetime.now()
         proxies = super().get_proxies()
         while is_continue:
@@ -153,9 +154,10 @@ class CollectHandler(BaseHandler):
                         break
                     u_name = i['name'].replace('u', '\\u')  # 把u4fe1u7acbu6cf0转成\\u4fe1\\u7acb\\u6cf0
                     sec_name = u_name.encode().decode('unicode_escape')  # unicode转汉字
+                    market = '深圳' if i['market'] == "0" else '上海'
                     round_rate = i['rate']
                     date = i['pub_date']
-                    data_list.append((sec_code, sec_name, round_rate, date))
+                    data_list.append((sec_code, sec_name, round_rate, date, market))
                 logger.info(f'已采集数据条数：{int(len(data_list))}')
             except Exception as es:
                 logger.error(es)
@@ -188,7 +190,7 @@ class CollectHandler(BaseHandler):
         page_size = 5
         is_continue = True
         data_list = []
-        title_list = ['sec_code', 'sec_name', 'round_rate', 'date']
+        title_list = ['sec_code', 'sec_name', 'round_rate', 'date', 'market']
         start_dt = datetime.datetime.now()
         proxies = super().get_proxies()
         while is_continue:
@@ -214,9 +216,10 @@ class CollectHandler(BaseHandler):
                         break
                     u_name = i['name'].replace('u', '\\u')  # 把u4fe1u7acbu6cf0转成\\u4fe1\\u7acb\\u6cf0
                     sec_name = u_name.encode().decode('unicode_escape')  # unicode转汉字
+                    market = '深圳' if i['market'] == "0" else '上海'
                     round_rate = i['rate']
                     date = i['pub_date']
-                    data_list.append((sec_code, sec_name, round_rate, date))
+                    data_list.append((sec_code, sec_name, round_rate, date, market))
 
                 logger.info(f'已采集数据条数：{int(len(data_list))}')
             except Exception as es:
