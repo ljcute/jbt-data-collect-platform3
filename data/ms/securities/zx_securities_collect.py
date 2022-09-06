@@ -6,6 +6,8 @@
 import os
 import sys
 
+from utils.exceptions_utils import ProxyTimeOutEx
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 
@@ -47,6 +49,8 @@ class CollectHandler(BaseHandler):
                         logger.error(f'business_type{business_type}输入有误，请检查！')
 
                 break
+            except ProxyTimeOutEx as es:
+                pass
             except Exception as e:
                 time.sleep(3)
                 logger.error(e)
@@ -147,7 +151,8 @@ class CollectHandler(BaseHandler):
             else:
                 logger.error(f'请求失败，respones.status={response.status_code}')
                 raise Exception(f'请求失败，respones.status={response.status_code}')
-
+        except ProxyTimeOutEx as es:
+            pass
         except Exception as e:
             logger.error(e)
 
@@ -247,7 +252,8 @@ class CollectHandler(BaseHandler):
             else:
                 logger.error(f'请求失败，respones.status={response.status_code}')
                 raise Exception(f'请求失败，respones.status={response.status_code}')
-
+        except ProxyTimeOutEx as es:
+            pass
         except Exception as e:
             logger.error(e)
 

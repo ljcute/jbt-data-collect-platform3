@@ -7,11 +7,13 @@ import time
 from configparser import ConfigParser
 
 import requests
+
+from utils.exceptions_utils import ProxyTimeOutEx
 from utils.logs_utils import logger
 from utils.db_utils import cf
 import json
 
-app_id = 'jbt-data-collect-platform'       # 本系统id
+app_id = 'jbt-data-collect-platform'  # 本系统id
 get_ip_url = cf.get('http-proxy-java-service', 'get-ip')
 expire_ip_url = cf.get('http-proxy-java-service', 'expire-ip')
 proxy_switch = cf.get('http-proxy-java-service', 'switch')
@@ -20,7 +22,7 @@ none_proxy = {'http': None, 'https': None}
 base_dir = os.path.dirname(os.path.abspath(__file__))
 full_path = os.path.join(base_dir, '../config/config.ini')
 cf = ConfigParser()
-cf.read(full_path,encoding='utf-8')
+cf.read(full_path, encoding='utf-8')
 proxy_retry_time = cf.get('proxy', 'proxy_retry_time')
 proxy_sleep_time = cf.get('proxy', 'proxy_sleep_time')
 
@@ -93,8 +95,11 @@ def expire_ip(ip):
 def check_proxy_ip_valid(ip, port):
     proxies = create_proxies(ip, port)
     # response = requests.get("http://httpbin.org/ip", proxies=proxies, timeout=10)     # 国外ip，有些代理商不给访问
-    response = requests.get("http://www.baidu.com", proxies=proxies, timeout=10)
-    return True if int(response.status_code) == 200 else False
+    try:
+        response = requests.get("http://www.baidu.com", proxies=proxies, timeout=10)
+        return True if int(response.status_code) == 200 else False
+    except Exception as es:
+        raise ProxyTimeOutEx
 
 
 if __name__ == "__main__":

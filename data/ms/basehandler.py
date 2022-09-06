@@ -12,6 +12,8 @@ from configparser import ConfigParser
 
 from kafka.errors import kafka_errors
 
+from utils.exceptions_utils import ProxyTimeOutEx
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(BASE_DIR)
 
@@ -130,7 +132,8 @@ class BaseHandler(object):
             else:
                 logger.error("use_proxy参数有误，请检查")
                 raise Exception("use_proxy参数有误，请检查")
-
+        except ProxyTimeOutEx as es:
+            pass
         except Exception as e:
             logger.error(e)
 
@@ -192,4 +195,4 @@ class BaseHandler(object):
 if __name__ == '__main__':
     s = BaseHandler()
     # s.kafka_mq_producer('20220725', '3', '华泰证券', 'ht_securities_collect')
-    s.kafka_mq_producer('20220826', '1', '深圳交易所', 'sz_market_mt_trading_collect')
+    s.kafka_mq_producer('20220905', '4', '国元证券', 'gy_securities_collect')

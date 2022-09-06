@@ -9,6 +9,8 @@ import sys
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 
+
+from utils.exceptions_utils import ProxyTimeOutEx
 from data.ms.basehandler import BaseHandler
 from utils.deal_date import ComplexEncoder
 import json
@@ -50,6 +52,8 @@ class CollectHandler(BaseHandler):
                         logger.error(f'business_type{business_type}输入有误，请检查！')
 
                 break
+            except ProxyTimeOutEx as es:
+                pass
             except Exception as e:
                 time.sleep(3)
                 logger.error(e)
@@ -98,6 +102,8 @@ class CollectHandler(BaseHandler):
                     data_list.append((sec_code, sec_name, round_rate, date, market))
 
                 logger.info(f'已采集数据条数：{int(len(data_list))}')
+            except ProxyTimeOutEx as e:
+                pass
             except Exception as es:
                 logger.error(es)
                 is_continue = False
@@ -159,6 +165,8 @@ class CollectHandler(BaseHandler):
                     date = i['pub_date']
                     data_list.append((sec_code, sec_name, round_rate, date, market))
                 logger.info(f'已采集数据条数：{int(len(data_list))}')
+            except ProxyTimeOutEx as e:
+                pass
             except Exception as es:
                 logger.error(es)
                 is_continue = False
@@ -222,6 +230,8 @@ class CollectHandler(BaseHandler):
                     data_list.append((sec_code, sec_name, round_rate, date, market))
 
                 logger.info(f'已采集数据条数：{int(len(data_list))}')
+            except ProxyTimeOutEx as e:
+                pass
             except Exception as es:
                 logger.error(es)
                 is_continue = False

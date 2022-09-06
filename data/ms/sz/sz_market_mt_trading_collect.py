@@ -11,6 +11,8 @@ from configparser import ConfigParser
 
 from selenium.webdriver.common.by import By
 
+from utils.exceptions_utils import ProxyTimeOutEx
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 
@@ -57,6 +59,8 @@ class CollectHandler(BaseHandler):
                 cls.item(query_date)
                 logger.info("深交所交易汇总及详细数据采集完成")
                 break
+            except ProxyTimeOutEx as es:
+                pass
             except Exception as e:
                 time.sleep(3)
                 logger.error(e)
@@ -74,6 +78,8 @@ class CollectHandler(BaseHandler):
             trade_date = driver.find_elements(By.XPATH, '/html/body/div[5]/div/div[2]/div/div/div[4]/div[1]/div[1]/div[1]/span[2]')[0].text
             logger.info(f'深圳交易所最新交易日日期为{trade_date}')
             return trade_date
+        except ProxyTimeOutEx as es:
+            pass
         except Exception as e:
             logger.error(e)
 

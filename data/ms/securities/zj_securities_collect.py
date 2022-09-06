@@ -10,6 +10,8 @@ import sys
 
 import pandas
 
+from utils.exceptions_utils import ProxyTimeOutEx
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 
@@ -67,6 +69,8 @@ class CollectHandler(BaseHandler):
                         logger.error(f'business_type{business_type}输入有误，请检查！')
 
                 break
+            except ProxyTimeOutEx as es:
+                pass
             except Exception as e:
                 time.sleep(3)
                 logger.error(e)
@@ -171,7 +175,8 @@ class CollectHandler(BaseHandler):
                                       exchange_mt_financing_underlying_security, data_source, message)
 
             logger.info("中金公司融资标的证券数据采集完成")
-
+        except ProxyTimeOutEx as es:
+            pass
         except Exception as e:
             logger.error(e)
 
@@ -272,7 +277,8 @@ class CollectHandler(BaseHandler):
                                       exchange_mt_lending_underlying_security, data_source, message)
 
             logger.info("中金公司融券标的证券数据采集完成")
-
+        except ProxyTimeOutEx as es:
+            pass
         except Exception as e:
             logger.error(e)
 
@@ -324,7 +330,8 @@ class CollectHandler(BaseHandler):
                                       exchange_mt_guaranty_security, data_source, message)
 
             logger.info("中金公司可充抵保证品数据采集完成")
-
+        except ProxyTimeOutEx as es:
+            pass
         except Exception as e:
             logger.error(e)
             raise Exception(f'{e}')
@@ -405,7 +412,8 @@ class CollectHandler(BaseHandler):
                     type = dom_td_list[i + 3].get_text()
                     data_list.append((stock_name, stock_code, rate, type))
                     logger.info(f'已采集{data_type}数据条数为：{int(len(data_list))}')
-
+        except ProxyTimeOutEx as es:
+            pass
         except Exception as e:
             logger.error(e)
 
@@ -444,7 +452,8 @@ class CollectHandler(BaseHandler):
                 cls.resolve_single_target_page(html_content, data_list)
 
             logger.info(f'采集中金公司担保品-{data_type}相关数据结束,共{int(len(data_list))}条')
-
+        except ProxyTimeOutEx as es:
+            pass
         except Exception as e:
             logger.error(e)
             raise Exception(f'{e}')

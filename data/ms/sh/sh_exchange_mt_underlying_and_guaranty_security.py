@@ -8,6 +8,8 @@ import os
 import sys
 from configparser import ConfigParser
 
+from utils.exceptions_utils import ProxyTimeOutEx
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 
@@ -98,6 +100,8 @@ class CollectHandler(BaseHandler):
 
                 logger.info("上交所融资融券数据采集完成")
                 break
+            except ProxyTimeOutEx as es:
+                pass
             except Exception as e:
                 time.sleep(3)
                 logger.error(e)

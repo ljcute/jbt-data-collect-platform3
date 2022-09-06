@@ -7,7 +7,7 @@
 import os
 import sys
 
-
+from utils.exceptions_utils import ProxyTimeOutEx
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
@@ -59,6 +59,8 @@ class CollectHandler(BaseHandler):
                         logger.error(f'business_type{business_type}输入有误，请检查！')
 
                 break
+            except ProxyTimeOutEx as es:
+                pass
             except Exception as e:
                 time.sleep(3)
                 logger.error(e)
@@ -101,7 +103,8 @@ class CollectHandler(BaseHandler):
                                       exchange_mt_financing_underlying_security, data_source, message)
 
             logger.info("中国银河证券融资标的证券相关数据采集完成")
-
+        except ProxyTimeOutEx as e:
+            pass
         except Exception as es:
             logger.error(es)
         finally:
@@ -156,7 +159,8 @@ class CollectHandler(BaseHandler):
                                       exchange_mt_lending_underlying_security, data_source, message)
 
             logger.info("中国银河证券融券标的证券相关数据完成")
-
+        except ProxyTimeOutEx as e:
+            pass
         except Exception as es:
             logger.error(es)
         finally:
@@ -212,7 +216,8 @@ class CollectHandler(BaseHandler):
                                       exchange_mt_guaranty_security, data_source, message)
 
             logger.info("中国银河证券可充抵保证金证券相关数据采集完成")
-
+        except ProxyTimeOutEx as e:
+            pass
         except Exception as es:
             logger.error(es)
         finally:
