@@ -91,7 +91,7 @@ class BaseHandler(object):
 
     @classmethod
     def get_response(cls, url, proxies, request_type, headers=None, params=None, data=None, allow_redirects=None):
-        logger.info("开始获取网页请求......")
+        # logger.info("开始获取网页请求......")
         try:
             response = None
             if request_type == 0:
@@ -144,7 +144,7 @@ class BaseHandler(object):
             data_df = pd.DataFrame(data=data_list, columns=title_list)
             if data_df is not None:
                 df_result = {'columns': title_list, 'data': data_df.values.tolist()}
-                logger.info(f'df_result:{df_result}')
+                # logger.info(f'df_result:{df_result}')
                 return df_result
         else:
             raise Exception('参数data_list,title_list为空，请检查')

@@ -82,29 +82,16 @@ class CollectHandler(BaseHandler):
         while is_continue:
             params = {"pageSize": page_size, "pageNum": page, "type": 'fin', 'dir': 'asc', 'init_date': search_date,
                       'sort': 'init_date', 'key': None}
-            try:
-                response = super().get_response(url, proxies, 0, get_headers(), params)
-                if response.status_code == 200:
-                    text = json.loads(response.text)
-                    total = text['count']
-                    result = text['result']
-                    soup = BeautifulSoup(result, 'html.parser')
-                    dom_td_list = soup.select('td')
-                else:
-                    logger.error(f'请求失败，respones.status={response.status_code}')
-                    raise Exception(f'请求失败，respones.status={response.status_code}')
-            except ProxyTimeOutEx as es:
-                pass
-            except Exception as e:
-                logger.error(e)
-                result = []
-                dom_td_list = []
-                if retry_count > 0 and judge_proxy_is_fail(e, proxies['http']):
-                    retry_count = retry_count - 1
-                    time.sleep(5)
-                    continue
-                else:
-                    is_continue = False
+            response = super().get_response(url, proxies, 0, get_headers(), params)
+            if response.status_code == 200:
+                text = json.loads(response.text)
+                total = text['count']
+                result = text['result']
+                soup = BeautifulSoup(result, 'html.parser')
+                dom_td_list = soup.select('td')
+            else:
+                logger.error(f'请求失败，respones.status={response.status_code}')
+                raise Exception(f'请求失败，respones.status={response.status_code}')
 
             if total is not None and type(total) is not str and total > page * page_size:
                 is_continue = True
@@ -159,29 +146,16 @@ class CollectHandler(BaseHandler):
         while is_continue:
             params = {"pageSize": page_size, "pageNum": page, "type": 'slo', 'dir': 'asc', 'init_date': search_date,
                       'sort': 'init_date', 'key': None}
-            try:
-                response = super().get_response(url, proxies, 0, get_headers(), params)
-                if response.status_code == 200:
-                    text = json.loads(response.text)
-                    total = text['count']
-                    result = text['result']
-                    soup = BeautifulSoup(result, 'html.parser')
-                    dom_td_list = soup.select('td')
-                else:
-                    logger.error(f'请求失败，respones.status={response.status_code}')
-                    raise Exception(f'请求失败，respones.status={response.status_code}')
-            except ProxyTimeOutEx as es:
-                pass
-            except Exception as e:
-                logger.error(e)
-                result = []
-                dom_td_list = []
-                if retry_count > 0 and judge_proxy_is_fail(e, proxies['http']):
-                    retry_count = retry_count - 1
-                    time.sleep(5)
-                    continue
-                else:
-                    is_continue = False
+            response = super().get_response(url, proxies, 0, get_headers(), params)
+            if response.status_code == 200:
+                text = json.loads(response.text)
+                total = text['count']
+                result = text['result']
+                soup = BeautifulSoup(result, 'html.parser')
+                dom_td_list = soup.select('td')
+            else:
+                logger.error(f'请求失败，respones.status={response.status_code}')
+                raise Exception(f'请求失败，respones.status={response.status_code}')
 
             if total is not None and type(total) is not str and total > page * page_size:
                 is_continue = True
@@ -236,31 +210,16 @@ class CollectHandler(BaseHandler):
         while is_continue:
             params = {"pageSize": page_size, "pageNum": page, 'dir': 'asc', 'init_date': search_date,
                       'sort': 'init_date', 'key': None}
-            try:
-                response = super().get_response(url, proxies, 0, get_headers(), params)
-                if response.status_code == 200:
-                    text = json.loads(response.text)
-                    total = text['count']
-                    result = text['result']
-                    soup = BeautifulSoup(result, 'html.parser')
-                    dom_td_list = soup.select('td')
-                else:
-                    logger.error(f'请求失败，respones.status={response.status_code}')
-                    raise Exception(f'请求失败，respones.status={response.status_code}')
-            except ProxyTimeOutEx as es:
-                pass
-            except Exception as e:
-                logger.error(e)
-                if not_ignore_error(e):
-                    logger.error(f'解析html异常,text={response.text}')
-                result = []
-                dom_td_list = []
-                if retry_count > 0 and judge_proxy_is_fail(e, proxies['http']):
-                    retry_count = retry_count - 1
-                    time.sleep(5)
-                    continue
-                else:
-                    is_continue = False
+            response = super().get_response(url, proxies, 0, get_headers(), params)
+            if response.status_code == 200:
+                text = json.loads(response.text)
+                total = text['count']
+                result = text['result']
+                soup = BeautifulSoup(result, 'html.parser')
+                dom_td_list = soup.select('td')
+            else:
+                logger.error(f'请求失败，respones.status={response.status_code}')
+                raise Exception(f'请求失败，respones.status={response.status_code}')
 
             if total is not None and type(total) is not str and total > page * page_size:
                 is_continue = True

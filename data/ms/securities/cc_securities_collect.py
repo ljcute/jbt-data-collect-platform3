@@ -75,38 +75,32 @@ class CollectHandler(BaseHandler):
         while is_continue:
             params = {"page": page, "channelid": 257420, "searchword": 'KGNyZWRpdGZ1bmRjdHJsPTAp',
                       "_": get_timestamp()}
-            try:
-                response = super().get_response(url, proxies, 0, cc_headers, params)
-                if response is None or response.status_code != 200:
-                    logger.error(f'请求失败！{response}')
-                text = json.loads(response.text)
-                logger.info("开始处理融资标的券数据")
-                row_list = text['rows']
-                total = 0
-                if row_list:
-                    total = int(text['total'])
-                if total is not None and type(total) is not str and total > page * page_size:
-                    is_continue = True
-                    page = page + 1
-                else:
-                    is_continue = False
-                for i in row_list:
-                    sec_code = i['code']
-                    if sec_code == "":  # 一页数据,遇到{"code":"","name":"","rate":"","pub_date":"","market":""}表示完结
-                        break
-                    u_name = i['name'].replace('u', '\\u')  # 把u4fe1u7acbu6cf0转成\\u4fe1\\u7acb\\u6cf0
-                    sec_name = u_name.encode().decode('unicode_escape')  # unicode转汉字
-                    market = '深圳' if i['market'] == "0" else '上海'
-                    round_rate = i['rate']
-                    date = i['pub_date']
-                    data_list.append((sec_code, sec_name, round_rate, date, market))
-
-                logger.info(f'已采集数据条数：{int(len(data_list))}')
-            except ProxyTimeOutEx as e:
-                pass
-            except Exception as es:
-                logger.error(es)
+            response = super().get_response(url, proxies, 0, cc_headers, params)
+            if response is None or response.status_code != 200:
+                logger.error(f'请求失败！{response}')
+            text = json.loads(response.text)
+            logger.info("开始处理融资标的券数据")
+            row_list = text['rows']
+            total = 0
+            if row_list:
+                total = int(text['total'])
+            if total is not None and type(total) is not str and total > page * page_size:
+                is_continue = True
+                page = page + 1
+            else:
                 is_continue = False
+            for i in row_list:
+                sec_code = i['code']
+                if sec_code == "":  # 一页数据,遇到{"code":"","name":"","rate":"","pub_date":"","market":""}表示完结
+                    break
+                u_name = i['name'].replace('u', '\\u')  # 把u4fe1u7acbu6cf0转成\\u4fe1\\u7acb\\u6cf0
+                sec_name = u_name.encode().decode('unicode_escape')  # unicode转汉字
+                market = '深圳' if i['market'] == "0" else '上海'
+                round_rate = i['rate']
+                date = i['pub_date']
+                data_list.append((sec_code, sec_name, round_rate, date, market))
+
+            logger.info(f'已采集数据条数：{int(len(data_list))}')
 
         logger.info(f'采集融资标的券数据结束,共{int(len(data_list))}条')
         df_result = super().data_deal(data_list, title_list)
@@ -140,36 +134,30 @@ class CollectHandler(BaseHandler):
         while is_continue:
             params = {"page": page, "channelid": 257420, "searchword": 'KGNyZWRpdHN0a2N0cmw9MCk=',
                       "_": get_timestamp()}
-            try:
-                response = super().get_response(url, proxies, 0, cc_headers, params)
-                if response is None or response.status_code != 200:
-                    logger.error(f'请求失败！{response}')
-                text = json.loads(response.text)
-                row_list = text['rows']
-                total = 0
-                if row_list:
-                    total = int(text['total'])
-                if total is not None and type(total) is not str and total > page * page_size:
-                    is_continue = True
-                    page = page + 1
-                else:
-                    is_continue = False
-                for i in row_list:
-                    sec_code = i['code']
-                    if sec_code == "":  # 一页数据,遇到{"code":"","name":"","rate":"","pub_date":"","market":""}表示完结
-                        break
-                    u_name = i['name'].replace('u', '\\u')  # 把u4fe1u7acbu6cf0转成\\u4fe1\\u7acb\\u6cf0
-                    sec_name = u_name.encode().decode('unicode_escape')  # unicode转汉字
-                    market = '深圳' if i['market'] == "0" else '上海'
-                    round_rate = i['rate']
-                    date = i['pub_date']
-                    data_list.append((sec_code, sec_name, round_rate, date, market))
-                logger.info(f'已采集数据条数：{int(len(data_list))}')
-            except ProxyTimeOutEx as e:
-                pass
-            except Exception as es:
-                logger.error(es)
+            response = super().get_response(url, proxies, 0, cc_headers, params)
+            if response is None or response.status_code != 200:
+                logger.error(f'请求失败！{response}')
+            text = json.loads(response.text)
+            row_list = text['rows']
+            total = 0
+            if row_list:
+                total = int(text['total'])
+            if total is not None and type(total) is not str and total > page * page_size:
+                is_continue = True
+                page = page + 1
+            else:
                 is_continue = False
+            for i in row_list:
+                sec_code = i['code']
+                if sec_code == "":  # 一页数据,遇到{"code":"","name":"","rate":"","pub_date":"","market":""}表示完结
+                    break
+                u_name = i['name'].replace('u', '\\u')  # 把u4fe1u7acbu6cf0转成\\u4fe1\\u7acb\\u6cf0
+                sec_name = u_name.encode().decode('unicode_escape')  # unicode转汉字
+                market = '深圳' if i['market'] == "0" else '上海'
+                round_rate = i['rate']
+                date = i['pub_date']
+                data_list.append((sec_code, sec_name, round_rate, date, market))
+            logger.info(f'已采集数据条数：{int(len(data_list))}')
 
         logger.info(f'采集融券标的券数据结束,共{int(len(data_list))}条')
         df_result = super().data_deal(data_list, title_list)
@@ -204,37 +192,31 @@ class CollectHandler(BaseHandler):
         while is_continue:
             params = {"page": page, "channelid": 229873, "searchword": None,
                       "_": get_timestamp()}
-            try:
-                response = super().get_response(url, proxies, 0, cc_headers, params)
-                if response is None or response.status_code != 200:
-                    logger.error(f'请求失败！{response}')
-                text = json.loads(response.text)
-                row_list = text['rows']
-                total = 0
-                if row_list:
-                    total = int(text['total'])
-                if total is not None and type(total) is not str and total > page * page_size:
-                    is_continue = True
-                    page = page + 1
-                else:
-                    is_continue = False
-                for i in row_list:
-                    sec_code = i['code']
-                    if sec_code == "":  # 一页数据,遇到{"code":"","name":"","rate":"","pub_date":"","market":""}表示完结
-                        break
-                    u_name = i['name'].replace('u', '\\u')  # 把u4fe1u7acbu6cf0转成\\u4fe1\\u7acb\\u6cf0
-                    sec_name = u_name.encode().decode('unicode_escape')  # unicode转汉字
-                    market = '深圳' if i['market'] == "0" else '上海'
-                    round_rate = i['rate']
-                    date = i['pub_date']
-                    data_list.append((sec_code, sec_name, round_rate, date, market))
-
-                logger.info(f'已采集数据条数：{int(len(data_list))}')
-            except ProxyTimeOutEx as e:
-                pass
-            except Exception as es:
-                logger.error(es)
+            response = super().get_response(url, proxies, 0, cc_headers, params)
+            if response is None or response.status_code != 200:
+                logger.error(f'请求失败！{response}')
+            text = json.loads(response.text)
+            row_list = text['rows']
+            total = 0
+            if row_list:
+                total = int(text['total'])
+            if total is not None and type(total) is not str and total > page * page_size:
+                is_continue = True
+                page = page + 1
+            else:
                 is_continue = False
+            for i in row_list:
+                sec_code = i['code']
+                if sec_code == "":  # 一页数据,遇到{"code":"","name":"","rate":"","pub_date":"","market":""}表示完结
+                    break
+                u_name = i['name'].replace('u', '\\u')  # 把u4fe1u7acbu6cf0转成\\u4fe1\\u7acb\\u6cf0
+                sec_name = u_name.encode().decode('unicode_escape')  # unicode转汉字
+                market = '深圳' if i['market'] == "0" else '上海'
+                round_rate = i['rate']
+                date = i['pub_date']
+                data_list.append((sec_code, sec_name, round_rate, date, market))
+
+            logger.info(f'已采集数据条数：{int(len(data_list))}')
 
         logger.info(f'采集担保券数据结束,共{int(len(data_list))}条')
         df_result = super().data_deal(data_list, title_list)

@@ -64,51 +64,46 @@ class CollectHandler(BaseHandler):
         url = 'https://www.95579.com/servlet/json'
         params = {"funcNo": "902122", "i_page": 1, "i_perpage": 10000}  # 默认查询当天
         target_title = ['market', 'stock_code', 'stock_name', 'rz_rate', 'rq_rate']
-        try:
-            proxies = super().get_proxies()
-            response = super().get_response(url, proxies, 0, get_headers(), params)
-            if response.status_code == 200:
-                start_dt = datetime.datetime.now()
-                text = json.loads(response.text)
-                data_list = text['results']
-                target_list = []
-                if len(data_list) > 0:
-                    total = int(data_list[0]['total_rows'])
-                    for i in data_list:
-                        stock_code = i['stock_code']
-                        stock_name = i['stock_name']
-                        rz_rate = i['fin_ratio']
-                        rq_rate = i['bail_ratio']
-                        market = '深圳' if i['exchange_type'] == '2' else '上海'
-                        rzbd = i['rzbd']
-                        rqbd = i['rqbd']
-                        target_list.append((market, stock_code, stock_name, rz_rate, rq_rate))
-                        logger.info(f'已采集数据条数：{int(len(target_list))}')
+        proxies = super().get_proxies()
+        response = super().get_response(url, proxies, 0, get_headers(), params)
+        if response.status_code == 200:
+            start_dt = datetime.datetime.now()
+            text = json.loads(response.text)
+            data_list = text['results']
+            target_list = []
+            if len(data_list) > 0:
+                total = int(data_list[0]['total_rows'])
+                for i in data_list:
+                    stock_code = i['stock_code']
+                    stock_name = i['stock_name']
+                    rz_rate = i['fin_ratio']
+                    rq_rate = i['bail_ratio']
+                    market = '深圳' if i['exchange_type'] == '2' else '上海'
+                    rzbd = i['rzbd']
+                    rqbd = i['rqbd']
+                    target_list.append((market, stock_code, stock_name, rz_rate, rq_rate))
+                    logger.info(f'已采集数据条数：{int(len(target_list))}')
 
-                logger.info(f'采集长江证券标的证券数据共{int(len(target_list))}条')
-                df_result = super().data_deal(target_list, target_title)
-                end_dt = datetime.datetime.now()
-                used_time = (end_dt - start_dt).seconds
-                if int(len(target_list)) == total and int(len(target_list)) > 0 and total > 0:
-                    super().data_insert(int(len(target_list)), df_result, actual_date,
-                                        exchange_mt_underlying_security,
-                                        data_source, start_dt, end_dt, used_time, url)
-                    logger.info(f'入库信息,共{int(len(target_list))}条')
-                else:
-                    raise Exception(f'采集数据条数{int(len(target_list))}与官网数据条数{total}不一致，采集程序存在抖动，需要重新采集')
-
-                # message = "cj_securities_collect"
-                # super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
-                #                           exchange_mt_underlying_security, data_source, message)
-
-                logger.info("长江证券标的证券数据采集完成")
+            logger.info(f'采集长江证券标的证券数据共{int(len(target_list))}条')
+            df_result = super().data_deal(target_list, target_title)
+            end_dt = datetime.datetime.now()
+            used_time = (end_dt - start_dt).seconds
+            if int(len(target_list)) == total and int(len(target_list)) > 0 and total > 0:
+                super().data_insert(int(len(target_list)), df_result, actual_date,
+                                    exchange_mt_underlying_security,
+                                    data_source, start_dt, end_dt, used_time, url)
+                logger.info(f'入库信息,共{int(len(target_list))}条')
             else:
-                logger.info("无长江证券标的证券及保证金比例数据")
-                raise Exception("无长江证券标的证券及保证金比例数据")
-        except ProxyTimeOutEx as e:
-            pass
-        except Exception as es:
-            logger.error(es)
+                raise Exception(f'采集数据条数{int(len(target_list))}与官网数据条数{total}不一致，采集程序存在抖动，需要重新采集')
+
+            # message = "cj_securities_collect"
+            # super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
+            #                           exchange_mt_underlying_security, data_source, message)
+
+            logger.info("长江证券标的证券数据采集完成")
+        else:
+            logger.info("无长江证券标的证券及保证金比例数据")
+            raise Exception("无长江证券标的证券及保证金比例数据")
 
     @classmethod
     def guaranty_collect(cls):
@@ -117,48 +112,43 @@ class CollectHandler(BaseHandler):
         url = 'https://www.95579.com/servlet/json'
         params = {"funcNo": "902124", "i_page": 1, "i_perpage": 10000}  # 默认查询当天
         target_title = ['market', 'stock_code', 'stock_name', 'discount_rate']
-        try:
-            proxies = super().get_proxies()
-            response = super().get_response(url, proxies, 0, get_headers(), params)
-            if response.status_code == 200:
-                start_dt = datetime.datetime.now()
-                text = json.loads(response.text)
-                data_list = text['results']
-                target_list = []
-                if len(data_list) > 0:
-                    total = int(data_list[0]['total_rows'])
-                    for i in data_list:
-                        stock_code = i['stock_code']
-                        stock_name = i['stock_name']
-                        discount_rate = i['assure_ratio']
-                        market = '深圳' if i['exchange_type'] == '2' else '上海'
-                        target_list.append((market, stock_code, stock_name, discount_rate))
-                        logger.info(f'已采集数据条数：{int(len(target_list))}')
+        proxies = super().get_proxies()
+        response = super().get_response(url, proxies, 0, get_headers(), params)
+        if response.status_code == 200:
+            start_dt = datetime.datetime.now()
+            text = json.loads(response.text)
+            data_list = text['results']
+            target_list = []
+            if len(data_list) > 0:
+                total = int(data_list[0]['total_rows'])
+                for i in data_list:
+                    stock_code = i['stock_code']
+                    stock_name = i['stock_name']
+                    discount_rate = i['assure_ratio']
+                    market = '深圳' if i['exchange_type'] == '2' else '上海'
+                    target_list.append((market, stock_code, stock_name, discount_rate))
+                    logger.info(f'已采集数据条数：{int(len(target_list))}')
 
-                    logger.info(f'采集长江证券可充抵保证金证券数据,共{int(len(target_list))}条')
-                    df_result = super().data_deal(target_list, target_title)
-                    end_dt = datetime.datetime.now()
-                    used_time = (end_dt - start_dt).seconds
-                    if int(len(target_list)) == total and int(len(target_list)) > 0 and total > 0:
-                        super().data_insert(int(len(target_list)), df_result, actual_date,
-                                            exchange_mt_guaranty_security,
-                                            data_source, start_dt, end_dt, used_time, url)
-                        logger.info(f'入库信息,共{int(len(target_list))}条')
-                    else:
-                        raise Exception(f'采集数据条数{int(len(target_list))}与官网数据条数{total}不一致，采集程序存在抖动，需要重新采集')
-
-                    message = "cj_securities_collect"
-                    super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
-                                              exchange_mt_guaranty_security, data_source, message)
-
-                    logger.info("长江证券可充抵保证金证券数据采集完成")
+                logger.info(f'采集长江证券可充抵保证金证券数据,共{int(len(target_list))}条')
+                df_result = super().data_deal(target_list, target_title)
+                end_dt = datetime.datetime.now()
+                used_time = (end_dt - start_dt).seconds
+                if int(len(target_list)) == total and int(len(target_list)) > 0 and total > 0:
+                    super().data_insert(int(len(target_list)), df_result, actual_date,
+                                        exchange_mt_guaranty_security,
+                                        data_source, start_dt, end_dt, used_time, url)
+                    logger.info(f'入库信息,共{int(len(target_list))}条')
                 else:
-                    logger.info("无长江证券可充抵保证金证券数据")
-                    raise Exception("无长江证券可充抵保证金证券数据")
-        except ProxyTimeOutEx as e:
-            pass
-        except Exception as es:
-            logger.error(es)
+                    raise Exception(f'采集数据条数{int(len(target_list))}与官网数据条数{total}不一致，采集程序存在抖动，需要重新采集')
+
+                message = "cj_securities_collect"
+                super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
+                                          exchange_mt_guaranty_security, data_source, message)
+
+                logger.info("长江证券可充抵保证金证券数据采集完成")
+            else:
+                logger.info("无长江证券可充抵保证金证券数据")
+                raise Exception("无长江证券可充抵保证金证券数据")
 
 
 if __name__ == '__main__':

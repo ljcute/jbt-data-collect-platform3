@@ -67,62 +67,57 @@ class CollectHandler(BaseHandler):
         logger.info(f'开始采集国泰君安证券融资标的证券数据{search_date}')
         url = 'https://www.gtja.com/cos/rest/margin/path/fuzzy.json'
         params = {"pageNum": 1, "type": 3, "_": remove_file.get_timestamp(), "stamp": search_date}  # type=3表示融资
-        try:
-            start_dt = datetime.datetime.now()
-            proxies = super().get_proxies()
-            response = super().get_response(url, proxies, 0, get_headers(), params, None, allow_redirects=False)
-            total = None
-            if response.status_code == 200:
-                text = json.loads(response.text)
-                total = int(text['total'])
-            else:
-                logger.error(f'请求失败，respones.status={response.status_code}')
-                raise Exception(f'请求失败，respones.status={response.status_code}')
+        start_dt = datetime.datetime.now()
+        proxies = super().get_proxies()
+        response = super().get_response(url, proxies, 0, get_headers(), params, None, allow_redirects=False)
+        total = None
+        if response.status_code == 200:
+            text = json.loads(response.text)
+            total = int(text['total'])
+        else:
+            logger.error(f'请求失败，respones.status={response.status_code}')
+            raise Exception(f'请求失败，respones.status={response.status_code}')
 
-            data_title = ['stock_code', 'stock_name', 'rate', 'branch']
+        data_title = ['stock_code', 'stock_name', 'rate', 'branch']
 
-            with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
-                future_list = []
-                about_total_page = 300
-                partition_page = 50
-                for i in range(0, about_total_page, partition_page):
-                    start_page = i + 1
-                    if i >= about_total_page - partition_page:
-                        end_page = None  # 最后一页
-                    else:
-                        end_page = i + partition_page
-
-                    logger.info(f'这是第{i}此循环')
-                    future = executor.submit(cls.collect_by_partition_rz, start_page, end_page, search_date)
-                    future_list.append(future)
-
-                total_data_list = []
-                for r in future_list:
-                    data_list = r.result()
-                    if data_list:
-                        total_data_list.extend(data_list)
-
-                logger.info(f'采集国泰君安证券融资标的证券数据共total_data_list:{len(total_data_list)}条')
-                df_result = super().data_deal(total_data_list, data_title)
-                end_dt = datetime.datetime.now()
-                used_time = (end_dt - start_dt).seconds
-                if int(len(total_data_list)) == total and int(len(total_data_list)) > 0 and total > 0 :
-                    super().data_insert(int(len(total_data_list)), df_result, search_date,
-                                        exchange_mt_financing_underlying_security,
-                                        data_source, start_dt, end_dt, used_time, url)
-                    logger.info(f'入库信息,共{int(len(total_data_list))}条')
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+            future_list = []
+            about_total_page = 300
+            partition_page = 50
+            for i in range(0, about_total_page, partition_page):
+                start_page = i + 1
+                if i >= about_total_page - partition_page:
+                    end_page = None  # 最后一页
                 else:
-                    raise Exception(f'采集数据条数{int(len(total_data_list))}与官网数据条数{total}不一致，采集程序存在抖动，需要重新采集')
+                    end_page = i + partition_page
 
-                message = "gtja_securities_collect"
-                super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
-                                          exchange_mt_financing_underlying_security, data_source, message)
+                logger.info(f'这是第{i}此循环')
+                future = executor.submit(cls.collect_by_partition_rz, start_page, end_page, search_date)
+                future_list.append(future)
 
-                logger.info("国泰君安证券融资标的证券数据采集完成")
-        except ProxyTimeOutEx as es:
-            pass
-        except Exception as e:
-            logger.error(e)
+            total_data_list = []
+            for r in future_list:
+                data_list = r.result()
+                if data_list:
+                    total_data_list.extend(data_list)
+
+            logger.info(f'采集国泰君安证券融资标的证券数据共total_data_list:{len(total_data_list)}条')
+            df_result = super().data_deal(total_data_list, data_title)
+            end_dt = datetime.datetime.now()
+            used_time = (end_dt - start_dt).seconds
+            if int(len(total_data_list)) == total and int(len(total_data_list)) > 0 and total > 0:
+                super().data_insert(int(len(total_data_list)), df_result, search_date,
+                                    exchange_mt_financing_underlying_security,
+                                    data_source, start_dt, end_dt, used_time, url)
+                logger.info(f'入库信息,共{int(len(total_data_list))}条')
+            else:
+                raise Exception(f'采集数据条数{int(len(total_data_list))}与官网数据条数{total}不一致，采集程序存在抖动，需要重新采集')
+
+            message = "gtja_securities_collect"
+            super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
+                                      exchange_mt_financing_underlying_security, data_source, message)
+
+            logger.info("国泰君安证券融资标的证券数据采集完成")
 
     @classmethod
     def collect_by_partition_rz(cls, start_page, end_page, search_date):
@@ -171,61 +166,56 @@ class CollectHandler(BaseHandler):
         logger.info(f'开始采集国泰君安证券融券标的证券数据{search_date}')
         url = 'https://www.gtja.com/cos/rest/margin/path/fuzzy.json'
         params = {"pageNum": 1, "type": 2, "_": remove_file.get_timestamp(), "stamp": search_date}  # type=3表示融资
-        try:
-            start_dt = datetime.datetime.now()
-            proxies = super().get_proxies()
-            response = super().get_response(url, proxies, 0, get_headers(), params, None, allow_redirects=False)
-            total = None
-            if response.status_code == 200:
-                text = json.loads(response.text)
-                total = int(text['total'])
-            else:
-                logger.error(f'请求失败，respones.status={response.status_code}')
-                raise Exception(f'请求失败，respones.status={response.status_code}')
-            data_title = ['stock_code', 'stock_name', 'rate', 'branch']
+        start_dt = datetime.datetime.now()
+        proxies = super().get_proxies()
+        response = super().get_response(url, proxies, 0, get_headers(), params, None, allow_redirects=False)
+        total = None
+        if response.status_code == 200:
+            text = json.loads(response.text)
+            total = int(text['total'])
+        else:
+            logger.error(f'请求失败，respones.status={response.status_code}')
+            raise Exception(f'请求失败，respones.status={response.status_code}')
+        data_title = ['stock_code', 'stock_name', 'rate', 'branch']
 
-            with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
-                future_list = []
-                about_total_page = 300
-                partition_page = 50
-                for i in range(0, about_total_page, partition_page):
-                    start_page = i + 1
-                    if i >= about_total_page - partition_page:
-                        end_page = None  # 最后一页
-                    else:
-                        end_page = i + partition_page
-
-                    logger.info(f'这是第{i}此循环')
-                    future = executor.submit(cls.collect_by_partition_rq, start_page, end_page, search_date)
-                    future_list.append(future)
-
-                total_data_list = []
-                for r in future_list:
-                    data_list = r.result()
-                    if data_list:
-                        total_data_list.extend(data_list)
-
-                logger.info(f'采集国泰君安证券融券标的证券数据共total_data_list:{len(total_data_list)}条')
-                df_result = super().data_deal(total_data_list, data_title)
-                end_dt = datetime.datetime.now()
-                used_time = (end_dt - start_dt).seconds
-                if int(len(total_data_list)) == total and int(len(total_data_list)) > 0 and total > 0:
-                    super().data_insert(int(len(total_data_list)), df_result, search_date,
-                                        exchange_mt_lending_underlying_security,
-                                        data_source, start_dt, end_dt, used_time, url)
-                    logger.info(f'入库信息,共{int(len(total_data_list))}条')
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+            future_list = []
+            about_total_page = 300
+            partition_page = 50
+            for i in range(0, about_total_page, partition_page):
+                start_page = i + 1
+                if i >= about_total_page - partition_page:
+                    end_page = None  # 最后一页
                 else:
-                    raise Exception(f'采集数据条数{int(len(total_data_list))}与官网数据条数{total}不一致，采集程序存在抖动，需要重新采集')
+                    end_page = i + partition_page
 
-                message = "gtja_securities_collect"
-                super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
-                                          exchange_mt_lending_underlying_security, data_source, message)
+                logger.info(f'这是第{i}此循环')
+                future = executor.submit(cls.collect_by_partition_rq, start_page, end_page, search_date)
+                future_list.append(future)
 
-                logger.info("国泰君安证券融券标的证券数据采集完成")
-        except ProxyTimeOutEx as es:
-            pass
-        except Exception as e:
-            logger.error(e)
+            total_data_list = []
+            for r in future_list:
+                data_list = r.result()
+                if data_list:
+                    total_data_list.extend(data_list)
+
+            logger.info(f'采集国泰君安证券融券标的证券数据共total_data_list:{len(total_data_list)}条')
+            df_result = super().data_deal(total_data_list, data_title)
+            end_dt = datetime.datetime.now()
+            used_time = (end_dt - start_dt).seconds
+            if int(len(total_data_list)) == total and int(len(total_data_list)) > 0 and total > 0:
+                super().data_insert(int(len(total_data_list)), df_result, search_date,
+                                    exchange_mt_lending_underlying_security,
+                                    data_source, start_dt, end_dt, used_time, url)
+                logger.info(f'入库信息,共{int(len(total_data_list))}条')
+            else:
+                raise Exception(f'采集数据条数{int(len(total_data_list))}与官网数据条数{total}不一致，采集程序存在抖动，需要重新采集')
+
+            message = "gtja_securities_collect"
+            super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
+                                      exchange_mt_lending_underlying_security, data_source, message)
+
+            logger.info("国泰君安证券融券标的证券数据采集完成")
 
     @classmethod
     def collect_by_partition_rq(cls, start_page, end_page, search_date):
@@ -274,61 +264,56 @@ class CollectHandler(BaseHandler):
         logger.info(f'开始采集国泰君安证券可充抵保证金证券数据{search_date}')
         url = 'https://www.gtja.com/cos/rest/margin/path/fuzzy.json'
         params = {"pageNum": 1, "type": 1, "_": remove_file.get_timestamp(), "stamp": search_date}  # type=3表示融资
-        try:
-            start_dt = datetime.datetime.now()
-            proxies = super().get_proxies()
-            response = super().get_response(url, proxies, 0, get_headers(), params, None, allow_redirects=False)
-            total = None
-            if response.status_code == 200:
-                text = json.loads(response.text)
-                total = int(text['total'])
-            else:
-                logger.error(f'请求失败，respones.status={response.status_code}')
-                raise Exception(f'请求失败，respones.status={response.status_code}')
-            data_title = ['stock_code', 'stock_name', 'rate', 'branch']
+        start_dt = datetime.datetime.now()
+        proxies = super().get_proxies()
+        response = super().get_response(url, proxies, 0, get_headers(), params, None, allow_redirects=False)
+        total = None
+        if response.status_code == 200:
+            text = json.loads(response.text)
+            total = int(text['total'])
+        else:
+            logger.error(f'请求失败，respones.status={response.status_code}')
+            raise Exception(f'请求失败，respones.status={response.status_code}')
+        data_title = ['stock_code', 'stock_name', 'rate', 'branch']
 
-            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-                future_list = []
-                about_total_page = 1600
-                partition_page = 200
-                for i in range(0, about_total_page, partition_page):
-                    start_page = i + 1
-                    if i >= about_total_page - partition_page:
-                        end_page = None  # 最后一页
-                    else:
-                        end_page = i + partition_page
-
-                    logger.info(f'这是第{i}此循环')
-                    future = executor.submit(cls.collect_by_partition_bzj, start_page, end_page, search_date)
-                    future_list.append(future)
-
-                total_data_list = []
-                for r in future_list:
-                    data_list = r.result()
-                    if data_list:
-                        total_data_list.extend(data_list)
-
-                logger.info(f'采集国泰君安证券可充抵保证金证券数据共total_data_list:{len(total_data_list)}条')
-                df_result = super().data_deal(total_data_list, data_title)
-                end_dt = datetime.datetime.now()
-                used_time = (end_dt - start_dt).seconds
-                if int(len(total_data_list)) == total and int(len(total_data_list)) > 0 and total>0:
-                    super().data_insert(int(len(total_data_list)), df_result, search_date,
-                                        exchange_mt_guaranty_security,
-                                        data_source, start_dt, end_dt, used_time, url)
-                    logger.info(f'入库信息,共{int(len(total_data_list))}条')
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            future_list = []
+            about_total_page = 1600
+            partition_page = 200
+            for i in range(0, about_total_page, partition_page):
+                start_page = i + 1
+                if i >= about_total_page - partition_page:
+                    end_page = None  # 最后一页
                 else:
-                    raise Exception(f'采集数据条数{int(len(total_data_list))}与官网数据条数{total}不一致，采集程序存在抖动，需要重新采集')
+                    end_page = i + partition_page
 
-                message = "gtja_securities_collect"
-                super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
-                                          exchange_mt_guaranty_security, data_source, message)
+                logger.info(f'这是第{i}此循环')
+                future = executor.submit(cls.collect_by_partition_bzj, start_page, end_page, search_date)
+                future_list.append(future)
 
-                logger.info("国泰君安证券可充抵保证金证券数据采集完成")
-        except ProxyTimeOutEx as es:
-            pass
-        except Exception as e:
-            logger.error(e)
+            total_data_list = []
+            for r in future_list:
+                data_list = r.result()
+                if data_list:
+                    total_data_list.extend(data_list)
+
+            logger.info(f'采集国泰君安证券可充抵保证金证券数据共total_data_list:{len(total_data_list)}条')
+            df_result = super().data_deal(total_data_list, data_title)
+            end_dt = datetime.datetime.now()
+            used_time = (end_dt - start_dt).seconds
+            if int(len(total_data_list)) == total and int(len(total_data_list)) > 0 and total > 0:
+                super().data_insert(int(len(total_data_list)), df_result, search_date,
+                                    exchange_mt_guaranty_security,
+                                    data_source, start_dt, end_dt, used_time, url)
+                logger.info(f'入库信息,共{int(len(total_data_list))}条')
+            else:
+                raise Exception(f'采集数据条数{int(len(total_data_list))}与官网数据条数{total}不一致，采集程序存在抖动，需要重新采集')
+
+            message = "gtja_securities_collect"
+            super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
+                                      exchange_mt_guaranty_security, data_source, message)
+
+            logger.info("国泰君安证券可充抵保证金证券数据采集完成")
 
     @classmethod
     def collect_by_partition_bzj(cls, start_page, end_page, search_date):

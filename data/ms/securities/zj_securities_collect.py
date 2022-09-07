@@ -105,81 +105,76 @@ class CollectHandler(BaseHandler):
         lfs_value = '1'
         jsv_value = None
 
-        try:
-            start_dt = datetime.datetime.now()
-            proxies = super().get_proxies()
-            while is_continue:
-                logger.info(f'中金公司融资,rz_current_page={page}')
-                if page == 1:
-                    params = {'type': 'MARGIN'}
-                    response = session.get(url=url, proxies=proxies, params=params, headers=zj_headers_1, timeout=6)
-                else:
-                    form_data = {
-                        'listForm:search_txt': (None, None),
-                        'pageNumber': (None, None),
-                        'listForm_SUBMIT': (None, lfs_value),
-                        'javax.faces.ViewState': (None, jsv_value),
-                        'listForm:scroller': (None, 'next'),
-                        'listForm:_idcl': (None, 'listForm:scrollernext'),
-                    }
-
-                    if page == 3:
-                        zj_headers_rz_2['Referer'] = 'http://www.ciccs.com.cn/stocktrade/subjectMatterList.xhtml'
-                    response = session.post(url=url, proxies=proxies, data=form_data, headers=zj_headers_rz_2,
-                                            timeout=6)
-
-                if int(response.status_code) != 200:
-                    logger.warning(f'response = {response}, current_page = {page}')
-                    sleep_second = random.randint(3, 5)  # 随机sleep 3-5秒
-                    time.sleep(sleep_second)
-                    continue
-
-                soup = BeautifulSoup(response.text, 'html.parser')
-                jsv = soup.find('input', id='javax.faces.ViewState')
-                jsv_value = jsv['value']  # 请求加密串，相当于cookie
-                lfs = soup.find('input', attrs={'name': 'listForm_SUBMIT'})
-                lfs_value = lfs['value']  # 1，标志
-                _listForm_pageCount = soup.find('input', id='_listForm_pageCount')
-
-                if page == 1:
-                    total = int(_listForm_pageCount['value'])  # 总页数
-
-                if total <= page:
-                    is_continue = False
-                else:
-                    page = page + 1
-
-                dom_td_list = soup.select('.contentTable td')
-
-                for i in range(0, len(dom_td_list) - 1, 4):
-                    stock_name = dom_td_list[i + 0].get_text()
-                    stock_code = dom_td_list[i + 1].get_text()
-                    is_flag = dom_td_list[i + 2].get_text()  # 是，否
-                    rate = dom_td_list[i + 3].get_text()
-                    data_list.append((stock_name, stock_code, is_flag, rate))
-                    logger.info(f'已采集数据条数为：{int(len(data_list))}')
-
-            logger.info(f'采集中金公司融资标的证券数据共{int(len(data_list))}条')
-            df_result = super().data_deal(data_list, data_title)
-            end_dt = datetime.datetime.now()
-            used_time = (end_dt - start_dt).seconds
-            if int(len(data_list)) == int(len(df_result['data'])):
-                super().data_insert(int(len(data_list)), df_result, actual_date,
-                                    exchange_mt_financing_underlying_security,
-                                    data_source, start_dt, end_dt, used_time, url)
-                logger.info(f'入库信息,共{int(len(data_list))}条')
+        start_dt = datetime.datetime.now()
+        proxies = super().get_proxies()
+        while is_continue:
+            logger.info(f'中金公司融资,rz_current_page={page}')
+            if page == 1:
+                params = {'type': 'MARGIN'}
+                response = session.get(url=url, proxies=proxies, params=params, headers=zj_headers_1, timeout=6)
             else:
-                raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{int(total)}不一致，采集程序存在抖动，需要重新采集')
+                form_data = {
+                    'listForm:search_txt': (None, None),
+                    'pageNumber': (None, None),
+                    'listForm_SUBMIT': (None, lfs_value),
+                    'javax.faces.ViewState': (None, jsv_value),
+                    'listForm:scroller': (None, 'next'),
+                    'listForm:_idcl': (None, 'listForm:scrollernext'),
+                }
 
-            message = "zj_securities_collect"
-            super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
-                                      exchange_mt_financing_underlying_security, data_source, message)
+                if page == 3:
+                    zj_headers_rz_2['Referer'] = 'http://www.ciccs.com.cn/stocktrade/subjectMatterList.xhtml'
+                response = session.post(url=url, proxies=proxies, data=form_data, headers=zj_headers_rz_2,
+                                        timeout=6)
 
-            logger.info("中金公司融资标的证券数据采集完成")
-        except ProxyTimeOutEx as es:
-            pass
-        except Exception as e:
-            logger.error(e)
+            if int(response.status_code) != 200:
+                logger.warning(f'response = {response}, current_page = {page}')
+                sleep_second = random.randint(3, 5)  # 随机sleep 3-5秒
+                time.sleep(sleep_second)
+                continue
+
+            soup = BeautifulSoup(response.text, 'html.parser')
+            jsv = soup.find('input', id='javax.faces.ViewState')
+            jsv_value = jsv['value']  # 请求加密串，相当于cookie
+            lfs = soup.find('input', attrs={'name': 'listForm_SUBMIT'})
+            lfs_value = lfs['value']  # 1，标志
+            _listForm_pageCount = soup.find('input', id='_listForm_pageCount')
+
+            if page == 1:
+                total = int(_listForm_pageCount['value'])  # 总页数
+
+            if total <= page:
+                is_continue = False
+            else:
+                page = page + 1
+
+            dom_td_list = soup.select('.contentTable td')
+
+            for i in range(0, len(dom_td_list) - 1, 4):
+                stock_name = dom_td_list[i + 0].get_text()
+                stock_code = dom_td_list[i + 1].get_text()
+                is_flag = dom_td_list[i + 2].get_text()  # 是，否
+                rate = dom_td_list[i + 3].get_text()
+                data_list.append((stock_name, stock_code, is_flag, rate))
+                logger.info(f'已采集数据条数为：{int(len(data_list))}')
+
+        logger.info(f'采集中金公司融资标的证券数据共{int(len(data_list))}条')
+        df_result = super().data_deal(data_list, data_title)
+        end_dt = datetime.datetime.now()
+        used_time = (end_dt - start_dt).seconds
+        if int(len(data_list)) == int(len(df_result['data'])):
+            super().data_insert(int(len(data_list)), df_result, actual_date,
+                                exchange_mt_financing_underlying_security,
+                                data_source, start_dt, end_dt, used_time, url)
+            logger.info(f'入库信息,共{int(len(data_list))}条')
+        else:
+            raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{int(total)}不一致，采集程序存在抖动，需要重新采集')
+
+        message = "zj_securities_collect"
+        super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
+                                  exchange_mt_financing_underlying_security, data_source, message)
+
+        logger.info("中金公司融资标的证券数据采集完成")
 
     @classmethod
     def rq_target_collect(cls):
@@ -208,80 +203,75 @@ class CollectHandler(BaseHandler):
         lfs_value = '1'
         jsv_value = None
 
-        try:
-            start_dt = datetime.datetime.now()
-            proxies = super().get_proxies()
-            while is_continue:
-                logger.info(f'中金公司融券,rq_current_page={page}')
-                if page == 1:
-                    params = {'type': 'SHORTING'}
-                    response = session.get(url=url, proxies=proxies, params=params, headers=zj_headers_1, timeout=6)
-                else:
-                    form_data = {
-                        'listForm:search_txt': (None, None),
-                        'pageNumber': (None, None),
-                        'listForm_SUBMIT': (None, lfs_value),
-                        'javax.faces.ViewState': (None, jsv_value),
-                        'listForm:scroller': (None, 'next'),
-                        'listForm:_idcl': (None, 'listForm:scrollernext'),
-                    }
-                    if page == 3:
-                        zj_headers_rq_2['Referer'] = 'http://www.ciccs.com.cn/stocktrade/subjectMatterList.xhtml'
-                    response = session.post(url=url, proxies=proxies, data=form_data, headers=zj_headers_rq_2,
-                                            timeout=6)
-
-                if int(response.status_code) != 200:
-                    logger.warning(f'response = {response}, current_page = {page}')
-                    sleep_second = random.randint(3, 5)  # 随机sleep 3-5秒
-                    time.sleep(sleep_second)
-                    continue
-
-                soup = BeautifulSoup(response.text, 'html.parser')
-                jsv = soup.find('input', id='javax.faces.ViewState')
-                jsv_value = jsv['value']  # 请求加密串，相当于cookie
-                lfs = soup.find('input', attrs={'name': 'listForm_SUBMIT'})
-                lfs_value = lfs['value']  # 1，标志
-                _listForm_pageCount = soup.find('input', id='_listForm_pageCount')
-
-                if page == 1:
-                    total = int(_listForm_pageCount['value'])  # 总页数
-
-                if total <= page:
-                    is_continue = False
-                else:
-                    page = page + 1
-
-                dom_td_list = soup.select('.contentTable td')
-
-                for i in range(0, len(dom_td_list) - 1, 4):
-                    stock_name = dom_td_list[i + 0].get_text()
-                    stock_code = dom_td_list[i + 1].get_text()
-                    is_flag = dom_td_list[i + 2].get_text()  # 是，否
-                    rate = dom_td_list[i + 3].get_text()
-                    data_list.append((stock_name, stock_code, is_flag, rate))
-                    logger.info(f'已采集数据条数为：{int(len(data_list))}')
-
-            logger.info(f'采集中金公司融券标的证券数据共{int(len(data_list))}条')
-            df_result = super().data_deal(data_list, data_title)
-            end_dt = datetime.datetime.now()
-            used_time = (end_dt - start_dt).seconds
-            if int(len(data_list)) == int(len(df_result['data'])):
-                super().data_insert(int(len(data_list)), df_result, actual_date,
-                                    exchange_mt_lending_underlying_security,
-                                    data_source, start_dt, end_dt, used_time, url)
-                logger.info(f'入库信息,共{int(len(data_list))}条')
+        start_dt = datetime.datetime.now()
+        proxies = super().get_proxies()
+        while is_continue:
+            logger.info(f'中金公司融券,rq_current_page={page}')
+            if page == 1:
+                params = {'type': 'SHORTING'}
+                response = session.get(url=url, proxies=proxies, params=params, headers=zj_headers_1, timeout=6)
             else:
-                raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{int(total)}不一致，采集程序存在抖动，需要重新采集')
+                form_data = {
+                    'listForm:search_txt': (None, None),
+                    'pageNumber': (None, None),
+                    'listForm_SUBMIT': (None, lfs_value),
+                    'javax.faces.ViewState': (None, jsv_value),
+                    'listForm:scroller': (None, 'next'),
+                    'listForm:_idcl': (None, 'listForm:scrollernext'),
+                }
+                if page == 3:
+                    zj_headers_rq_2['Referer'] = 'http://www.ciccs.com.cn/stocktrade/subjectMatterList.xhtml'
+                response = session.post(url=url, proxies=proxies, data=form_data, headers=zj_headers_rq_2,
+                                        timeout=6)
 
-            message = "zj_securities_collect"
-            super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
-                                      exchange_mt_lending_underlying_security, data_source, message)
+            if int(response.status_code) != 200:
+                logger.warning(f'response = {response}, current_page = {page}')
+                sleep_second = random.randint(3, 5)  # 随机sleep 3-5秒
+                time.sleep(sleep_second)
+                continue
 
-            logger.info("中金公司融券标的证券数据采集完成")
-        except ProxyTimeOutEx as es:
-            pass
-        except Exception as e:
-            logger.error(e)
+            soup = BeautifulSoup(response.text, 'html.parser')
+            jsv = soup.find('input', id='javax.faces.ViewState')
+            jsv_value = jsv['value']  # 请求加密串，相当于cookie
+            lfs = soup.find('input', attrs={'name': 'listForm_SUBMIT'})
+            lfs_value = lfs['value']  # 1，标志
+            _listForm_pageCount = soup.find('input', id='_listForm_pageCount')
+
+            if page == 1:
+                total = int(_listForm_pageCount['value'])  # 总页数
+
+            if total <= page:
+                is_continue = False
+            else:
+                page = page + 1
+
+            dom_td_list = soup.select('.contentTable td')
+
+            for i in range(0, len(dom_td_list) - 1, 4):
+                stock_name = dom_td_list[i + 0].get_text()
+                stock_code = dom_td_list[i + 1].get_text()
+                is_flag = dom_td_list[i + 2].get_text()  # 是，否
+                rate = dom_td_list[i + 3].get_text()
+                data_list.append((stock_name, stock_code, is_flag, rate))
+                logger.info(f'已采集数据条数为：{int(len(data_list))}')
+
+        logger.info(f'采集中金公司融券标的证券数据共{int(len(data_list))}条')
+        df_result = super().data_deal(data_list, data_title)
+        end_dt = datetime.datetime.now()
+        used_time = (end_dt - start_dt).seconds
+        if int(len(data_list)) == int(len(df_result['data'])):
+            super().data_insert(int(len(data_list)), df_result, actual_date,
+                                exchange_mt_lending_underlying_security,
+                                data_source, start_dt, end_dt, used_time, url)
+            logger.info(f'入库信息,共{int(len(data_list))}条')
+        else:
+            raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{int(total)}不一致，采集程序存在抖动，需要重新采集')
+
+        message = "zj_securities_collect"
+        super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
+                                  exchange_mt_lending_underlying_security, data_source, message)
+
+        logger.info("中金公司融券标的证券数据采集完成")
 
     @classmethod
     def guaranty_collect(cls):
@@ -291,51 +281,45 @@ class CollectHandler(BaseHandler):
         data_list = []
         data_title = ['stock_name', 'stock_code', 'rate', 'type']
         start_dt = datetime.datetime.now()
-        try:
-            logger.info(f'开始采集股票担保品数据')
-            data_list_stock = []
-            cls.do_guaranty_collect('STOCK', data_list_stock)
-            logger.info(f'已采担保品-股票数据共{int(len(data_list_stock))}条')
-            time.sleep(10)
+        logger.info(f'开始采集股票担保品数据')
+        data_list_stock = []
+        cls.do_guaranty_collect('STOCK', data_list_stock)
+        logger.info(f'已采担保品-股票数据共{int(len(data_list_stock))}条')
+        time.sleep(10)
 
-            logger.info(f'开始采集基金担保品数据')
-            data_list_fund = []
-            cls.do_guaranty_collect('FUND', data_list_fund)
-            logger.info(f'已采担保品-基金数据共{int(len(data_list_fund))}条')
-            time.sleep(10)
+        logger.info(f'开始采集基金担保品数据')
+        data_list_fund = []
+        cls.do_guaranty_collect('FUND', data_list_fund)
+        logger.info(f'已采担保品-基金数据共{int(len(data_list_fund))}条')
+        time.sleep(10)
 
-            logger.info(f'开始采集债卷担保品数据')
-            data_list_bond = []
-            cls.do_guaranty_collect_get_bond('BOND', data_list_bond)
-            logger.info(f'已采担保品-债券数据共{int(len(data_list_bond))}条')
+        logger.info(f'开始采集债卷担保品数据')
+        data_list_bond = []
+        cls.do_guaranty_collect_get_bond('BOND', data_list_bond)
+        logger.info(f'已采担保品-债券数据共{int(len(data_list_bond))}条')
 
-            data_list.extend(data_list_stock)
-            data_list.extend(data_list_fund)
-            data_list.extend(data_list_bond)
+        data_list.extend(data_list_stock)
+        data_list.extend(data_list_fund)
+        data_list.extend(data_list_bond)
 
-            logger.info(f'已采担保品-股票，基金，债券数据共{int(len(data_list))}条')
+        logger.info(f'已采担保品-股票，基金，债券数据共{int(len(data_list))}条')
 
-            df_result = super().data_deal(data_list, data_title)
-            end_dt = datetime.datetime.now()
-            used_time = (end_dt - start_dt).seconds
-            if data_list:
-                super().data_insert(int(len(data_list)), df_result, actual_date,
-                                    exchange_mt_guaranty_security,
-                                    data_source, start_dt, end_dt, used_time, url)
-                logger.info(f'入库信息,共{int(len(data_list))}条')
-            else:
-                raise Exception(f'采集数据条数条数为{int(len(data_list))}，需要重新采集')
+        df_result = super().data_deal(data_list, data_title)
+        end_dt = datetime.datetime.now()
+        used_time = (end_dt - start_dt).seconds
+        if data_list:
+            super().data_insert(int(len(data_list)), df_result, actual_date,
+                                exchange_mt_guaranty_security,
+                                data_source, start_dt, end_dt, used_time, url)
+            logger.info(f'入库信息,共{int(len(data_list))}条')
+        else:
+            raise Exception(f'采集数据条数条数为{int(len(data_list))}，需要重新采集')
 
-            message = "zj_securities_collect"
-            super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
-                                      exchange_mt_guaranty_security, data_source, message)
+        message = "zj_securities_collect"
+        super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
+                                  exchange_mt_guaranty_security, data_source, message)
 
-            logger.info("中金公司可充抵保证品数据采集完成")
-        except ProxyTimeOutEx as es:
-            pass
-        except Exception as e:
-            logger.error(e)
-            raise Exception(f'{e}')
+        logger.info("中金公司可充抵保证品数据采集完成")
 
     @classmethod
     def do_guaranty_collect(cls, data_type, data_list):
@@ -362,102 +346,91 @@ class CollectHandler(BaseHandler):
 
         lfs_value = '1'
         jsv_value = None
-        try:
-            proxies = super().get_proxies()
-            while is_continue:
-                logger.info(f'中金data_type={data_type},current_page={page}')
-                if page == 1:
-                    params = {'type': data_type}
-                    response = session.get(url=url, proxies=proxies, params=params, headers=zj_headers_1, timeout=6)
-                else:
-                    form_data = {
-                        'listForm:search_txt': (None, None),
-                        'pageNumber': (None, None),
-                        'listForm_SUBMIT': (None, lfs_value),
-                        'javax.faces.ViewState': (None, jsv_value),
-                        'listForm:scroller': (None, 'next'),
-                        'listForm:_idcl': (None, 'listForm:scrollernext'),
-                    }
-                    if page == 3:
-                        zj_headers_gu_2['Referer'] = 'http://www.ciccs.com.cn/stocktrade/collateralList.xhtml'
-                    response = session.post(url=url, proxies=proxies, data=form_data, headers=zj_headers_gu_2,
-                                            timeout=6)
+        proxies = super().get_proxies()
+        while is_continue:
+            logger.info(f'中金data_type={data_type},current_page={page}')
+            if page == 1:
+                params = {'type': data_type}
+                response = session.get(url=url, proxies=proxies, params=params, headers=zj_headers_1, timeout=6)
+            else:
+                form_data = {
+                    'listForm:search_txt': (None, None),
+                    'pageNumber': (None, None),
+                    'listForm_SUBMIT': (None, lfs_value),
+                    'javax.faces.ViewState': (None, jsv_value),
+                    'listForm:scroller': (None, 'next'),
+                    'listForm:_idcl': (None, 'listForm:scrollernext'),
+                }
+                if page == 3:
+                    zj_headers_gu_2['Referer'] = 'http://www.ciccs.com.cn/stocktrade/collateralList.xhtml'
+                response = session.post(url=url, proxies=proxies, data=form_data, headers=zj_headers_gu_2,
+                                        timeout=6)
 
-                if int(response.status_code) != 200:
-                    logger.warning(f'response = {response}, current_page = {page}')
-                    sleep_second = random.randint(3, 5)  # 随机sleep 3-5秒
-                    time.sleep(sleep_second)
-                    continue
+            if int(response.status_code) != 200:
+                logger.warning(f'response = {response}, current_page = {page}')
+                sleep_second = random.randint(3, 5)  # 随机sleep 3-5秒
+                time.sleep(sleep_second)
+                continue
 
-                soup = BeautifulSoup(response.text, 'html.parser')
-                jsv = soup.find('input', id='javax.faces.ViewState')
-                jsv_value = jsv['value']  # 请求加密串，相当于cookie
-                lfs = soup.find('input', attrs={'name': 'listForm_SUBMIT'})
-                lfs_value = lfs['value']  # 1，标志
-                _listForm_pageCount = soup.find('input', id='_listForm_pageCount')
+            soup = BeautifulSoup(response.text, 'html.parser')
+            jsv = soup.find('input', id='javax.faces.ViewState')
+            jsv_value = jsv['value']  # 请求加密串，相当于cookie
+            lfs = soup.find('input', attrs={'name': 'listForm_SUBMIT'})
+            lfs_value = lfs['value']  # 1，标志
+            _listForm_pageCount = soup.find('input', id='_listForm_pageCount')
 
-                if page == 1:
-                    total = int(_listForm_pageCount['value'])  # 总页数
+            if page == 1:
+                total = int(_listForm_pageCount['value'])  # 总页数
 
-                if total <= page:
-                    is_continue = False
-                else:
-                    page = page + 1
+            if total <= page:
+                is_continue = False
+            else:
+                page = page + 1
 
-                dom_td_list = soup.select('.contentTable td')
+            dom_td_list = soup.select('.contentTable td')
 
-                for i in range(0, len(dom_td_list) - 1, 4):
-                    stock_name = dom_td_list[i + 0].get_text()
-                    stock_code = dom_td_list[i + 1].get_text()
-                    rate = dom_td_list[i + 2].get_text()
-                    type = dom_td_list[i + 3].get_text()
-                    data_list.append((stock_name, stock_code, rate, type))
-                    logger.info(f'已采集{data_type}数据条数为：{int(len(data_list))}')
-        except ProxyTimeOutEx as es:
-            pass
-        except Exception as e:
-            logger.error(e)
+            for i in range(0, len(dom_td_list) - 1, 4):
+                stock_name = dom_td_list[i + 0].get_text()
+                stock_code = dom_td_list[i + 1].get_text()
+                rate = dom_td_list[i + 2].get_text()
+                type = dom_td_list[i + 3].get_text()
+                data_list.append((stock_name, stock_code, rate, type))
+                logger.info(f'已采集{data_type}数据条数为：{int(len(data_list))}')
 
     @classmethod
     def do_guaranty_collect_get_bond(cls, data_type, data_list):
         actual_date = datetime.date.today()
         logger.info(f'开始采集中金公担保品-{data_type}数据{actual_date}')
         driver = super().get_driver()
-        try:
-            url = 'http://www.ciccs.com.cn/stocktrade/collateralList.xhtml?type=BOND'
-            driver.get(url)
+        url = 'http://www.ciccs.com.cn/stocktrade/collateralList.xhtml?type=BOND'
+        driver.get(url)
 
-            # 找到总页数
-            total_page = 0
-            li_elements = driver.find_elements(By.XPATH, "//*[@id='listForm:scroller']/tbody/tr/td[3]/div")
-            if len(li_elements) > 0:
-                total_page = li_elements[len(li_elements) - 1].text
-                total_page = total_page[-4:]
+        # 找到总页数
+        total_page = 0
+        li_elements = driver.find_elements(By.XPATH, "//*[@id='listForm:scroller']/tbody/tr/td[3]/div")
+        if len(li_elements) > 0:
+            total_page = li_elements[len(li_elements) - 1].text
+            total_page = total_page[-4:]
 
-            # 当前网页内容(第1页)
+        # 当前网页内容(第1页)
+        html_content = str(driver.page_source)
+        logger.info(f'中金公司担保品-{data_type}第{1}页,共15条')
+        cls.resolve_single_target_page(html_content, data_list)
+
+        # 找到下一页 >按钮
+        for_count = int(total_page.replace(',', '')) + 1
+        for current_page in range(2, for_count):
+            driver.implicitly_wait(120)
+            elements = """return myfaces.oam.submitForm('listForm','listForm:scrollernext',null,[['listForm:scroller','next']]);;"""
+            driver.execute_script(elements)
+            time.sleep(0.6)
+            driver.refresh()
+            # 处理第[2, total_page]页html
             html_content = str(driver.page_source)
-            logger.info(f'中金公司担保品-{data_type}第{1}页,共15条')
+            logger.info(f'中金公司担保品-{data_type}的第{current_page}页，共15条')
             cls.resolve_single_target_page(html_content, data_list)
 
-            # 找到下一页 >按钮
-            for_count = int(total_page.replace(',', '')) + 1
-            for current_page in range(2, for_count):
-                driver.implicitly_wait(120)
-                elements = """return myfaces.oam.submitForm('listForm','listForm:scrollernext',null,[['listForm:scroller','next']]);;"""
-                driver.execute_script(elements)
-                time.sleep(0.6)
-                driver.refresh()
-                # 处理第[2, total_page]页html
-                html_content = str(driver.page_source)
-                logger.info(f'中金公司担保品-{data_type}的第{current_page}页，共15条')
-                cls.resolve_single_target_page(html_content, data_list)
-
-            logger.info(f'采集中金公司担保品-{data_type}相关数据结束,共{int(len(data_list))}条')
-        except ProxyTimeOutEx as es:
-            pass
-        except Exception as e:
-            logger.error(e)
-            raise Exception(f'{e}')
+        logger.info(f'采集中金公司担保品-{data_type}相关数据结束,共{int(len(data_list))}条')
 
     @classmethod
     def resolve_single_target_page(cls, html_content, original_data_list):

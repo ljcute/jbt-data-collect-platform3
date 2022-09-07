@@ -66,11 +66,6 @@ class CollectHandler(BaseHandler):
         actual_date = datetime.date.today()
         logger.info(f'开始采集东方财富证券融资融券标的证券数据{actual_date}')
         driver = super().get_driver()
-        # try:
-        #
-        # except Exception as e:
-        #     logger.error(e)
-
         # 融资融券标的证券
         url = 'https://www.xzsec.com/margin/ywxz/bdzqc.html'
         start_dt = datetime.datetime.now()
@@ -135,12 +130,6 @@ class CollectHandler(BaseHandler):
         actual_date = datetime.date.today()
         logger.info(f'开始采集东方财富证券可充抵保证金证券数据{actual_date}')
         driver = super().get_driver()
-
-        # try:
-        #
-        # except Exception as es:
-        #     logger.error(es)
-
         start_dt = datetime.datetime.now()
         # 可充抵保证金证券
         url = 'https://www.xzsec.com/margin/ywxz/bzjzqc.html'

@@ -70,48 +70,43 @@ class CollectHandler(BaseHandler):
         page_size = remove_file.random_page_size()
         params = {"pageSize": page_size, "pageNo": page, "rq": search_date}  # type=0表示融资
 
-        try:
-            start_dt = datetime.datetime.now()
-            data_list = []
-            data_title = ['market', 'stock_code', 'stock_name', 'rz_rate']
-            proxies = super().get_proxies()
-            response = requests.post(url, params, proxies)
-            if response.status_code == 200:
-                text = json.loads(response.text)
-                all_data_list = text['data']
-                total_count = text['data'][0]['count']
-                if all_data_list:
-                    for i in all_data_list:
-                        market = '深圳' if str(i['sc']) == '1' else '上海'
-                        stock_code = i['zqdm']
-                        stock_name = i['zqmc']
-                        rate = i['rzbzjbl']
-                        data_list.append((market, stock_code, stock_name, rate))
+        start_dt = datetime.datetime.now()
+        data_list = []
+        data_title = ['market', 'stock_code', 'stock_name', 'rz_rate']
+        proxies = super().get_proxies()
+        response = requests.post(url, params, proxies)
+        if response.status_code == 200:
+            text = json.loads(response.text)
+            all_data_list = text['data']
+            total_count = text['data'][0]['count']
+            if all_data_list:
+                for i in all_data_list:
+                    market = '深圳' if str(i['sc']) == '1' else '上海'
+                    stock_code = i['zqdm']
+                    stock_name = i['zqmc']
+                    rate = i['rzbzjbl']
+                    data_list.append((market, stock_code, stock_name, rate))
 
-                    logger.info(f'采集国信证券融资标的证券数据共total_data_list:{len(data_list)}条')
-                    df_result = super().data_deal(data_list, data_title)
-                    end_dt = datetime.datetime.now()
-                    used_time = (end_dt - start_dt).seconds
-                    if int(len(data_list)) == int(total_count) and int(len(data_list)) > 0 and int(total_count)>0:
-                        super().data_insert(int(len(data_list)), df_result, search_date,
-                                            exchange_mt_financing_underlying_security,
-                                            data_source, start_dt, end_dt, used_time, url)
-                        logger.info(f'入库信息,共{int(len(data_list))}条')
-                    else:
-                        raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{int(total_count)}不一致，采集程序存在抖动，需要重新采集')
+                logger.info(f'采集国信证券融资标的证券数据共total_data_list:{len(data_list)}条')
+                df_result = super().data_deal(data_list, data_title)
+                end_dt = datetime.datetime.now()
+                used_time = (end_dt - start_dt).seconds
+                if int(len(data_list)) == int(total_count) and int(len(data_list)) > 0 and int(total_count) > 0:
+                    super().data_insert(int(len(data_list)), df_result, search_date,
+                                        exchange_mt_financing_underlying_security,
+                                        data_source, start_dt, end_dt, used_time, url)
+                    logger.info(f'入库信息,共{int(len(data_list))}条')
+                else:
+                    raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{int(total_count)}不一致，采集程序存在抖动，需要重新采集')
 
-                    message = "gx_securities_collect"
-                    super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
-                                              exchange_mt_financing_underlying_security, data_source, message)
+                message = "gx_securities_collect"
+                super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
+                                          exchange_mt_financing_underlying_security, data_source, message)
 
-                    logger.info("国信证券融资标的证券数据采集完成")
-            else:
-                logger.error(f'请求失败，respones.status={response.status_code}')
-                raise Exception(f'请求失败，respones.status={response.status_code}')
-        except ProxyTimeOutEx as es:
-            pass
-        except Exception as e:
-            logger.error(e)
+                logger.info("国信证券融资标的证券数据采集完成")
+        else:
+            logger.error(f'请求失败，respones.status={response.status_code}')
+            raise Exception(f'请求失败，respones.status={response.status_code}')
 
     @classmethod
     def rq_target_collect(cls, search_date):
@@ -121,48 +116,43 @@ class CollectHandler(BaseHandler):
         page_size = remove_file.random_page_size()
         params = {"pageSize": page_size, "pageNo": page, "rq": search_date}  # type=0表示融资
 
-        try:
-            start_dt = datetime.datetime.now()
-            data_list = []
-            data_title = ['market', 'stock_code', 'stock_name', 'rq_rate']
-            proxies = super().get_proxies()
-            response = requests.post(url, params, proxies)
-            if response.status_code == 200:
-                text = json.loads(response.text)
-                all_data_list = text['data']
-                total_count = text['data'][0]['count']
-                if all_data_list:
-                    for i in all_data_list:
-                        market = '深圳' if str(i['sc']) == '1' else '上海'
-                        stock_code = i['zqdm']
-                        stock_name = i['zqmc']
-                        rate = i['rzbzjbl']
-                        data_list.append((market, stock_code, stock_name, rate))
+        start_dt = datetime.datetime.now()
+        data_list = []
+        data_title = ['market', 'stock_code', 'stock_name', 'rq_rate']
+        proxies = super().get_proxies()
+        response = requests.post(url, params, proxies)
+        if response.status_code == 200:
+            text = json.loads(response.text)
+            all_data_list = text['data']
+            total_count = text['data'][0]['count']
+            if all_data_list:
+                for i in all_data_list:
+                    market = '深圳' if str(i['sc']) == '1' else '上海'
+                    stock_code = i['zqdm']
+                    stock_name = i['zqmc']
+                    rate = i['rzbzjbl']
+                    data_list.append((market, stock_code, stock_name, rate))
 
-                    logger.info(f'采集国信证券融券标的证券数据共total_data_list:{len(data_list)}条')
-                    df_result = super().data_deal(data_list, data_title)
-                    end_dt = datetime.datetime.now()
-                    used_time = (end_dt - start_dt).seconds
-                    if int(len(data_list)) == int(total_count) and int(len(data_list)) > 0 and int(total_count) > 0 :
-                        super().data_insert(int(len(data_list)), df_result, search_date,
-                                            exchange_mt_lending_underlying_security,
-                                            data_source, start_dt, end_dt, used_time, url)
-                        logger.info(f'入库信息,共{int(len(data_list))}条')
-                    else:
-                        raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{int(total_count)}不一致，采集程序存在抖动，需要重新采集')
-
-                    message = "gx_securities_collect"
-                    super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
-                                              exchange_mt_lending_underlying_security, data_source, message)
-
-                    logger.info("国信证券融券标的证券数据采集完成")
+                logger.info(f'采集国信证券融券标的证券数据共total_data_list:{len(data_list)}条')
+                df_result = super().data_deal(data_list, data_title)
+                end_dt = datetime.datetime.now()
+                used_time = (end_dt - start_dt).seconds
+                if int(len(data_list)) == int(total_count) and int(len(data_list)) > 0 and int(total_count) > 0:
+                    super().data_insert(int(len(data_list)), df_result, search_date,
+                                        exchange_mt_lending_underlying_security,
+                                        data_source, start_dt, end_dt, used_time, url)
+                    logger.info(f'入库信息,共{int(len(data_list))}条')
                 else:
-                    logger.error(f'请求失败，respones.status={response.status_code}')
-                    raise Exception(f'请求失败，respones.status={response.status_code}')
-        except ProxyTimeOutEx as es:
-            pass
-        except Exception as e:
-            logger.error(e)
+                    raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{int(total_count)}不一致，采集程序存在抖动，需要重新采集')
+
+                message = "gx_securities_collect"
+                super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
+                                          exchange_mt_lending_underlying_security, data_source, message)
+
+                logger.info("国信证券融券标的证券数据采集完成")
+            else:
+                logger.error(f'请求失败，respones.status={response.status_code}')
+                raise Exception(f'请求失败，respones.status={response.status_code}')
 
     @classmethod
     def guaranty_collect(cls, search_date):
@@ -172,47 +162,42 @@ class CollectHandler(BaseHandler):
         page_size = remove_file.random_page_size()
         params = {"pageSize": page_size, "pageNo": page, "rq": search_date}  # type=0表示融资
 
-        try:
-            start_dt = datetime.datetime.now()
-            data_list = []
-            data_title = ['stock_code', 'stock_name', 'zsl']
-            proxies = super().get_proxies()
-            response = requests.post(url, params, proxies)
-            if response.status_code == 200:
-                text = json.loads(response.text)
-                all_data_list = text['data']
-                total_count = text['data'][0]['count']
-                if all_data_list:
-                    for i in all_data_list:
-                        stock_code = i['zqdm']
-                        stock_name = i['zqmc']
-                        zsl = i['zsl']
-                        data_list.append((stock_code, stock_name, zsl))
+        start_dt = datetime.datetime.now()
+        data_list = []
+        data_title = ['stock_code', 'stock_name', 'zsl']
+        proxies = super().get_proxies()
+        response = requests.post(url, params, proxies)
+        if response.status_code == 200:
+            text = json.loads(response.text)
+            all_data_list = text['data']
+            total_count = text['data'][0]['count']
+            if all_data_list:
+                for i in all_data_list:
+                    stock_code = i['zqdm']
+                    stock_name = i['zqmc']
+                    zsl = i['zsl']
+                    data_list.append((stock_code, stock_name, zsl))
 
-                    logger.info(f'采集国信证券可充抵保证金证券数据共total_data_list:{len(data_list)}条')
-                    df_result = super().data_deal(data_list, data_title)
-                    end_dt = datetime.datetime.now()
-                    used_time = (end_dt - start_dt).seconds
-                    if int(len(data_list)) == int(total_count) and int(len(data_list)) > 0 and int(total_count) > 0:
-                        super().data_insert(int(len(data_list)), df_result, search_date,
-                                            exchange_mt_guaranty_security,
-                                            data_source, start_dt, end_dt, used_time, url)
-                        logger.info(f'入库信息,共{int(len(data_list))}条')
-                    else:
-                        raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{int(total_count)}不一致，采集程序存在抖动，需要重新采集')
+                logger.info(f'采集国信证券可充抵保证金证券数据共total_data_list:{len(data_list)}条')
+                df_result = super().data_deal(data_list, data_title)
+                end_dt = datetime.datetime.now()
+                used_time = (end_dt - start_dt).seconds
+                if int(len(data_list)) == int(total_count) and int(len(data_list)) > 0 and int(total_count) > 0:
+                    super().data_insert(int(len(data_list)), df_result, search_date,
+                                        exchange_mt_guaranty_security,
+                                        data_source, start_dt, end_dt, used_time, url)
+                    logger.info(f'入库信息,共{int(len(data_list))}条')
+                else:
+                    raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{int(total_count)}不一致，采集程序存在抖动，需要重新采集')
 
-                    message = "gx_securities_collect"
-                    super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
-                                              exchange_mt_guaranty_security, data_source, message)
+                message = "gx_securities_collect"
+                super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
+                                          exchange_mt_guaranty_security, data_source, message)
 
-                    logger.info("国信证券可充抵保证金证券数据采集完成")
-            else:
-                logger.error(f'请求失败，respones.status={response.status_code}')
-                raise Exception(f'请求失败，respones.status={response.status_code}')
-        except ProxyTimeOutEx as es:
-            pass
-        except Exception as e:
-            logger.error(e)
+                logger.info("国信证券可充抵保证金证券数据采集完成")
+        else:
+            logger.error(f'请求失败，respones.status={response.status_code}')
+            raise Exception(f'请求失败，respones.status={response.status_code}')
 
 
 if __name__ == '__main__':

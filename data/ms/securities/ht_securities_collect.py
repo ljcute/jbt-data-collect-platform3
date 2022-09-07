@@ -105,49 +105,44 @@ class CollectHandler(BaseHandler):
 
         data_title = ['market', 'stock_code', 'stock_name', 'rz_rate', 'rq_rate']
 
-        try:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
-                future_list = []
-                about_total_page = 300
-                partition_page = 50
-                for i in range(0, about_total_page, partition_page):
-                    start_page = i + 1
-                    if i >= about_total_page - partition_page:
-                        end_page = None  # 最后一页，设为None
-                    else:
-                        end_page = i + partition_page
-
-                    logger.info(f'这是第{i}次循环')
-                    future = executor.submit(cls.collect_by_partition_rzrq, start_page, end_page, search_date)
-                    future_list.append(future)
-
-                total_data_list = []
-                for r in future_list:
-                    data_list = r.result()
-                    if data_list:
-                        total_data_list.extend(data_list)
-
-                logger.info(f'采集华泰证券标的证券数据共total_data_list:{len(total_data_list)}条')
-                df_result = super().data_deal(total_data_list, data_title)
-                end_dt = datetime.datetime.now()
-                used_time = (end_dt - start_dt).seconds
-                if int(len(total_data_list)) == db_total_count and int(len(total_data_list))>0 and db_total_count>0:
-                    super().data_insert(int(len(total_data_list)), df_result, search_date,
-                                        exchange_mt_underlying_security,
-                                        data_source, start_dt, end_dt, used_time, url)
-                    logger.info(f'入库信息,共{int(len(total_data_list))}条')
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+            future_list = []
+            about_total_page = 300
+            partition_page = 50
+            for i in range(0, about_total_page, partition_page):
+                start_page = i + 1
+                if i >= about_total_page - partition_page:
+                    end_page = None  # 最后一页，设为None
                 else:
-                    raise Exception(f'采集数据条数{int(len(total_data_list))}与官网数据条数{db_total_count}不一致，采集程序存在抖动，需要重新采集')
+                    end_page = i + partition_page
 
-                message = "ht_securities_collect"
-                super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
-                                          exchange_mt_underlying_security, data_source, message)
+                logger.info(f'这是第{i}次循环')
+                future = executor.submit(cls.collect_by_partition_rzrq, start_page, end_page, search_date)
+                future_list.append(future)
 
-                logger.info("华泰证券标的证券数据采集完成")
-        except ProxyTimeOutEx as es:
-            pass
-        except Exception as e:
-            logger.error(e)
+            total_data_list = []
+            for r in future_list:
+                data_list = r.result()
+                if data_list:
+                    total_data_list.extend(data_list)
+
+            logger.info(f'采集华泰证券标的证券数据共total_data_list:{len(total_data_list)}条')
+            df_result = super().data_deal(total_data_list, data_title)
+            end_dt = datetime.datetime.now()
+            used_time = (end_dt - start_dt).seconds
+            if int(len(total_data_list)) == db_total_count and int(len(total_data_list)) > 0 and db_total_count > 0:
+                super().data_insert(int(len(total_data_list)), df_result, search_date,
+                                    exchange_mt_underlying_security,
+                                    data_source, start_dt, end_dt, used_time, url)
+                logger.info(f'入库信息,共{int(len(total_data_list))}条')
+            else:
+                raise Exception(f'采集数据条数{int(len(total_data_list))}与官网数据条数{db_total_count}不一致，采集程序存在抖动，需要重新采集')
+
+            message = "ht_securities_collect"
+            super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
+                                      exchange_mt_underlying_security, data_source, message)
+
+            logger.info("华泰证券标的证券数据采集完成")
 
     @classmethod
     def collect_by_partition_rzrq(cls, start_page, end_page, search_date):
@@ -285,49 +280,45 @@ class CollectHandler(BaseHandler):
 
         data_title = ['market', 'stock_code', 'stock_name', 'rate', 'stock_group_name']
 
-        try:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-                future_list = []
-                about_total_page = 1600
-                partition_page = 200
-                for i in range(0, about_total_page, partition_page):
-                    start_page = i + 1
-                    if i >= about_total_page - partition_page:
-                        end_page = None  # 最后一页，设为None
-                    else:
-                        end_page = i + partition_page
-
-                    logger.info(f'这是第{i}次循环')
-                    future = executor.submit(cls.collect_by_partition, start_page, end_page, search_date)
-                    future_list.append(future)
-
-                total_data_list = []
-                for r in future_list:
-                    data_list = r.result()
-                    if data_list:
-                        total_data_list.extend(data_list)
-
-                logger.info(f'采集华泰证券可充抵保证金证券数据共total_data_list:{len(total_data_list)}条')
-                df_result = super().data_deal(total_data_list, data_title)
-                end_dt = datetime.datetime.now()
-                used_time = (end_dt - start_dt).seconds
-
-                if int(len(total_data_list)) == db_total_count and int(len(total_data_list))>0 and db_total_count > 0:
-                    super().data_insert(int(len(total_data_list)), df_result, search_date,
-                                        exchange_mt_guaranty_security,
-                                        data_source, start_dt, end_dt, used_time, url)
-                    logger.info(f'入库信息,共{int(len(total_data_list))}条')
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            future_list = []
+            about_total_page = 1600
+            partition_page = 200
+            for i in range(0, about_total_page, partition_page):
+                start_page = i + 1
+                if i >= about_total_page - partition_page:
+                    end_page = None  # 最后一页，设为None
                 else:
-                    raise Exception(f'采集数据条数{int(len(total_data_list))}与官网数据条数{db_total_count}不一致，采集程序存在抖动，需要重新采集')
+                    end_page = i + partition_page
 
-                message = "ht_securities_collect"
-                super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
-                                          exchange_mt_guaranty_security, data_source, message)
+                logger.info(f'这是第{i}次循环')
+                future = executor.submit(cls.collect_by_partition, start_page, end_page, search_date)
+                future_list.append(future)
 
-                logger.info("华泰证券可充抵保证金证券数据采集完成")
+            total_data_list = []
+            for r in future_list:
+                data_list = r.result()
+                if data_list:
+                    total_data_list.extend(data_list)
 
-        except Exception as e:
-            logger.error(e)
+            logger.info(f'采集华泰证券可充抵保证金证券数据共total_data_list:{len(total_data_list)}条')
+            df_result = super().data_deal(total_data_list, data_title)
+            end_dt = datetime.datetime.now()
+            used_time = (end_dt - start_dt).seconds
+
+            if int(len(total_data_list)) == db_total_count and int(len(total_data_list)) > 0 and db_total_count > 0:
+                super().data_insert(int(len(total_data_list)), df_result, search_date,
+                                    exchange_mt_guaranty_security,
+                                    data_source, start_dt, end_dt, used_time, url)
+                logger.info(f'入库信息,共{int(len(total_data_list))}条')
+            else:
+                raise Exception(f'采集数据条数{int(len(total_data_list))}与官网数据条数{db_total_count}不一致，采集程序存在抖动，需要重新采集')
+
+            message = "ht_securities_collect"
+            super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
+                                      exchange_mt_guaranty_security, data_source, message)
+
+            logger.info("华泰证券可充抵保证金证券数据采集完成")
 
     @classmethod
     def collect_by_partition(cls, start_page, end_page, search_date):

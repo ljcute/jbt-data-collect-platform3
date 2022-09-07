@@ -64,67 +64,63 @@ class CollectHandler(BaseHandler):
         actual_date = datetime.date.today()
         logger.info(f'开始采集申万宏源标的券数据{actual_date}')
         driver = super().get_driver()
-        try:
-            # 标的券
-            start_dt = datetime.datetime.now()
-            url = 'https://www.swhysc.com/swhysc/financial/marginTradingList?channel=00010017000300020001&listId=2'
-            driver.get(url)
+        # 标的券
+        start_dt = datetime.datetime.now()
+        url = 'https://www.swhysc.com/swhysc/financial/marginTradingList?channel=00010017000300020001&listId=2'
+        driver.get(url)
 
-            original_data_list = []
-            # 找到券商官网写的总条数
-            span_element = driver.find_elements(By.XPATH,
-                                                "//*[@id='root']/section/div[2]/div/div[3]/div/div[1]/form/div[1]/div/div/div/span")
-            # span_element = driver.find_elements(By.XPATH, "//*[@id='root']/section/div[2]/div/div[3]/div/div[1]/form/div[1]/div/div/div/span")
-            sc_total = int(span_element[0].text)
-            print(sc_total)
-            # 当前网页内容(第1页)
+        original_data_list = []
+        # 找到券商官网写的总条数
+        span_element = driver.find_elements(By.XPATH,
+                                            "//*[@id='root']/section/div[2]/div/div[3]/div/div[1]/form/div[1]/div/div/div/span")
+        # span_element = driver.find_elements(By.XPATH, "//*[@id='root']/section/div[2]/div/div[3]/div/div[1]/form/div[1]/div/div/div/span")
+        sc_total = int(span_element[0].text)
+        print(sc_total)
+        # 当前网页内容(第1页)
+        html_content = str(driver.page_source)
+        logger.info("申万标的券第{}页，共10条".format(1))
+        cls.resolve_single_target_page(html_content, original_data_list)
+        target_title = ['market', 'secu_code', 'secu_name', 'rz_rate', 'rq_rate']
+        time.sleep(1)
+        # 找到总页数
+        total_page = 0
+        li_elements = driver.find_elements(By.XPATH,
+                                           "//*[@id='root']/section/div[2]/div/div[3]/div/div[2]/div/div/div/ul/li[8]/a")
+        if len(li_elements) > 0:
+            total_page = li_elements[len(li_elements) - 1].text
+        print(total_page)
+
+        # 找到下一页 >按钮
+        elements = driver.find_elements(By.XPATH, "//button[@class='ant-pagination-item-link']")
+        next_page_button_element = elements[1]
+
+        for_count = int(total_page) + 1  # range不包括后者
+        for current_page in range(2, for_count):
+            driver.execute_script('arguments[0].click();', next_page_button_element)
+            time.sleep(0.8)
+
+            # 处理第[2, total_page]页html
             html_content = str(driver.page_source)
-            logger.info("申万标的券第{}页，共10条".format(1))
+            logger.info("申万标的券第{}页，共10条".format(current_page))
             cls.resolve_single_target_page(html_content, original_data_list)
-            target_title = ['market', 'secu_code', 'secu_name', 'rz_rate', 'rq_rate']
-            time.sleep(1)
-            # 找到总页数
-            total_page = 0
-            li_elements = driver.find_elements(By.XPATH, "//*[@id='root']/section/div[2]/div/div[3]/div/div[2]/div/div/div/ul/li[8]/a")
-            if len(li_elements) > 0:
-                total_page = li_elements[len(li_elements) - 1].text
-            print(total_page)
 
-            # 找到下一页 >按钮
-            elements = driver.find_elements(By.XPATH, "//button[@class='ant-pagination-item-link']")
-            next_page_button_element = elements[1]
+        logger.info(f'采集申万宏源证券标的证券数据结束,共{int(len(original_data_list))}条')
+        df_result = super().data_deal(original_data_list, target_title)
+        end_dt = datetime.datetime.now()
+        used_time = (end_dt - start_dt).seconds
+        if df_result is not None:
+            super().data_insert(int(len(original_data_list)), df_result, actual_date,
+                                exchange_mt_underlying_security,
+                                data_source, start_dt, end_dt, used_time, url)
+            logger.info(f'入库信息,共{int(len(original_data_list))}条')
+        else:
+            raise Exception(f'采集数据条数{int(len(original_data_list))}，与官网条数{sc_total}不一致，采集程序存在抖动，需要重新采集')
 
-            for_count = int(total_page) + 1  # range不包括后者
-            for current_page in range(2, for_count):
-                driver.execute_script('arguments[0].click();', next_page_button_element)
-                time.sleep(0.8)
+        message = "sw_securities_collect"
+        super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
+                                  exchange_mt_underlying_security, data_source, message)
 
-                # 处理第[2, total_page]页html
-                html_content = str(driver.page_source)
-                logger.info("申万标的券第{}页，共10条".format(current_page))
-                cls.resolve_single_target_page(html_content, original_data_list)
-
-            logger.info(f'采集申万宏源证券标的证券数据结束,共{int(len(original_data_list))}条')
-            df_result = super().data_deal(original_data_list, target_title)
-            end_dt = datetime.datetime.now()
-            used_time = (end_dt - start_dt).seconds
-            if df_result is not None:
-                super().data_insert(int(len(original_data_list)), df_result, actual_date,
-                                    exchange_mt_underlying_security,
-                                    data_source, start_dt, end_dt, used_time, url)
-                logger.info(f'入库信息,共{int(len(original_data_list))}条')
-            else:
-                raise Exception(f'采集数据条数{int(len(original_data_list))}，与官网条数{sc_total}不一致，采集程序存在抖动，需要重新采集')
-
-            message = "sw_securities_collect"
-            super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
-                                      exchange_mt_underlying_security, data_source, message)
-
-            logger.info("申万宏源证券融资融券标的证券数据采集完成")
-        except ProxyTimeOutEx as e:
-            pass
-        except Exception as es:
-            logger.error(es)
+        logger.info("申万宏源证券融资融券标的证券数据采集完成")
 
     @classmethod
     def resolve_single_target_page(cls, html_content, original_data_list):
@@ -148,72 +144,68 @@ class CollectHandler(BaseHandler):
         actual_date = datetime.date.today()
         logger.info(f'开始采集申万宏源担保券券数据{actual_date}')
         driver = super().get_driver()
-        try:
-            # 担保券（可充抵保证金）
-            start_dt = datetime.datetime.now()
-            url = 'https://www.swhysc.com/swhysc/financial/marginTradingList?channel=00010017000300020001&listId=1'
-            driver.get(url)
-            time.sleep(1)
-            driver.execute_script("window.scrollTo(0,document.body.scrollHeight);")
-            time.sleep(1)
-            # driver.implicitly_wait(120)
-            all_data_list = []
-            # 找到券商官网写的总条数
-            # span_element = driver.find_elements(By.XPATH,
-            #                                     "//div[contains(@class, 'ant-form-item-control-input-content')]/span")
-            span_element = driver.find_elements(By.XPATH,
-                                    "//*[@id='root']/section/div[2]/div/div[3]/div/div[1]/form/div[1]/div/div/div/span")
-            sc_total = int(span_element[0].text)
-            print(sc_total)
-            # 当前网页内容(第1页)
+        # 担保券（可充抵保证金）
+        start_dt = datetime.datetime.now()
+        url = 'https://www.swhysc.com/swhysc/financial/marginTradingList?channel=00010017000300020001&listId=1'
+        driver.get(url)
+        time.sleep(1)
+        driver.execute_script("window.scrollTo(0,document.body.scrollHeight);")
+        time.sleep(1)
+        # driver.implicitly_wait(120)
+        all_data_list = []
+        # 找到券商官网写的总条数
+        # span_element = driver.find_elements(By.XPATH,
+        #                                     "//div[contains(@class, 'ant-form-item-control-input-content')]/span")
+        span_element = driver.find_elements(By.XPATH,
+                                            "//*[@id='root']/section/div[2]/div/div[3]/div/div[1]/form/div[1]/div/div/div/span")
+        sc_total = int(span_element[0].text)
+        print(sc_total)
+        # 当前网页内容(第1页)
+        html_content = str(driver.page_source)
+        logger.info("申万宏源担保券第{}页，共10条".format(1))
+        cls.resolve_single_guaranty_page(html_content, all_data_list)
+
+        db_title = ['market', 'secu_code', 'secu_name', 'rate', 'secu_type', 'secu_class']
+        # 找到总页数
+        total_page = 0
+        # li_elements = driver.find_elements(By.XPATH, "//li[contains(@class, 'ant-pagination-item-647')]")
+        li_elements = driver.find_elements(By.XPATH,
+                                           "//*[@id='root']/section/div[2]/div/div[3]/div/div[2]/div/div/div/ul/li[8]/a")
+        if len(li_elements) > 0:
+            total_page = li_elements[len(li_elements) - 1].text
+        print(total_page)
+        # 找到下一页 >按钮
+        elements = driver.find_elements(By.XPATH,
+                                        "//button[@class='ant-pagination-item-link']/span[@class='anticon anticon-right']")
+        next_page_button_element = elements[0]
+
+        for_count = int(total_page) + 1  # range不包括后者
+        for current_page in range(2, for_count):
+            driver.implicitly_wait(120)
+            driver.execute_script('arguments[0].click();', next_page_button_element)
+            time.sleep(0.8)
+            # 处理第[2, total_page]页html
             html_content = str(driver.page_source)
-            logger.info("申万宏源担保券第{}页，共10条".format(1))
+            logger.info("申万宏源担保券第{}页，共10条".format(current_page))
             cls.resolve_single_guaranty_page(html_content, all_data_list)
 
-            db_title = ['market', 'secu_code', 'secu_name', 'rate', 'secu_type', 'secu_class']
-            # 找到总页数
-            total_page = 0
-            # li_elements = driver.find_elements(By.XPATH, "//li[contains(@class, 'ant-pagination-item-647')]")
-            li_elements = driver.find_elements(By.XPATH, "//*[@id='root']/section/div[2]/div/div[3]/div/div[2]/div/div/div/ul/li[8]/a")
-            if len(li_elements) > 0:
-                total_page = li_elements[len(li_elements) - 1].text
-            print(total_page)
-            # 找到下一页 >按钮
-            elements = driver.find_elements(By.XPATH,
-                                            "//button[@class='ant-pagination-item-link']/span[@class='anticon anticon-right']")
-            next_page_button_element = elements[0]
+        logger.info(f'采集申万宏源证券担保券数据结束,共{int(len(all_data_list))}条')
+        df_result = super().data_deal(all_data_list, db_title)
+        end_dt = datetime.datetime.now()
+        used_time = (end_dt - start_dt).seconds
+        if df_result is not None:
+            super().data_insert(int(len(all_data_list)), df_result, actual_date,
+                                exchange_mt_guaranty_security,
+                                data_source, start_dt, end_dt, used_time, url)
+            logger.info(f'入库信息,共{int(len(all_data_list))}条')
+        else:
+            raise Exception(f'采集数据条数{int(len(all_data_list))}，与官网条数{sc_total}不一致，采集程序存在抖动，需要重新采集')
 
-            for_count = int(total_page) + 1  # range不包括后者
-            for current_page in range(2, for_count):
-                driver.implicitly_wait(120)
-                driver.execute_script('arguments[0].click();', next_page_button_element)
-                time.sleep(0.8)
-                # 处理第[2, total_page]页html
-                html_content = str(driver.page_source)
-                logger.info("申万宏源担保券第{}页，共10条".format(current_page))
-                cls.resolve_single_guaranty_page(html_content, all_data_list)
+        message = "sw_securities_collect"
+        super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
+                                  exchange_mt_guaranty_security, data_source, message)
 
-            logger.info(f'采集申万宏源证券担保券数据结束,共{int(len(all_data_list))}条')
-            df_result = super().data_deal(all_data_list, db_title)
-            end_dt = datetime.datetime.now()
-            used_time = (end_dt - start_dt).seconds
-            if df_result is not None:
-                super().data_insert(int(len(all_data_list)), df_result, actual_date,
-                                    exchange_mt_guaranty_security,
-                                    data_source, start_dt, end_dt, used_time, url)
-                logger.info(f'入库信息,共{int(len(all_data_list))}条')
-            else:
-                raise Exception(f'采集数据条数{int(len(all_data_list))}，与官网条数{sc_total}不一致，采集程序存在抖动，需要重新采集')
-
-            message = "sw_securities_collect"
-            super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
-                                      exchange_mt_guaranty_security, data_source, message)
-
-            logger.info("申万宏源证券融资融券担保券数据采集完成")
-        except ProxyTimeOutEx as es:
-            pass
-        except Exception as e:
-            logger.error(e)
+        logger.info("申万宏源证券融资融券担保券数据采集完成")
 
     @classmethod
     def resolve_single_guaranty_page(cls, html_content, all_data_list):
