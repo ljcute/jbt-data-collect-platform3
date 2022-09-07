@@ -16,11 +16,11 @@ from configparser import ConfigParser
 
 from selenium.webdriver.common.by import By
 
-from utils.exceptions_utils import ProxyTimeOutEx
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 
+from utils.exceptions_utils import ProxyTimeOutEx
 from utils.deal_date import ComplexEncoder
 from utils.logs_utils import logger
 from data.ms.basehandler import BaseHandler

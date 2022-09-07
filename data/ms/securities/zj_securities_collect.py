@@ -10,11 +10,12 @@ import sys
 
 import pandas
 
-from utils.exceptions_utils import ProxyTimeOutEx
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 
+
+from utils.exceptions_utils import ProxyTimeOutEx
 from selenium.webdriver.common.by import By
 from utils.proxy_utils import judge_proxy_is_fail
 from bs4 import BeautifulSoup
