@@ -35,11 +35,8 @@ def get_proxies(data_type=1, retry_count=3):
     while this_method_retry_count > 0:
         params = {"appId": app_id, "interfaceId": data_type}
         response = requests.get(url=get_ip_url, params=params, timeout=3)
-        if response.status_code != 200:
-            logger.info("请求java服务失败，未获取到ip......")
-            time.sleep(int(proxy_sleep_time))
-            return none_proxy
         text = json.loads(response.text)
+        logger.info(f'text:{text}')
         if text['code'] == '-1':
             logger.info("未获取到ip......")
             time.sleep(int(proxy_sleep_time))
