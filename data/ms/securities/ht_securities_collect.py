@@ -7,12 +7,12 @@ import os
 import sys
 import concurrent.futures
 
-from utils.proxy_utils import get_proxies
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 
 
+from utils.proxy_utils import get_proxies
 from utils.exceptions_utils import ProxyTimeOutEx
 from data.ms.basehandler import BaseHandler
 from utils.deal_date import ComplexEncoder
