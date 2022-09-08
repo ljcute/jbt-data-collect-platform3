@@ -33,37 +33,30 @@ def get_proxies(data_type=1, retry_count=3):
 
     this_method_retry_count = int(proxy_retry_time)
     while this_method_retry_count > 0:
-        params = {"appId": app_id, "interfaceId": data_type}
-        response = requests.get(url=get_ip_url, params=params, timeout=3)
-        text = json.loads(response.text)
-        logger.info(f'text:{text}')
-        if text['code'] == '-1':
-            logger.info("未获取到ip......")
-            time.sleep(int(proxy_sleep_time))
-            return none_proxy
+        try:
+            params = {"appId": app_id, "interfaceId": data_type}
+            response = requests.get(url=get_ip_url, params=params, timeout=3)
+            text = json.loads(response.text)
+            if text['code'] == '-1':
+                return none_proxy
 
-        data = text['data']
-        ip = data['ip']
-        port = data['port']
-        logger.info("已获取到ip......")
-        time.sleep(int(proxy_sleep_time))
-        if check_proxy_ip_valid(ip, port):  # 从java服务拿到ip再校验一次是否可用
-            logger.info("从java服务拿到ip校验完成，为可用ip......")
+            data = text['data']
+            ip = data['ip']
+            port = data['port']
             time.sleep(int(proxy_sleep_time))
-            return create_proxies(ip, port)
-        else:
-            logger.info("ip校验为不可用......")
-            this_method_retry_count = this_method_retry_count - 1
-            logger.info("重试，重新获取ip及代理......")
-            time.sleep(int(proxy_sleep_time))
-            continue
-
+            if check_proxy_ip_valid(ip, port):  # 从java服务拿到ip再校验一次是否可用
+                return create_proxies(ip, port)
+            else:
+                this_method_retry_count = this_method_retry_count - 1
+                time.sleep(int(proxy_sleep_time))
+                continue
+        except Exception as e:
+            pass
     return none_proxy
 
 
 def create_proxies(ip, port):
     # 代理服务器
-    logger.info("开始进入代理服务器获取......")
     proxy_post = ip
     proxy_port = port
     proxy_meta = "http://%(host)s:%(port)s" % {
@@ -74,8 +67,6 @@ def create_proxies(ip, port):
         "http": proxy_meta,
         "https": proxy_meta
     }
-    logger.info("代理服务器获取ip结束......")
-    logger.info(f'proxies:{proxies}')
     return proxies
 
 
