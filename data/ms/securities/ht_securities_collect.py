@@ -7,10 +7,8 @@ import os
 import sys
 import concurrent.futures
 
-
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
-
 
 from utils.proxy_utils import get_proxies
 from utils.exceptions_utils import ProxyTimeOutEx
@@ -264,14 +262,11 @@ class CollectHandler(BaseHandler):
         #     'User-Agent': random.choice(USER_AGENTS),
         #     'X-Requested-With': 'XMLHttpRequest'
         # }
+
         data = {'date': search_date, 'hsPage': 1, 'hsPageSize': 8, 'ssPage': 1,
                 'ssPageSize': 8}
-        start_dt = datetime.datetime.now()
-        proxies = get_proxies(3, 10)
+        proxies = get_proxies(3, 30)
         response = requests.post(url=url, params=data, proxies=proxies, timeout=6)
-        # proxies = super().get_proxies()
-        # response = super().get_response(url, proxies, 1, headers, None, data)
-        db_total_count = []
         if response.status_code == 200:
             text = json.loads(response.text)
             db_hs_count = text['result']['dbHsCount']
@@ -282,7 +277,8 @@ class CollectHandler(BaseHandler):
             raise Exception(f'请求失败，respones.status={response.status_code}')
         logger.info(f'total:{db_total_count}')
         data_title = ['market', 'stock_code', 'stock_name', 'rate', 'stock_group_name']
-
+        db_total_count = []
+        start_dt = datetime.datetime.now()
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             future_list = []
             about_total_page = 1600
@@ -293,8 +289,6 @@ class CollectHandler(BaseHandler):
                     end_page = None  # 最后一页，设为None
                 else:
                     end_page = i + partition_page
-
-                logger.info(f'这是第{i}次循环')
                 future = executor.submit(cls.collect_by_partition, start_page, end_page, search_date)
                 future_list.append(future)
 
@@ -361,13 +355,14 @@ class CollectHandler(BaseHandler):
             end_page = 100000
 
         hs_is_continue = ss_is_continue = True
-        proxies = get_proxies(3, 10)
         retry_count = 5
         while (hs_is_continue or ss_is_continue) and hs_page <= end_page and ss_page <= end_page:
-            data = {'date': search_date, 'hsPage': hs_page, 'hsPageSize': page_size, 'ssPage': ss_page,
-                    'ssPageSize': page_size}
+            params = {'date': search_date, 'hsPage': hs_page, 'hsPageSize': page_size, 'ssPage': ss_page,
+                      'ssPageSize': page_size}
+            logger.info("{}".format(params))
             try:
-                response = requests.post(url=url, params=data, proxies=proxies, timeout=6)
+                proxies = get_proxies(3, 30)
+                response = requests.post(url=url, params=params, proxies=proxies, timeout=6)
                 text = json.loads(response.text)
                 hs_data_list = text['result']['dbHs']
                 ss_data_list = text['result']['dbSs']
@@ -407,7 +402,6 @@ class CollectHandler(BaseHandler):
             else:
                 ss_is_continue = False
 
-        logger.info(f'此线程采集数据共datalist:{len(data_list)}条')
         return data_list
 
 
