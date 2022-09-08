@@ -7,6 +7,7 @@ import os
 import sys
 import concurrent.futures
 
+from utils.proxy_utils import get_proxies
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
@@ -236,38 +237,40 @@ class CollectHandler(BaseHandler):
     def guaranty_collect(cls, search_date):
         logger.info(f'开始采集华泰证券可充抵保证金证券数据{search_date}')
         url = 'https://www.htsc.com.cn/browser/rzrqPool/getDbZqc.do'
-        headers = {
-            'Accept': 'application/json, text/javascript, */*; q=0.01',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Accept-Language': 'zh-CN,zh;q=0.9',
-            'Connection': 'keep-alive',
-            'Content-Length': '70',
-            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-            'Cookie': 'JSESSIONID=850FA72021D5C99C3A88C34E0482E63A; '
-                      'sensorsdata2015jssdkcross=%7B%22distinct_id%22%3A%22181a8443bc65f2-0c1d30f0f31934-3e604809'
-                      '-3686400-181a8443bc7b6d%22%2C%22first_id%22%3A%22%22%2C%22props%22%3A%7B%7D%2C%22device_id%22'
-                      '%3A%22181a8443bc65f2-0c1d30f0f31934-3e604809-3686400-181a8443bc7b6d%22%7D; '
-                      'route=2c230dfc440a5fd48e2bbca19a092850; '
-                      'BIGipServerS3vNrUmXkF3WGMF+i0ncag=!6oW7pIg7Mz4Y4UZTrPnPKSov3fDas9tDRtSGsagQG5O'
-                      '+PFG1xQ6QhoE6GZcE7cveyDIAGkpAu4CfzJo=; '
-                      'BIGipServeruIZKA4CLrevwev72PLYMrg=!tdGMoOgCaH4slqVTrPnPKSov3fDaswExvhIrzZR7EVXfVQ4aAD'
-                      '+LKXuy6mR7NwcRjMGM3guPcVZR4Q==; '
-                      '_pk_ref.50.f1f3=%5B%22%22%2C%22%22%2C1658128596%2C%22https%3A%2F%2Fdocs.qq.com%2F%22%5D; '
-                      '_pk_id.50.f1f3=8e1da66c9411ffc1.1658123106.2.1658128596.1658123240.; _pk_ses.50.f1f3=*',
-            'Host': 'www.htsc.com.cn',
-            'Origin': 'https://www.htsc.com.cn',
-            'Referer': 'https://www.htsc.com.cn/browser/rzrq/marginTrading/bdzqc/target_stock_pool_bail.jsp',
-            'Sec-Fetch-Dest': 'empty',
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Site': 'same-origin',
-            'User-Agent': random.choice(USER_AGENTS),
-            'X-Requested-With': 'XMLHttpRequest'
-        }
+        # headers = {
+        #     'Accept': 'application/json, text/javascript, */*; q=0.01',
+        #     'Accept-Encoding': 'gzip, deflate, br',
+        #     'Accept-Language': 'zh-CN,zh;q=0.9',
+        #     'Connection': 'keep-alive',
+        #     'Content-Length': '70',
+        #     'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        #     'Cookie': 'JSESSIONID=850FA72021D5C99C3A88C34E0482E63A; '
+        #               'sensorsdata2015jssdkcross=%7B%22distinct_id%22%3A%22181a8443bc65f2-0c1d30f0f31934-3e604809'
+        #               '-3686400-181a8443bc7b6d%22%2C%22first_id%22%3A%22%22%2C%22props%22%3A%7B%7D%2C%22device_id%22'
+        #               '%3A%22181a8443bc65f2-0c1d30f0f31934-3e604809-3686400-181a8443bc7b6d%22%7D; '
+        #               'route=2c230dfc440a5fd48e2bbca19a092850; '
+        #               'BIGipServerS3vNrUmXkF3WGMF+i0ncag=!6oW7pIg7Mz4Y4UZTrPnPKSov3fDas9tDRtSGsagQG5O'
+        #               '+PFG1xQ6QhoE6GZcE7cveyDIAGkpAu4CfzJo=; '
+        #               'BIGipServeruIZKA4CLrevwev72PLYMrg=!tdGMoOgCaH4slqVTrPnPKSov3fDaswExvhIrzZR7EVXfVQ4aAD'
+        #               '+LKXuy6mR7NwcRjMGM3guPcVZR4Q==; '
+        #               '_pk_ref.50.f1f3=%5B%22%22%2C%22%22%2C1658128596%2C%22https%3A%2F%2Fdocs.qq.com%2F%22%5D; '
+        #               '_pk_id.50.f1f3=8e1da66c9411ffc1.1658123106.2.1658128596.1658123240.; _pk_ses.50.f1f3=*',
+        #     'Host': 'www.htsc.com.cn',
+        #     'Origin': 'https://www.htsc.com.cn',
+        #     'Referer': 'https://www.htsc.com.cn/browser/rzrq/marginTrading/bdzqc/target_stock_pool_bail.jsp',
+        #     'Sec-Fetch-Dest': 'empty',
+        #     'Sec-Fetch-Mode': 'cors',
+        #     'Sec-Fetch-Site': 'same-origin',
+        #     'User-Agent': random.choice(USER_AGENTS),
+        #     'X-Requested-With': 'XMLHttpRequest'
+        # }
         data = {'date': search_date, 'hsPage': 1, 'hsPageSize': 8, 'ssPage': 1,
                 'ssPageSize': 8}
         start_dt = datetime.datetime.now()
-        proxies = super().get_proxies()
-        response = super().get_response(url, proxies, 1, headers, None, data)
+        proxies = get_proxies(3, 10)
+        response = requests.post(url=url, params=data, proxies=proxies, timeout=6)
+        # proxies = super().get_proxies()
+        # response = super().get_response(url, proxies, 1, headers, None, data)
         db_total_count = []
         if response.status_code == 200:
             text = json.loads(response.text)
@@ -277,7 +280,7 @@ class CollectHandler(BaseHandler):
         else:
             logger.error(f'请求失败，respones.status={response.status_code}')
             raise Exception(f'请求失败，respones.status={response.status_code}')
-
+        logger.info(f'total:{db_total_count}')
         data_title = ['market', 'stock_code', 'stock_name', 'rate', 'stock_group_name']
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
@@ -323,33 +326,33 @@ class CollectHandler(BaseHandler):
     @classmethod
     def collect_by_partition(cls, start_page, end_page, search_date):
         url = 'https://www.htsc.com.cn/browser/rzrqPool/getDbZqc.do'
-        headers = {
-            'Accept': 'application/json, text/javascript, */*; q=0.01',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Accept-Language': 'zh-CN,zh;q=0.9',
-            'Connection': 'keep-alive',
-            'Content-Length': '70',
-            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-            'Cookie': 'JSESSIONID=850FA72021D5C99C3A88C34E0482E63A; '
-                      'sensorsdata2015jssdkcross=%7B%22distinct_id%22%3A%22181a8443bc65f2-0c1d30f0f31934-3e604809'
-                      '-3686400-181a8443bc7b6d%22%2C%22first_id%22%3A%22%22%2C%22props%22%3A%7B%7D%2C%22device_id%22'
-                      '%3A%22181a8443bc65f2-0c1d30f0f31934-3e604809-3686400-181a8443bc7b6d%22%7D; '
-                      'route=2c230dfc440a5fd48e2bbca19a092850; '
-                      'BIGipServerS3vNrUmXkF3WGMF+i0ncag=!6oW7pIg7Mz4Y4UZTrPnPKSov3fDas9tDRtSGsagQG5O'
-                      '+PFG1xQ6QhoE6GZcE7cveyDIAGkpAu4CfzJo=; '
-                      'BIGipServeruIZKA4CLrevwev72PLYMrg=!tdGMoOgCaH4slqVTrPnPKSov3fDaswExvhIrzZR7EVXfVQ4aAD'
-                      '+LKXuy6mR7NwcRjMGM3guPcVZR4Q==; '
-                      '_pk_ref.50.f1f3=%5B%22%22%2C%22%22%2C1658128596%2C%22https%3A%2F%2Fdocs.qq.com%2F%22%5D; '
-                      '_pk_id.50.f1f3=8e1da66c9411ffc1.1658123106.2.1658128596.1658123240.; _pk_ses.50.f1f3=*',
-            'Host': 'www.htsc.com.cn',
-            'Origin': 'https://www.htsc.com.cn',
-            'Referer': 'https://www.htsc.com.cn/browser/rzrq/marginTrading/bdzqc/target_stock_pool_bail.jsp',
-            'Sec-Fetch-Dest': 'empty',
-            'Sec-Fetch-Mode': 'cors',
-            'Sec-Fetch-Site': 'same-origin',
-            'User-Agent': random.choice(USER_AGENTS),
-            'X-Requested-With': 'XMLHttpRequest'
-        }
+        # headers = {
+        #     'Accept': 'application/json, text/javascript, */*; q=0.01',
+        #     'Accept-Encoding': 'gzip, deflate, br',
+        #     'Accept-Language': 'zh-CN,zh;q=0.9',
+        #     'Connection': 'keep-alive',
+        #     'Content-Length': '70',
+        #     'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        #     'Cookie': 'JSESSIONID=850FA72021D5C99C3A88C34E0482E63A; '
+        #               'sensorsdata2015jssdkcross=%7B%22distinct_id%22%3A%22181a8443bc65f2-0c1d30f0f31934-3e604809'
+        #               '-3686400-181a8443bc7b6d%22%2C%22first_id%22%3A%22%22%2C%22props%22%3A%7B%7D%2C%22device_id%22'
+        #               '%3A%22181a8443bc65f2-0c1d30f0f31934-3e604809-3686400-181a8443bc7b6d%22%7D; '
+        #               'route=2c230dfc440a5fd48e2bbca19a092850; '
+        #               'BIGipServerS3vNrUmXkF3WGMF+i0ncag=!6oW7pIg7Mz4Y4UZTrPnPKSov3fDas9tDRtSGsagQG5O'
+        #               '+PFG1xQ6QhoE6GZcE7cveyDIAGkpAu4CfzJo=; '
+        #               'BIGipServeruIZKA4CLrevwev72PLYMrg=!tdGMoOgCaH4slqVTrPnPKSov3fDaswExvhIrzZR7EVXfVQ4aAD'
+        #               '+LKXuy6mR7NwcRjMGM3guPcVZR4Q==; '
+        #               '_pk_ref.50.f1f3=%5B%22%22%2C%22%22%2C1658128596%2C%22https%3A%2F%2Fdocs.qq.com%2F%22%5D; '
+        #               '_pk_id.50.f1f3=8e1da66c9411ffc1.1658123106.2.1658128596.1658123240.; _pk_ses.50.f1f3=*',
+        #     'Host': 'www.htsc.com.cn',
+        #     'Origin': 'https://www.htsc.com.cn',
+        #     'Referer': 'https://www.htsc.com.cn/browser/rzrq/marginTrading/bdzqc/target_stock_pool_bail.jsp',
+        #     'Sec-Fetch-Dest': 'empty',
+        #     'Sec-Fetch-Mode': 'cors',
+        #     'Sec-Fetch-Site': 'same-origin',
+        #     'User-Agent': random.choice(USER_AGENTS),
+        #     'X-Requested-With': 'XMLHttpRequest'
+        # }
         data_list = []
 
         hs_page = ss_page = start_page
@@ -358,14 +361,13 @@ class CollectHandler(BaseHandler):
             end_page = 100000
 
         hs_is_continue = ss_is_continue = True
-        proxies = super().get_proxies()
+        proxies = get_proxies(3, 10)
         retry_count = 5
         while (hs_is_continue or ss_is_continue) and hs_page <= end_page and ss_page <= end_page:
             data = {'date': search_date, 'hsPage': hs_page, 'hsPageSize': page_size, 'ssPage': ss_page,
                     'ssPageSize': page_size}
-
             try:
-                response = super().get_response(url, proxies, 1, headers, None, data)
+                response = requests.post(url=url, params=data, proxies=proxies, timeout=6)
                 text = json.loads(response.text)
                 hs_data_list = text['result']['dbHs']
                 ss_data_list = text['result']['dbSs']
