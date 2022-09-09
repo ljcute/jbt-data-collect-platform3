@@ -86,13 +86,19 @@ class CollectHandler(BaseHandler):
         df_result = super().data_deal(target_list, target_title)
         end_dt = datetime.datetime.now()
         used_time = (end_dt - start_dt).seconds
-        if df_result is not None:
+        if df_result is not None and int(total) == int(len(target_list)):
+            data_status = 1
             super().data_insert(int(len(target_list)), df_result, actual_date,
                                 exchange_mt_financing_underlying_security,
-                                data_source, start_dt, end_dt, used_time, url)
+                                data_source, start_dt, end_dt, used_time, url, data_status)
             logger.info(f'入库信息,共{int(len(target_list))}条')
-        else:
-            raise Exception(f'采集数据条数为0，需要重新采集')
+        elif int(total) != int(len(target_list)):
+            logger.error(f'采集数据{int(len(target_list))}与官网数据{int(total)}不一致，采集存在抖动，需重新采集！')
+            data_status = 2
+            super().data_insert(int(len(target_list)), df_result, actual_date,
+                                exchange_mt_financing_underlying_security,
+                                data_source, start_dt, end_dt, used_time, url, data_status)
+            logger.info(f'入库信息,共{int(len(target_list))}条')
 
         message = "zs_securities_collect"
         super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
@@ -127,13 +133,19 @@ class CollectHandler(BaseHandler):
         df_result = super().data_deal(target_list, target_title)
         end_dt = datetime.datetime.now()
         used_time = (end_dt - start_dt).seconds
-        if df_result is not None:
+        if df_result is not None and int(total) == int(len(target_list)):
+            data_status = 1
             super().data_insert(int(len(target_list)), df_result, actual_date,
                                 exchange_mt_lending_underlying_security,
-                                data_source, start_dt, end_dt, used_time, url)
+                                data_source, start_dt, end_dt, used_time, url, data_status)
             logger.info(f'入库信息,共{int(len(target_list))}条')
-        else:
-            raise Exception(f'采集数据条数为0，需要重新采集')
+        elif int(total) != int(len(target_list)):
+            logger.error(f'采集数据{int(len(target_list))}与官网数据{int(total)}不一致，采集存在抖动，需重新采集！')
+            data_status = 2
+            super().data_insert(int(len(target_list)), df_result, actual_date,
+                                exchange_mt_lending_underlying_security,
+                                data_source, start_dt, end_dt, used_time, url, data_status)
+            logger.info(f'入库信息,共{int(len(target_list))}条')
 
         message = "zs_securities_collect"
         super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
@@ -168,13 +180,19 @@ class CollectHandler(BaseHandler):
         df_result = super().data_deal(target_list, target_title)
         end_dt = datetime.datetime.now()
         used_time = (end_dt - start_dt).seconds
-        if df_result is not None:
+        if df_result is not None and int(total) == int(len(target_list)):
+            data_status = 1
             super().data_insert(int(len(target_list)), df_result, actual_date,
                                 exchange_mt_guaranty_security,
-                                data_source, start_dt, end_dt, used_time, url)
+                                data_source, start_dt, end_dt, used_time, url, data_status)
             logger.info(f'入库信息,共{int(len(target_list))}条')
-        else:
-            raise Exception(f'采集数据条数为0，需要重新采集')
+        elif int(total) != int(len(target_list)):
+            logger.error(f'采集数据{int(len(target_list))}与官网数据{int(total)}不一致，采集存在抖动，需重新采集！')
+            data_status = 2
+            super().data_insert(int(len(target_list)), df_result, actual_date,
+                                exchange_mt_guaranty_security,
+                                data_source, start_dt, end_dt, used_time, url, data_status)
+            logger.info(f'入库信息,共{int(len(target_list))}条')
 
         message = "zs_securities_collect"
         super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),

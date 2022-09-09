@@ -110,12 +110,18 @@ class CollectHandler(BaseHandler):
         logger.info(f'df_result:{df_result}')
         end_dt = datetime.datetime.now()
         used_time = (end_dt - start_dt).seconds
-        if data_list:
+        if int(len(data_list)) == int(total) and int(len(data_list)) > 0 and int(total) >0:
+            data_status = 1
             super().data_insert(int(len(data_list)), df_result, trade_date, data_type_market_mt_trading_amount,
-                                data_source_szse, start_dt, end_dt, used_time, url)
+                                data_source_szse, start_dt, end_dt, used_time, url, data_status)
             logger.info(f'数据入库信息,共{int(len(data_list))}条')
-        else:
-            raise Exception(f'采集数据失败，为{int(len(data_list))}条，需要重新采集')
+        elif int(len(data_list)) != int(total):
+            logger.error(f'采集数据：{int(len(data_list))}与官网数据：{int(total)}不一致，采集存在抖动，需重新采集！')
+            data_status = 2
+            super().data_insert(int(len(data_list)), df_result, trade_date, data_type_market_mt_trading_amount,
+                                data_source_szse, start_dt, end_dt, used_time, url, data_status)
+            logger.info(f'数据入库信息,共{int(len(data_list))}条')
+
         message = "sz_market_mt_trading_collect"
         super().kafka_mq_producer(json.dumps(trade_date, cls=ComplexEncoder),
                                   data_type_market_mt_trading_amount, data_source_szse, message)

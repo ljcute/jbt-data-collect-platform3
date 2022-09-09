@@ -121,12 +121,18 @@ class CollectHandler(BaseHandler):
         end_dt = datetime.datetime.now()
         used_time = (end_dt - start_dt).seconds
         if df_result is not None:
+            data_status = 1
             super().data_insert(int(len(data_list)), df_result, actual_date,
                                 exchange_mt_underlying_security,
-                                data_source, start_dt, end_dt, used_time, excel_one_download_url)
+                                data_source, start_dt, end_dt, used_time, excel_one_download_url, data_status)
             logger.info(f'入库信息,共{int(len(data_list))}条')
         else:
-            raise Exception(f'采集数据条数为0，需要重新采集')
+            logger.error(f'采集数据条数为0，需要重新采集')
+            data_status = 2
+            super().data_insert(int(len(data_list)), df_result, actual_date,
+                                exchange_mt_underlying_security,
+                                data_source, start_dt, end_dt, used_time, excel_one_download_url, data_status)
+            logger.info(f'入库信息,共{int(len(data_list))}条')
 
         message = "xy_securities_collect"
         super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
@@ -198,12 +204,18 @@ class CollectHandler(BaseHandler):
         end_dt = datetime.datetime.now()
         used_time = (end_dt - start_dt).seconds
         if df_result is not None:
+            data_status = 1
             super().data_insert(int(len(data_list)), df_result, actual_date,
                                 exchange_mt_guaranty_security,
-                                data_source, start_dt, end_dt, used_time, excel_two_download_url)
+                                data_source, start_dt, end_dt, used_time, excel_two_download_url, data_status)
             logger.info(f'入库信息,共{int(len(data_list))}条')
         else:
-            raise Exception(f'采集数据条数为0，需要重新采集')
+            logger.error(f'采集数据条数为0，需要重新采集')
+            data_status = 2
+            super().data_insert(int(len(data_list)), df_result, actual_date,
+                                exchange_mt_guaranty_security,
+                                data_source, start_dt, end_dt, used_time, excel_two_download_url, data_status)
+            logger.info(f'入库信息,共{int(len(data_list))}条')
 
         message = "xy_securities_collect"
         super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),

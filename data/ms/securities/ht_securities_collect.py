@@ -19,6 +19,9 @@ import time
 from constants import *
 from utils.logs_utils import logger
 import datetime
+from queue import Queue
+
+collect_count_then_persist = 0  # 采集次数>collect_count_then_persist,如果采到的数据一模一样,才进行持久化
 
 exchange_mt_guaranty_security = '2'  # 融资融券可充抵保证金证券
 exchange_mt_underlying_security = '3'  # 融资融券标的证券
@@ -103,12 +106,18 @@ class CollectHandler(BaseHandler):
             end_dt = datetime.datetime.now()
             used_time = (end_dt - start_dt).seconds
             if int(len(total_data_list)) == db_total_count and int(len(total_data_list)) > 0 and db_total_count > 0:
+                data_status = 1
                 super().data_insert(int(len(total_data_list)), df_result, search_date,
                                     exchange_mt_underlying_security,
-                                    data_source, start_dt, end_dt, used_time, url)
+                                    data_source, start_dt, end_dt, used_time, url, data_status)
                 logger.info(f'入库信息,共{int(len(total_data_list))}条')
-            else:
-                raise Exception(f'采集数据条数{int(len(total_data_list))}与官网数据条数{db_total_count}不一致，采集程序存在抖动，需要重新采集')
+            elif int(len(total_data_list)) != db_total_count:
+                logger.error(f'采集数据条数{int(len(total_data_list))}与官网数据条数{db_total_count}不一致，采集程序存在抖动，需要重新采集')
+                data_status = 2
+                super().data_insert(int(len(total_data_list)), df_result, search_date,
+                                    exchange_mt_underlying_security,
+                                    data_source, start_dt, end_dt, used_time, url, data_status)
+                logger.info(f'入库信息,共{int(len(total_data_list))}条')
 
             message = "ht_securities_collect"
             super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
@@ -179,22 +188,10 @@ class CollectHandler(BaseHandler):
     def guaranty_collect(cls, search_date):
         logger.info(f'开始采集华泰证券可充抵保证金证券数据{search_date}')
         url = 'https://www.htsc.com.cn/browser/rzrqPool/getDbZqc.do'
-        data = {'date': search_date, 'hsPage': 1, 'hsPageSize': 8, 'ssPage': 1,
-                'ssPageSize': 8}
-        proxies = get_proxies(3, 10)
-        response = requests.post(url=url, params=data, proxies=proxies, timeout=6)
-        if response.status_code == 200:
-            text = json.loads(response.text)
-            db_hs_count = text['result']['dbHsCount']
-            db_ss_count = text['result']['dbSsCount']
-            db_total_count = int(db_hs_count) + int(db_ss_count)
-        else:
-            logger.error(f'请求失败，respones.status={response.status_code}')
-            raise Exception(f'请求失败，respones.status={response.status_code}')
-        logger.info(f'total:{db_total_count}')
         data_title = ['market', 'stock_code', 'stock_name', 'rate', 'stock_group_name']
-        db_total_count = []
         start_dt = datetime.datetime.now()
+
+        db_total_count = []
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             future_list = []
             about_total_page = 1600
@@ -219,13 +216,14 @@ class CollectHandler(BaseHandler):
             end_dt = datetime.datetime.now()
             used_time = (end_dt - start_dt).seconds
 
-            if int(len(total_data_list)) == db_total_count and int(len(total_data_list)) > 0 and db_total_count > 0:
+            if int(len(total_data_list)) > 0:
+                data_status = 1
                 super().data_insert(int(len(total_data_list)), df_result, search_date,
                                     exchange_mt_guaranty_security,
-                                    data_source, start_dt, end_dt, used_time, url)
+                                    data_source, start_dt, end_dt, used_time, url, data_status)
                 logger.info(f'入库信息,共{int(len(total_data_list))}条')
             else:
-                raise Exception(f'采集数据条数{int(len(total_data_list))}与官网数据条数{db_total_count}不一致，采集程序存在抖动，需要重新采集')
+                raise Exception(f'采集数据条数{int(len(total_data_list))}失败，需要重新采集')
 
             message = "ht_securities_collect"
             super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
@@ -255,10 +253,7 @@ class CollectHandler(BaseHandler):
                 hs_data_list = text['result']['dbHs']
                 ss_data_list = text['result']['dbSs']
             except Exception as e:
-                logger.error(e)
-                hs_is_continue = ss_is_continue = False
                 if retry_count > 0:
-                    retry_count = retry_count - 1
                     time.sleep(5)
                     continue
 

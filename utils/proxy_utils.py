@@ -33,25 +33,24 @@ def get_proxies(data_type=1, retry_count=3):
 
     this_method_retry_count = int(proxy_retry_time)
     while this_method_retry_count > 0:
-        try:
-            params = {"appId": app_id, "interfaceId": data_type}
-            response = requests.get(url=get_ip_url, params=params, timeout=3)
-            text = json.loads(response.text)
-            if text['code'] == '-1':
-                return none_proxy
+        params = {"appId": app_id, "interfaceId": data_type}
+        response = requests.get(url=get_ip_url, params=params, timeout=3)
+        if response.status_code != 200:
+            logger.error(f'ip代理服务:{get_ip_url}异常，无法获取代理ip!')
+            raise Exception(f'ip代理服务:{get_ip_url}异常，无法获取代理ip!')
+        text = json.loads(response.text)
+        if text['code'] == '-1':
+            return none_proxy
 
-            data = text['data']
-            ip = data['ip']
-            port = data['port']
-            time.sleep(int(proxy_sleep_time))
-            if check_proxy_ip_valid(ip, port):  # 从java服务拿到ip再校验一次是否可用
-                return create_proxies(ip, port)
-            else:
-                this_method_retry_count = this_method_retry_count - 1
-                time.sleep(int(proxy_sleep_time))
-                continue
-        except Exception as e:
-            pass
+        data = text['data']
+        ip = data['ip']
+        port = data['port']
+        time.sleep(int(proxy_sleep_time))
+        if check_proxy_ip_valid(ip, port):  # 从java服务拿到ip再校验一次是否可用
+            return create_proxies(ip, port)
+        else:
+            this_method_retry_count = this_method_retry_count - 1
+            continue
     return none_proxy
 
 

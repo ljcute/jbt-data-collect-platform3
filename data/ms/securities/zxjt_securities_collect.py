@@ -171,9 +171,10 @@ class CollectHandler(BaseHandler):
             used_time = (end_dt - start_dt).seconds
 
             if df_result is not None:
+                data_status = 1
                 super().data_insert(int(len(data_list)), df_result, actual_date,
                                     exchange_mt_guaranty_and_underlying_security,
-                                    data_source, start_dt, end_dt, used_time, url,
+                                    data_source, start_dt, end_dt, used_time, url, data_status,
                                     save_excel_file_path)
                 logger.info(f'入库信息,共{int(len(data_list))}条')
             else:

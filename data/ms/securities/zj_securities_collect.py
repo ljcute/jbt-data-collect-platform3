@@ -9,11 +9,10 @@ import os
 import sys
 
 import pandas
-
+import pandas as pd
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
-
 
 from utils.exceptions_utils import ProxyTimeOutEx
 from selenium.webdriver.common.by import By
@@ -163,12 +162,18 @@ class CollectHandler(BaseHandler):
         end_dt = datetime.datetime.now()
         used_time = (end_dt - start_dt).seconds
         if int(len(data_list)) == int(len(df_result['data'])):
+            data_status = 1
             super().data_insert(int(len(data_list)), df_result, actual_date,
                                 exchange_mt_financing_underlying_security,
-                                data_source, start_dt, end_dt, used_time, url)
+                                data_source, start_dt, end_dt, used_time, url, data_status)
             logger.info(f'入库信息,共{int(len(data_list))}条')
-        else:
-            raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{int(total)}不一致，采集程序存在抖动，需要重新采集')
+        elif int(len(data_list)) != int(len(df_result['data'])):
+            logger.error(f'采集数据条数{int(len(data_list))}与官网数据条数{int(total)}不一致，采集程序存在抖动，需要重新采集')
+            data_status = 2
+            super().data_insert(int(len(data_list)), df_result, actual_date,
+                                exchange_mt_financing_underlying_security,
+                                data_source, start_dt, end_dt, used_time, url, data_status)
+            logger.info(f'入库信息,共{int(len(data_list))}条')
 
         message = "zj_securities_collect"
         super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
@@ -260,12 +265,18 @@ class CollectHandler(BaseHandler):
         end_dt = datetime.datetime.now()
         used_time = (end_dt - start_dt).seconds
         if int(len(data_list)) == int(len(df_result['data'])):
+            data_stauts = 1
             super().data_insert(int(len(data_list)), df_result, actual_date,
                                 exchange_mt_lending_underlying_security,
-                                data_source, start_dt, end_dt, used_time, url)
+                                data_source, start_dt, end_dt, used_time, url, data_stauts)
             logger.info(f'入库信息,共{int(len(data_list))}条')
-        else:
-            raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{int(total)}不一致，采集程序存在抖动，需要重新采集')
+        elif int(len(data_list)) != int(len(df_result['data'])):
+            logger.error(f'采集数据条数{int(len(data_list))}与官网数据条数{int(total)}不一致，采集程序存在抖动，需要重新采集')
+            data_stauts = 2
+            super().data_insert(int(len(data_list)), df_result, actual_date,
+                                exchange_mt_lending_underlying_security,
+                                data_source, start_dt, end_dt, used_time, url, data_stauts)
+            logger.info(f'入库信息,共{int(len(data_list))}条')
 
         message = "zj_securities_collect"
         super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
@@ -308,12 +319,18 @@ class CollectHandler(BaseHandler):
         end_dt = datetime.datetime.now()
         used_time = (end_dt - start_dt).seconds
         if data_list:
+            data_status = 1
             super().data_insert(int(len(data_list)), df_result, actual_date,
                                 exchange_mt_guaranty_security,
-                                data_source, start_dt, end_dt, used_time, url)
+                                data_source, start_dt, end_dt, used_time, url, data_status)
             logger.info(f'入库信息,共{int(len(data_list))}条')
         else:
-            raise Exception(f'采集数据条数条数为{int(len(data_list))}，需要重新采集')
+            logger.error(f'采集数据条数条数为{int(len(data_list))}，需要重新采集')
+            data_status = 2
+            super().data_insert(int(len(data_list)), df_result, actual_date,
+                                exchange_mt_guaranty_security,
+                                data_source, start_dt, end_dt, used_time, url, data_status)
+            logger.info(f'入库信息,共{int(len(data_list))}条')
 
         message = "zj_securities_collect"
         super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
@@ -460,6 +477,31 @@ class CollectHandler(BaseHandler):
                 row_list = []
             original_data_list.append(row_list)
 
+    # @classmethod
+    # def zj_temp_data(cls):
+    #     url = 'https://www.cicc.com/ciccdata/reportservice/showreportdata.do'
+    #     page = 0
+    #     size = 6500
+    #     param = {'reportId': 'MARGINGROUPINFO', 'pageIndex': page, 'pageSize': size}
+    #     response = requests.get(url, param)
+    #     data_title = ['code', 'lb', 'name', 'type']
+    #     data_list = []
+    #     if response.status_code == 200:
+    #         text = json.loads(response.text)
+    #         total = text['totalCount']
+    #         data = text['data']
+    #         print(data_list)
+    #         for i in data:
+    #             code = i['stkid']
+    #             lb = i['groupid']
+    #             name = i['stkname']
+    #             type = i['stktypename']
+    #             data_list.append((code, lb, name, type))
+    #         print(len(data_list))
+    #         if int(len(data_list)) == int(total) and int(len(data_list)) > 0:
+    #             df = pd.DataFrame(data=data_list, columns=['证券代码', '证券类别', '证券简称', '证券类型'])
+    #             print(df)
+    #             df.to_excel('中金公司-0908.xlsx')
 
 if __name__ == '__main__':
     collector = CollectHandler()

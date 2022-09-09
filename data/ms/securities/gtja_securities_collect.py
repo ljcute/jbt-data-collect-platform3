@@ -106,12 +106,18 @@ class CollectHandler(BaseHandler):
             end_dt = datetime.datetime.now()
             used_time = (end_dt - start_dt).seconds
             if int(len(total_data_list)) == total and int(len(total_data_list)) > 0 and total > 0:
+                data_status = 1
                 super().data_insert(int(len(total_data_list)), df_result, search_date,
                                     exchange_mt_financing_underlying_security,
-                                    data_source, start_dt, end_dt, used_time, url)
+                                    data_source, start_dt, end_dt, used_time, url, data_status)
                 logger.info(f'入库信息,共{int(len(total_data_list))}条')
-            else:
-                raise Exception(f'采集数据条数{int(len(total_data_list))}与官网数据条数{total}不一致，采集程序存在抖动，需要重新采集')
+            elif int(len(total_data_list)) != total:
+                logger.error(f'采集数据条数{int(len(total_data_list))}与官网数据条数{total}不一致，采集程序存在抖动，需要重新采集')
+                data_status = 2
+                super().data_insert(int(len(total_data_list)), df_result, search_date,
+                                    exchange_mt_financing_underlying_security,
+                                    data_source, start_dt, end_dt, used_time, url, data_status)
+                logger.info(f'入库信息,共{int(len(total_data_list))}条')
 
             message = "gtja_securities_collect"
             super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
@@ -204,12 +210,18 @@ class CollectHandler(BaseHandler):
             end_dt = datetime.datetime.now()
             used_time = (end_dt - start_dt).seconds
             if int(len(total_data_list)) == total and int(len(total_data_list)) > 0 and total > 0:
+                data_status = 1
                 super().data_insert(int(len(total_data_list)), df_result, search_date,
                                     exchange_mt_lending_underlying_security,
-                                    data_source, start_dt, end_dt, used_time, url)
+                                    data_source, start_dt, end_dt, used_time, url, data_status)
                 logger.info(f'入库信息,共{int(len(total_data_list))}条')
-            else:
-                raise Exception(f'采集数据条数{int(len(total_data_list))}与官网数据条数{total}不一致，采集程序存在抖动，需要重新采集')
+            elif int(len(total_data_list)) != total:
+                logger.error(f'采集数据条数{int(len(total_data_list))}与官网数据条数{total}不一致，采集程序存在抖动，需要重新采集')
+                data_status = 2
+                super().data_insert(int(len(total_data_list)), df_result, search_date,
+                                    exchange_mt_lending_underlying_security,
+                                    data_source, start_dt, end_dt, used_time, url, data_status)
+                logger.info(f'入库信息,共{int(len(total_data_list))}条')
 
             message = "gtja_securities_collect"
             super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
@@ -302,12 +314,18 @@ class CollectHandler(BaseHandler):
             end_dt = datetime.datetime.now()
             used_time = (end_dt - start_dt).seconds
             if int(len(total_data_list)) == total and int(len(total_data_list)) > 0 and total > 0:
+                data_status = 1
                 super().data_insert(int(len(total_data_list)), df_result, search_date,
                                     exchange_mt_guaranty_security,
-                                    data_source, start_dt, end_dt, used_time, url)
+                                    data_source, start_dt, end_dt, used_time, url, data_status)
                 logger.info(f'入库信息,共{int(len(total_data_list))}条')
-            else:
-                raise Exception(f'采集数据条数{int(len(total_data_list))}与官网数据条数{total}不一致，采集程序存在抖动，需要重新采集')
+            elif int(len(total_data_list)) == total:
+                logger.error(f'采集数据条数{int(len(total_data_list))}与官网数据条数{total}不一致，采集程序存在抖动，需要重新采集')
+                data_status = 2
+                super().data_insert(int(len(total_data_list)), df_result, search_date,
+                                    exchange_mt_guaranty_security,
+                                    data_source, start_dt, end_dt, used_time, url, data_status)
+                logger.info(f'入库信息,共{int(len(total_data_list))}条')
 
             message = "gtja_securities_collect"
             super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),

@@ -89,12 +89,18 @@ class CollectHandler(BaseHandler):
                 end_dt = datetime.datetime.now()
                 used_time = (end_dt - start_dt).seconds
                 if int(len(data_list)) == total_row - 1:
+                    data_status = 1
                     super().data_insert(int(len(data_list)), df_result, actual_date, exchange_mt_underlying_security,
-                                        data_source_szse, start_dt, end_dt, used_time, download_url,
+                                        data_source_szse, start_dt, end_dt, used_time, download_url, data_status,
                                         save_excel_file_path)
                     logger.info(f'入库信息,共{int(len(data_list))}条')
-                else:
-                    raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{total_row - 1}不一致，采集程序存在抖动，需要重新采集')
+                elif int(len(data_list)) != total_row - 1:
+                    logger.error(f'采集数据条数{int(len(data_list))}与官网数据条数{total_row - 1}不一致，采集程序存在抖动，需要重新采集')
+                    data_status = 2
+                    super().data_insert(int(len(data_list)), df_result, actual_date, exchange_mt_underlying_security,
+                                        data_source_szse, start_dt, end_dt, used_time, download_url, data_status,
+                                        save_excel_file_path)
+                    logger.info(f'入库信息,共{int(len(data_list))}条')
 
                 message = "sz_exchange_mt_underlying_security_collect"
                 super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),

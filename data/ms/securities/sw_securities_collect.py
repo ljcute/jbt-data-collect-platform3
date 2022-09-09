@@ -108,13 +108,19 @@ class CollectHandler(BaseHandler):
         df_result = super().data_deal(original_data_list, target_title)
         end_dt = datetime.datetime.now()
         used_time = (end_dt - start_dt).seconds
-        if df_result is not None:
+        if df_result is not None and int(len(original_data_list)) == sc_total:
+            data_status = 1
             super().data_insert(int(len(original_data_list)), df_result, actual_date,
                                 exchange_mt_underlying_security,
-                                data_source, start_dt, end_dt, used_time, url)
+                                data_source, start_dt, end_dt, used_time, url, data_status)
             logger.info(f'入库信息,共{int(len(original_data_list))}条')
-        else:
-            raise Exception(f'采集数据条数{int(len(original_data_list))}，与官网条数{sc_total}不一致，采集程序存在抖动，需要重新采集')
+        elif int(len(original_data_list)) != sc_total:
+            logger.error(f'采集数据条数{int(len(original_data_list))}，与官网条数{sc_total}不一致，采集程序存在抖动，需要重新采集')
+            data_status = 2
+            super().data_insert(int(len(original_data_list)), df_result, actual_date,
+                                exchange_mt_underlying_security,
+                                data_source, start_dt, end_dt, used_time, url, data_status)
+            logger.info(f'入库信息,共{int(len(original_data_list))}条')
 
         message = "sw_securities_collect"
         super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
@@ -193,13 +199,19 @@ class CollectHandler(BaseHandler):
         df_result = super().data_deal(all_data_list, db_title)
         end_dt = datetime.datetime.now()
         used_time = (end_dt - start_dt).seconds
-        if df_result is not None:
+        if df_result is not None and int(len(all_data_list)) == sc_total:
+            data_status = 1
             super().data_insert(int(len(all_data_list)), df_result, actual_date,
                                 exchange_mt_guaranty_security,
-                                data_source, start_dt, end_dt, used_time, url)
+                                data_source, start_dt, end_dt, used_time, url, data_status)
             logger.info(f'入库信息,共{int(len(all_data_list))}条')
-        else:
-            raise Exception(f'采集数据条数{int(len(all_data_list))}，与官网条数{sc_total}不一致，采集程序存在抖动，需要重新采集')
+        elif int(len(all_data_list)) != sc_total:
+            logger.error(f'采集数据条数{int(len(all_data_list))}，与官网条数{sc_total}不一致，采集程序存在抖动，需要重新采集')
+            data_status = 2
+            super().data_insert(int(len(all_data_list)), df_result, actual_date,
+                                exchange_mt_guaranty_security,
+                                data_source, start_dt, end_dt, used_time, url, data_status)
+            logger.info(f'入库信息,共{int(len(all_data_list))}条')
 
         message = "sw_securities_collect"
         super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),

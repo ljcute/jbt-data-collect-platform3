@@ -75,11 +75,20 @@ class CollectHandler(BaseHandler):
                 used_time = (end_dt - start_dt).seconds
                 logger.info(f'开始入库汇总信息,共{int(len(data_list))}条')
                 if int(len(data_list)) == total_row - 17:
+                    data_status = 1
                     super().data_insert(int(len(data_list)), df_result, trade_date, data_type_market_mt_trading_amount,
-                                        data_source_sse, start_dt, end_dt, used_time, download_excel_url,
+                                        data_source_sse, start_dt, end_dt, used_time, download_excel_url, data_status,
                                         save_excel_file_path)
-                else:
-                    raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{total_row - 1}不一致，采集程序存在抖动，需要重新采集')
+                    logger.info(f'入库信息：{int(len(data_list))}条')
+
+                elif int(len(data_list)) != total_row - 17:
+                    logger.error(f'采集数据条数{int(len(data_list))}与官网数据条数{total_row - 17}不一致，采集程序存在抖动，需要重新采集')
+                    data_status = 2
+                    super().data_insert(int(len(data_list)), df_result, trade_date, data_type_market_mt_trading_amount,
+                                        data_source_sse, start_dt, end_dt, used_time, download_excel_url, data_status,
+                                        save_excel_file_path)
+                    logger.info(f'入库信息：{int(len(data_list))}条')
+
                 message = "sh_market_mt_trading_collect"
                 super().kafka_mq_producer(json.dumps(trade_date, cls=ComplexEncoder),
                                           data_type_market_mt_trading_amount, data_source_sse, message)
@@ -90,12 +99,19 @@ class CollectHandler(BaseHandler):
                 used_time_detail = (end_dt_detal - start_dt).seconds
                 logger.info(f'开始入库详细信息,共{int(len(data_list_detail))}条')
                 if int(len(data_list_detail)) == total_row_detail - 1:
+                    data_status = 1
                     super().data_insert(int(len(data_list_detail)), df_result_detail, trade_date,
                                         data_type_market_mt_trading_items, data_source_sse, start_dt, end_dt_detal,
                                         used_time_detail,
-                                        download_excel_url, save_excel_file_path)
-                else:
-                    raise Exception(f'采集数据条数{int(len(data_list_detail))}与官网数据条数{total_row_detail - 1}不一致，采集程序存在抖动，需要重新采集')
+                                        download_excel_url, data_status, save_excel_file_path)
+                elif int(len(data_list_detail)) == total_row_detail - 1:
+                    logger.error(f'采集数据条数{int(len(data_list_detail))}与官网数据条数{total_row_detail - 1}不一致，采集程序存在抖动，需要重新采集')
+                    data_status = 2
+                    super().data_insert(int(len(data_list_detail)), df_result_detail, trade_date,
+                                        data_type_market_mt_trading_items, data_source_sse, start_dt, end_dt_detal,
+                                        used_time_detail,
+                                        download_excel_url, data_status, save_excel_file_path)
+
                 logger.info(f'上交所数据采集结束{datetime.date.today()}')
                 message_1 = "sh_market_mt_trading_collect"
                 super().kafka_mq_producer(json.dumps(trade_date, cls=ComplexEncoder),

@@ -155,12 +155,12 @@ class BaseHandler(object):
 
     @classmethod
     def data_insert(cls, record_num, data_info, date, data_type, data_source, start_dt,
-                    end_dt, used_time, data_url, excel_file_path=None):
+                    end_dt, used_time, data_url, data_status, excel_file_path=None):
         logger.info("开始进行数据入库......")
         try:
             data_deal.insert_data_collect(record_num, json.dumps(data_info, ensure_ascii=False), date, data_type,
                                           data_source, start_dt,
-                                          end_dt, used_time, data_url, excel_file_path)
+                                          end_dt, used_time, data_url, data_status, excel_file_path)
             logger.info("数据入库结束......")
         except Exception as e:
             logger.error(e)
@@ -195,4 +195,4 @@ class BaseHandler(object):
 if __name__ == '__main__':
     s = BaseHandler()
     # s.kafka_mq_producer('20220725', '3', '华泰证券', 'ht_securities_collect')
-    s.kafka_mq_producer('20220905', '4', '国元证券', 'gy_securities_collect')
+    s.kafka_mq_producer('2022-09-08', '2', '上海交易所', 'sh_exchange_mt_underlying_and_guaranty_security')
