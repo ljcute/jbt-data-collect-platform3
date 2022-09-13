@@ -108,15 +108,15 @@ class CollectHandler(BaseHandler):
         logger.info(f'总共采集条数{len(original_data_list)}')
 
         logger.info("采集东方财富证券融资融券标的证券数据结束")
-        df_result = super().data_deal(original_data_list, target_title)
+        df_result = super().data_deal(list(set(original_data_list)), target_title)
         end_dt = datetime.datetime.now()
         used_time = (end_dt - start_dt).seconds
         if df_result is not None:
             data_status = 1
-            super().data_insert(int(len(original_data_list)), df_result, actual_date,
+            super().data_insert(int(len(list(set(original_data_list)))), df_result, actual_date,
                                 exchange_mt_underlying_security,
                                 data_source, start_dt, end_dt, used_time, url, data_status)
-            logger.info(f'入库信息,共{int(len(original_data_list))}条')
+            logger.info(f'入库信息,共{int(len(list(set(original_data_list))))}条')
         else:
             raise Exception(f'采集数据条数为0，需要重新采集')
 
@@ -172,15 +172,15 @@ class CollectHandler(BaseHandler):
         logger.info(f'总共采集条数{len(original_data_list)}')
 
         logger.info("采集东方财富证券可充抵保证金担保券数据结束")
-        df_result = super().data_deal(original_data_list, target_title)
+        df_result = super().data_deal(list(set(original_data_list)), target_title)
         end_dt = datetime.datetime.now()
         used_time = (end_dt - start_dt).seconds
         if df_result is not None:
             data_status = 1
-            super().data_insert(int(len(original_data_list)), df_result, actual_date,
+            super().data_insert(int(len(list(set(original_data_list)))), df_result, actual_date,
                                 exchange_mt_guaranty_security,
                                 data_source, start_dt, end_dt, used_time, url, data_status)
-            logger.info(f'入库信息,共{int(len(original_data_list))}条')
+            logger.info(f'入库信息,共{int(len(list(set(original_data_list))))}条')
         else:
             raise Exception(f'采集数据条数为0，需要重新采集')
 
