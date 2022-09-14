@@ -61,8 +61,8 @@ class CollectHandler(BaseHandler):
                 download_excel_url = download_excel_url.replace(download_excel_url.split('/')[-1], replace_str)
                 proxies = super().get_proxies()
                 response = super().get_response(download_excel_url, proxies, 0)
-                if response is None:
-                    raise Exception(f'请求失败，无当前交易日{trade_date}数据')
+                if response is None or response.status_code != 200:
+                    raise Exception(f'请求失败，无成功请求响应，采集总记录数未知。。。上海交易所无当前交易日{trade_date}数据')
                 download_excel(response, actual_date)
                 logger.info("excel下载完成，开始处理excel")
                 excel_file = xlrd2.open_workbook(excel_file_path, encoding_override="utf-8")

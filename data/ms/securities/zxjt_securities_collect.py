@@ -103,6 +103,9 @@ class CollectHandler(BaseHandler):
                 excel_download_url = tag_a['onclick'][13:-2]
                 if "标的证券名单及保证金比例" in excel_download_url:
                     response = requests.get(excel_download_url)
+                    if response is None or response.status_code != 200:
+                        logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+                        raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
                     with open(target_file_path, 'wb') as file:
                         file.write(response.content)  # 写excel到当前目录
                         excel_file = xlrd2.open_workbook(target_file_path)
@@ -110,12 +113,18 @@ class CollectHandler(BaseHandler):
 
                 elif "可充抵保证金证券名单及折算率" in excel_download_url:
                     response = requests.get(excel_download_url)
+                    if response is None or response.status_code != 200:
+                        logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+                        raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
                     with open(guaranty_file_path, 'wb') as file:
                         file.write(response.content)  # 写excel到当前目录
                         excel_file = xlrd2.open_workbook(guaranty_file_path)
                         guaranty_collect(excel_file)
                 elif "可充抵保证金证券及标的证券" in excel_download_url:  # 20220323 中信建投网站3种券合成一个excel文件了
                     response = requests.get(excel_download_url)
+                    if response is None or response.status_code != 200:
+                        logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+                        raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
                     with open(all_file_path, 'wb') as file:
                         logger.info("开始处理下载excel")
                         file.write(response.content)  # 写excel到当前目录

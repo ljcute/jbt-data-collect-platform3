@@ -64,7 +64,7 @@ class CollectHandler(BaseHandler):
                 pass
             except Exception as e:
                 time.sleep(3)
-                logger.error(e)
+                # logger.error(e)
 
                 max_retry += 1
 
@@ -104,6 +104,8 @@ class CollectHandler(BaseHandler):
         title_list = ['jrrzye', 'jrrjye', 'jrrzrjye', 'jrrzmr', 'jrrjmc', 'jrrjyl']
         start_dt = datetime.datetime.now()
         response = super().get_response(url, proxies, 0, headers, params)
+        if response is None or response.status_code != 200:
+            raise Exception(f'请求失败，无成功请求响应，采集总记录数未知。。。深圳交易所今日数据采集失败')
         data_list, total = cls.total_deal(response, trade_date)
         logger.info(f'data_list:{data_list}')
         df_result = super().data_deal(data_list, title_list)

@@ -55,7 +55,7 @@ class CollectHandler(BaseHandler):
                 pass
             except Exception as e:
                 time.sleep(3)
-                logger.error(e)
+                # logger.error(e)
 
             max_retry += 1
 
@@ -76,7 +76,8 @@ class CollectHandler(BaseHandler):
                       "_": get_timestamp()}
             response = super().get_response(url, proxies, 0, cc_headers, params)
             if response is None or response.status_code != 200:
-                logger.error(f'请求失败！{response}')
+                logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+                raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
             text = json.loads(response.text)
             logger.info("开始处理融资标的券数据")
             row_list = text['rows']
@@ -140,7 +141,8 @@ class CollectHandler(BaseHandler):
                       "_": get_timestamp()}
             response = super().get_response(url, proxies, 0, cc_headers, params)
             if response is None or response.status_code != 200:
-                logger.error(f'请求失败！{response}')
+                logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+                raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
             text = json.loads(response.text)
             row_list = text['rows']
             total = 0
@@ -203,7 +205,8 @@ class CollectHandler(BaseHandler):
                       "_": get_timestamp()}
             response = super().get_response(url, proxies, 0, cc_headers, params)
             if response is None or response.status_code != 200:
-                logger.error(f'请求失败！{response}')
+                logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+                raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
             text = json.loads(response.text)
             row_list = text['rows']
             total = 0

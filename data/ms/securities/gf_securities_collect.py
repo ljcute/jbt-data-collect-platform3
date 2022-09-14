@@ -83,6 +83,9 @@ class CollectHandler(BaseHandler):
             params = {"pageSize": page_size, "pageNum": page, "type": 'fin', 'dir': 'asc', 'init_date': search_date,
                       'sort': 'init_date', 'key': None}
             response = super().get_response(url, proxies, 0, get_headers(), params)
+            if response is None or response.status_code != 200:
+                logger.error(f'{data_source}请求失败,第{page}页无成功请求响应，采集总记录数未知。。。')
+                raise Exception(f'{data_source}请求失败,第{page}页无成功请求响应，采集总记录数未知。。。')
             if response.status_code == 200:
                 text = json.loads(response.text)
                 total = text['count']
@@ -153,6 +156,9 @@ class CollectHandler(BaseHandler):
             params = {"pageSize": page_size, "pageNum": page, "type": 'slo', 'dir': 'asc', 'init_date': search_date,
                       'sort': 'init_date', 'key': None}
             response = super().get_response(url, proxies, 0, get_headers(), params)
+            if response is None or response.status_code != 200:
+                logger.error(f'{data_source}请求失败,第{page}页无成功请求响应，采集总记录数未知。。。')
+                raise Exception(f'{data_source}请求失败,第{page}页无成功请求响应，采集总记录数未知。。。')
             if response.status_code == 200:
                 text = json.loads(response.text)
                 total = text['count']
@@ -223,6 +229,9 @@ class CollectHandler(BaseHandler):
             params = {"pageSize": page_size, "pageNum": page, 'dir': 'asc', 'init_date': search_date,
                       'sort': 'init_date', 'key': None}
             response = super().get_response(url, proxies, 0, get_headers(), params)
+            if response is None or response.status_code != 200:
+                logger.error(f'{data_source}请求失败,第{page}页无成功请求响应，采集总记录数未知。。。')
+                raise Exception(f'{data_source}请求失败,第{page}页无成功请求响应，采集总记录数未知。。。')
             if response.status_code == 200:
                 text = json.loads(response.text)
                 total = text['count']

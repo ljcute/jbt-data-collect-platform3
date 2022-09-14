@@ -56,7 +56,7 @@ class CollectHandler(BaseHandler):
                 pass
             except Exception as e:
                 time.sleep(3)
-                logger.error(e)
+                # logger.error(e)
 
             max_retry += 1
 
@@ -68,6 +68,9 @@ class CollectHandler(BaseHandler):
         start_dt = datetime.datetime.now()
         proxies = get_proxies(3, 10)
         response = requests.post(url=url, params=data, proxies=proxies, timeout=6)
+        if response is None or response.status_code != 200:
+            logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+            raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
         db_total_count = None
         if response.status_code == 200:
             text = json.loads(response.text)
@@ -143,6 +146,9 @@ class CollectHandler(BaseHandler):
             try:
                 proxies = get_proxies(3, 10)
                 response = requests.post(url=url, params=data, proxies=proxies, timeout=6)
+                if response is None or response.status_code != 200:
+                    logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+                    raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
                 text = json.loads(response.text)
                 hs_data_list = text['result']['bdHs']
                 ss_data_list = text['result']['bdSs']
@@ -249,6 +255,9 @@ class CollectHandler(BaseHandler):
             try:
                 proxies = get_proxies(3, 10)
                 response = requests.post(url=url, params=params, proxies=proxies, timeout=6)
+                if response is None or response.status_code != 200:
+                    logger.error(f'{data_source}请求失败,第{hs_page}页无成功请求响应，采集总记录数未知。。。')
+                    raise Exception(f'{data_source}请求失败,第{hs_page}页无成功请求响应，采集总记录数未知。。。')
                 text = json.loads(response.text)
                 hs_data_list = text['result']['dbHs']
                 ss_data_list = text['result']['dbSs']

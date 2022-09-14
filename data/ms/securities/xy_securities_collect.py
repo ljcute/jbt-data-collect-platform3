@@ -68,7 +68,7 @@ class CollectHandler(BaseHandler):
                 pass
             except Exception as e:
                 time.sleep(3)
-                logger.error(e)
+                # logger.error(e)
 
             max_retry += 1
 
@@ -82,6 +82,9 @@ class CollectHandler(BaseHandler):
         try:
             proxies = super().get_proxies()
             response = super().get_response(excel_one_download_url, proxies, 0)
+            if response is None or response.status_code != 200:
+                logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+                raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
             if response.status_code == 200:
                 with open(target_file_path, 'wb') as file:
                     file.write(response.content)
@@ -150,6 +153,9 @@ class CollectHandler(BaseHandler):
         try:
             proxies = super().get_proxies()
             response = super().get_response(excel_two_download_url, proxies, 0)
+            if response is None or response.status_code != 200:
+                logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+                raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
             if response.status_code == 200:
                 with open(guaranty_file_path, 'wb') as file:
                     file.write(response.content)

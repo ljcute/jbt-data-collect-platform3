@@ -80,6 +80,8 @@ class CollectHandler(BaseHandler):
 
                 start_dt = datetime.datetime.now()
                 response = super().get_response(download_url, proxies, 0, headers, params)
+                if response is None or response.status_code != 200:
+                    raise Exception(f'请求失败，无成功请求响应，采集总记录数未知。。。深圳交易所今日数据采集失败')
                 logger.info("开始下载excel")
                 cls.download_excel(response)
                 logger.info("excel下载完成")

@@ -76,6 +76,9 @@ class CollectHandler(BaseHandler):
         data_title = ['stock_name', 'stock_code', 'rz_rate', 'market']
         proxies = super().get_proxies()
         response = session.post(url=url, data=data, headers=get_headers(), proxies=proxies)
+        if response is None or response.status_code != 200:
+            logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+            raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
         if response.status_code == 200:
             text = json.loads(response.text)
             all_data_list = text['results']
@@ -130,6 +133,9 @@ class CollectHandler(BaseHandler):
         data_title = ['stock_name', 'stock_code', 'rq_rate', 'market']
         proxies = super().get_proxies()
         response = session.post(url=url, data=data, headers=get_headers(), proxies=proxies)
+        if response is None or response.status_code != 200:
+            logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+            raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
         if response.status_code == 200:
             text = json.loads(response.text)
             all_data_list = text['results']
@@ -183,6 +189,9 @@ class CollectHandler(BaseHandler):
         data_title = ['stock_name', 'stock_code', 'exchange_rate', 'market']
         proxies = super().get_proxies()
         response = session.post(url=url, data=data, headers=get_headers(), proxies=proxies)
+        if response is None or response.status_code != 200:
+            logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+            raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
         if response.status_code == 200:
             text = json.loads(response.text)
             all_data_list = text['results']

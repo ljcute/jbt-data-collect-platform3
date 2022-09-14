@@ -53,7 +53,7 @@ class CollectHandler(BaseHandler):
                 pass
             except Exception as e:
                 time.sleep(3)
-                logger.error(e)
+                # logger.error(e)
 
             max_retry += 1
 
@@ -66,6 +66,9 @@ class CollectHandler(BaseHandler):
         target_title = ['market', 'stock_code', 'stock_name', 'rz_rate', 'rq_rate']
         proxies = super().get_proxies()
         response = super().get_response(url, proxies, 0, get_headers(), params)
+        if response is None or response.status_code != 200:
+            logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+            raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
         if response.status_code == 200:
             start_dt = datetime.datetime.now()
             text = json.loads(response.text)
@@ -120,6 +123,9 @@ class CollectHandler(BaseHandler):
         target_title = ['market', 'stock_code', 'stock_name', 'discount_rate']
         proxies = super().get_proxies()
         response = super().get_response(url, proxies, 0, get_headers(), params)
+        if response is None or response.status_code != 200:
+            logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+            raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
         if response.status_code == 200:
             start_dt = datetime.datetime.now()
             text = json.loads(response.text)

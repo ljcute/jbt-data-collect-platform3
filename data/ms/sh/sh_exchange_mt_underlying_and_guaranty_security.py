@@ -118,6 +118,9 @@ class CollectHandler(BaseHandler):
                   actual_date, log_message):
         start_dt = datetime.datetime.now()
         response = super().get_response(url, proxies, 0, headers)
+        if response is None or response.status_code != 200:
+            logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+            raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
         download_excel(response, excel_path, save_excel_path, actual_date)
         logger.info(f'{log_message}开始采集')
         excel_file = xlrd2.open_workbook(excel_path, encoding_override="utf-8")
