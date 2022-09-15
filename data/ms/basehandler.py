@@ -68,19 +68,16 @@ class BaseHandler(object):
         """
         use_proxy ==1 表示使用代理 ==0 表示不使用代理
         """
-        try:
-            if int(use_proxy) == 1:
-                logger.info("开始获取代理ip")
-                proxies = get_proxies()
-                logger.info(f'获取代理ip结束,proxies:{proxies}')
-                return proxies
-            elif int(use_proxy) == 0:
-                logger.info("此次数据采集不使用代理！")
-                return None
-            else:
-                raise Exception("use_proxy参数有误，请检查")
-        except Exception as e:
-            logger.error(f'获取代理ip异常，具体异常信息为：{e}')
+        if int(use_proxy) == 1:
+            logger.info("开始获取代理ip")
+            proxies = get_proxies()
+            logger.info(f'获取代理ip结束,proxies:{proxies}')
+            return proxies
+        elif int(use_proxy) == 0:
+            logger.info("此次数据采集不使用代理！")
+            return None
+        else:
+            raise Exception("use_proxy参数有误，请检查")
 
     @classmethod
     def parsing(cls, response, driver):

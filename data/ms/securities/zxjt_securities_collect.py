@@ -105,7 +105,6 @@ class CollectHandler(BaseHandler):
             rq_flag = '-' if i['stkctrlflag'] is None else i['stkctrlflag']
             target_list.append((sec_code, market, sec_name, bzj_type, bzj_rate, rz_rate, rq_rate, rz_flag, rq_flag))
 
-        print(target_list)
         logger.info(f'采集中信建投数据结束共{int(len(target_list))}条')
         df_result = super().data_deal(target_list, target_title)
         end_dt = datetime.datetime.now()
