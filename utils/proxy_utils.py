@@ -36,7 +36,6 @@ def get_proxies(data_type=1, retry_count=3):
         params = {"appId": app_id, "interfaceId": data_type}
         response = requests.get(url=get_ip_url, params=params, timeout=3)
         if response.status_code != 200:
-            logger.error(f'ip代理服务:{get_ip_url}异常，无法获取代理ip!')
             raise Exception(f'ip代理服务:{get_ip_url}异常，无法获取代理ip!')
         text = json.loads(response.text)
         if text['code'] == '-1':
@@ -66,6 +65,7 @@ def create_proxies(ip, port):
         "http": proxy_meta,
         "https": proxy_meta
     }
+    logger.info(f'获取到的可用ip为:{proxies}')
     return proxies
 
 

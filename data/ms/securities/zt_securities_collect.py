@@ -55,7 +55,7 @@ class CollectHandler(BaseHandler):
                 pass
             except Exception as e:
                 time.sleep(3)
-                # logger.error(e)
+                logger.error(e)
 
             max_retry += 1
 
@@ -73,74 +73,69 @@ class CollectHandler(BaseHandler):
         headers['Referer'] = 'https://www.95538.cn/rzrq/rzrq1.aspx?action=GetEarnestmoneyNoticesPager&tab=3&keyword='
         start_dt = datetime.datetime.now()
         proxies = super().get_proxies()
-        response = super().get_response(url, proxies, 0, headers, params)
+        response = super().get_response(data_source, url, proxies, 0, headers, params)
         # 请求失败。重试三次
         retry_count = 3
         if response is None:
             while retry_count > 0:
-                response = super().get_response(url, proxies, 0, headers, params)
+                response = super().get_response(data_source, url, proxies, 0, headers, params)
                 if response is not None:
                     break
                 else:
                     retry_count = retry_count - 1
                     continue
+        if response is None or response.status_code != 200:
+            raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params},具体采集数目未知')
 
-        if response.status_code == 200:
-            text = json.loads(response.text)
-            total = int(text['PageTotal'])
-            for curr_page in range(1, total + 1):
-                logger.info(f'当前为第{curr_page}页')
-                params = {"action": "GetBdstockNoticesPager", "pageindex": curr_page,
-                          "date": date_to_stamp(search_date)}
-                response = super().get_response(url, proxies, 0, headers, params)
-                if response is None or response.status_code != 200:
-                    logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
-                    raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
-                if response.status_code == 200:
-                    text = json.loads(response.text)
-                    all_data_list = text['Items']
-                    if all_data_list:
-                        for i in all_data_list:
-                            stock_code = i['STOCK_CODE']
-                            stock_name = i['STOCK_NAME']
-                            rz_rate = i['FUND_RATIOS']
-                            rq_rate = i['STOCK_RATIOS']
-                            status = i['STOCK_STATE']
-                            date = search_date
-                            note = i['NOTE']
-                            data_list.append((stock_code, stock_name, rz_rate, rq_rate, status, date, note))
-                            logger.info(f'已采集数据条数为：{int(len(data_list))}')
-                else:
-                    logger.error(f'请求失败，respones.status={response.status_code}')
-                    raise Exception(f'请求失败，respones.status={response.status_code}')
+        text = json.loads(response.text)
+        total = int(text['PageTotal'])
+        for curr_page in range(1, total + 1):
+            logger.info(f'当前为第{curr_page}页')
+            params = {"action": "GetBdstockNoticesPager", "pageindex": curr_page,
+                      "date": date_to_stamp(search_date)}
+            response = super().get_response(data_source, url, proxies, 0, headers, params)
+            if response.status_code == 200:
+                text = json.loads(response.text)
+                all_data_list = text['Items']
+                if all_data_list:
+                    for i in all_data_list:
+                        stock_code = i['STOCK_CODE']
+                        stock_name = i['STOCK_NAME']
+                        rz_rate = i['FUND_RATIOS']
+                        rq_rate = i['STOCK_RATIOS']
+                        status = i['STOCK_STATE']
+                        date = search_date
+                        note = i['NOTE']
+                        data_list.append((stock_code, stock_name, rz_rate, rq_rate, status, date, note))
+                        logger.info(f'已采集数据条数为：{int(len(data_list))}')
+            else:
+                logger.error(f'请求失败，respones.status={response.status_code}')
+                raise Exception(f'请求失败，respones.status={response.status_code}')
 
-            logger.info(f'采集中泰证券标的证券数据共{int(len(data_list))}条')
-            df_result = super().data_deal(data_list, data_title)
-            end_dt = datetime.datetime.now()
-            used_time = (end_dt - start_dt).seconds
-            if int(len(data_list)) == int(len(df_result['data'])) and int(len(data_list)) > 0 and int(
-                    len(df_result['data'])) > 0:
-                data_status = 1
-                super().data_insert(int(len(data_list)), df_result, search_date,
-                                    exchange_mt_underlying_security,
-                                    data_source, start_dt, end_dt, used_time, url, data_status)
-                logger.info(f'入库信息,共{int(len(data_list))}条')
-            elif int(len(data_list)) != int(len(df_result['data'])):
-                logger.error(f'采集数据条数{int(len(data_list))}与官网数据条数{total}不一致，采集程序存在抖动，需要重新采集')
-                data_status = 2
-                super().data_insert(int(len(data_list)), df_result, search_date,
-                                    exchange_mt_underlying_security,
-                                    data_source, start_dt, end_dt, used_time, url, data_status)
-                logger.info(f'入库信息,共{int(len(data_list))}条')
+        logger.info(f'采集中泰证券标的证券数据共{int(len(data_list))}条')
+        df_result = super().data_deal(data_list, data_title)
+        end_dt = datetime.datetime.now()
+        used_time = (end_dt - start_dt).seconds
+        if int(len(data_list)) == int(len(df_result['data'])) and int(len(data_list)) > 0 and int(
+                len(df_result['data'])) > 0:
+            data_status = 1
+            super().data_insert(int(len(data_list)), df_result, search_date,
+                                exchange_mt_underlying_security,
+                                data_source, start_dt, end_dt, used_time, url, data_status)
+            logger.info(f'入库信息,共{int(len(data_list))}条')
+        elif int(len(data_list)) != int(len(df_result['data'])):
+            logger.error(f'采集数据条数{int(len(data_list))}与官网数据条数{total}不一致，采集程序存在抖动，需要重新采集')
+            data_status = 2
+            super().data_insert(int(len(data_list)), df_result, search_date,
+                                exchange_mt_underlying_security,
+                                data_source, start_dt, end_dt, used_time, url, data_status)
+            logger.info(f'入库信息,共{int(len(data_list))}条')
 
-            message = "zt_securities_collect"
-            super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
-                                      exchange_mt_underlying_security, data_source, message)
+        message = "zt_securities_collect"
+        super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
+                                  exchange_mt_underlying_security, data_source, message)
 
-            logger.info("中泰证券标的证券数据采集完成")
-        else:
-            logger.error(f'请求失败，respones.status={response.status_code}')
-            raise Exception(f'请求失败，respones.status={response.status_code}')
+        logger.info("中泰证券标的证券数据采集完成")
 
     @classmethod
     def guaranty_collect(cls, search_date):
@@ -214,10 +209,9 @@ class CollectHandler(BaseHandler):
             headers['Referer'] = 'https://www.95538.cn/rzrq/rzrq1.aspx?action=GetEarnestmoneyNoticesPager&tab=3&keyword='
 
             try:
-                response = super().get_response(url, proxies, 0, headers, params)
+                response = super().get_response(data_source, url, proxies, 0, headers, params)
                 if response is None or response.status_code != 200:
-                    logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
-                    raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+                    raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params},具体采集数目未知')
                 text = json.loads(response.text)
                 all_data_list = text['Items']
             except Exception as e:

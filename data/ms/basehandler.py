@@ -68,21 +68,19 @@ class BaseHandler(object):
         """
         use_proxy ==1 表示使用代理 ==0 表示不使用代理
         """
-        if int(use_proxy) == 1:
-            logger.info("开始获取代理ip......")
-            proxies = get_proxies()
-            if proxies['http'] is None and proxies['https'] is None:
-                logger.error("无可用代理ip，停止采集")
-                raise Exception("无可用代理ip，停止采集")
-            else:
-                logger.info("==================获取代理ip成功!====================")
+        try:
+            if int(use_proxy) == 1:
+                logger.info("开始获取代理ip")
+                proxies = get_proxies()
+                logger.info(f'获取代理ip结束,proxies:{proxies}')
                 return proxies
-        elif int(use_proxy) == 0:
-            logger.info("此次数据采集不使用代理！")
-            return None
-        else:
-            logger.error("use_proxy参数有误，请检查")
-            raise Exception("use_proxy参数有误，请检查")
+            elif int(use_proxy) == 0:
+                logger.info("此次数据采集不使用代理！")
+                return None
+            else:
+                raise Exception("use_proxy参数有误，请检查")
+        except Exception as e:
+            logger.error(f'获取代理ip异常，具体异常信息为：{e}')
 
     @classmethod
     def parsing(cls, response, driver):
@@ -90,7 +88,7 @@ class BaseHandler(object):
         pass
 
     @classmethod
-    def get_response(cls, url, proxies, request_type, headers=None, params=None, data=None, allow_redirects=None):
+    def get_response(cls, data_source, url, proxies, request_type, headers=None, params=None, data=None, allow_redirects=None):
         # logger.info("开始获取网页请求......")
         try:
             response = None
@@ -103,39 +101,32 @@ class BaseHandler(object):
                 logger.error("request_type参数有误！")
             return response if response.status_code == 200 else None
         except Exception as e:
-            logger.error(e)
+            logger.error(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params,data},具体异常信息为:{e}')
 
     @classmethod
     def get_driver(cls):
         logger.info("开始获取webdriver......")
-        try:
-            if int(use_proxy) == 1:
-                proxies = get_proxies()
-                if proxies['http'] is None and proxies['https'] is None:
-                    logger.error("无可用代理ip，停止采集")
-                    raise Exception("无可用代理ip，停止采集")
-                else:
-                    logger.info("==================获取代理ip成功!====================")
-                    proxy = proxies
-                    if proxy is not None:
-                        proxy = proxy['http']
-                    options = webdriver.FirefoxOptions()
-                    options.add_argument("--headless")
-                    options.add_argument("--proxy-server={}".format(proxy))
-                    driver = webdriver.Firefox(options=options)
-                    driver.implicitly_wait(10)
-                    logger.info("==================webdriver走代理ip成功!====================")
-                    return driver
-            elif int(use_proxy) == 0:
-                logger.info("此次数据采集不使用代理！")
-                raise Exception("此次数据采集不使用代理,获取driver失败")
+        if int(use_proxy) == 1:
+            proxies = get_proxies()
+            if proxies['http'] is None and proxies['https'] is None:
+                logger.error("无可用代理ip，停止采集")
+                raise Exception("无可用代理ip，停止采集")
             else:
-                logger.error("use_proxy参数有误，请检查")
-                raise Exception("use_proxy参数有误，请检查")
-        except ProxyTimeOutEx as es:
-            pass
-        except Exception as e:
-            logger.error(e)
+                logger.info("==================获取代理ip成功!====================")
+                proxy = proxies
+                if proxy is not None:
+                    proxy = proxy['http']
+                options = webdriver.FirefoxOptions()
+                options.add_argument("--headless")
+                options.add_argument("--proxy-server={}".format(proxy))
+                driver = webdriver.Firefox(options=options)
+                driver.implicitly_wait(10)
+                logger.info("==================webdriver走代理ip成功!====================")
+                return driver
+        elif int(use_proxy) == 0:
+            raise Exception("此次数据采集不使用代理,获取driver失败")
+        else:
+            raise Exception("use_proxy参数有误，请检查")
 
     @classmethod
     def data_deal(cls, data_list, title_list):
@@ -148,22 +139,15 @@ class BaseHandler(object):
                 return df_result
         else:
             raise Exception('参数data_list,title_list为空，请检查')
-        # try:
-        #
-        # except Exception as e:
-        #     logger.error(e)
 
     @classmethod
     def data_insert(cls, record_num, data_info, date, data_type, data_source, start_dt,
                     end_dt, used_time, data_url, data_status, excel_file_path=None):
         logger.info("开始进行数据入库......")
-        try:
-            data_deal.insert_data_collect(record_num, json.dumps(data_info, ensure_ascii=False), date, data_type,
-                                          data_source, start_dt,
-                                          end_dt, used_time, data_url, data_status, excel_file_path)
-            logger.info("数据入库结束......")
-        except Exception as e:
-            logger.error(e)
+        data_deal.insert_data_collect(record_num, json.dumps(data_info, ensure_ascii=False), date, data_type,
+                                      data_source, start_dt,
+                                      end_dt, used_time, data_url, data_status, excel_file_path)
+        logger.info("数据入库结束......")
 
     @classmethod
     def kafka_mq_producer(cls, biz_dt, data_type, data_source, message):
@@ -182,17 +166,12 @@ class BaseHandler(object):
         }
 
         future = producer.send(topic, value=str(msg), key=msg['user_id'], partition=0)
-        print(f'send{str(msg)}')
-        try:
-            record_metadata = future.get(timeout=30)
-            logger.info(f'topic partition:{record_metadata.partition}')
-            logger.info("发送mq消息结束......")
-        except kafka_errors as e:
-            logger.error(e)
-            traceback.format_exc()
+        record_metadata = future.get(timeout=30)
+        logger.info(f'topic partition:{record_metadata.partition}')
+        logger.info("发送mq消息结束......")
 
 
 if __name__ == '__main__':
     s = BaseHandler()
     # s.kafka_mq_producer('20220725', '3', '华泰证券', 'ht_securities_collect')
-    s.kafka_mq_producer('2022-09-08', '2', '上海交易所', 'sh_exchange_mt_underlying_and_guaranty_security')
+    s.kafka_mq_producer('2022-09-15', '99', '中信建投', 'zxjt_securities_collect')

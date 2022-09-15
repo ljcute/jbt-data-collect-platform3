@@ -69,10 +69,9 @@ class CollectHandler(BaseHandler):
         params = {"pageSize": page_size, "pageNum": 1, "rqbdflag": 1}  # rqbdflag = 1融资
         start_dt = datetime.datetime.now()
         proxies = super().get_proxies()
-        response = super().get_response(url, proxies, 0, get_headers(), params)
+        response = super().get_response(data_source, url, proxies, 0, get_headers(), params)
         if response is None or response.status_code != 200:
-            logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
-            raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+            raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params},具体采集数目未知')
         text = json.loads(response.text)
         total = text['body']['totalNum']
         data_list = text['body']['stocks']
@@ -118,10 +117,9 @@ class CollectHandler(BaseHandler):
         params = {"pageSize": page_size, "pageNum": 1, "rqbdflag": 2}  # rqbdflag = 1融资,2融券
         start_dt = datetime.datetime.now()
         proxies = super().get_proxies()
-        response = super().get_response(url, proxies, 0, get_headers(), params)
+        response = super().get_response(data_source, url, proxies, 0, get_headers(), params)
         if response is None or response.status_code != 200:
-            logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
-            raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+            raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params},具体采集数目未知')
         text = json.loads(response.text)
         total = text['body']['totalNum']
         data_list = text['body']['stocks']
@@ -169,10 +167,9 @@ class CollectHandler(BaseHandler):
         params = {"pageSize": page_size, "pageNum": 1}
         start_dt = datetime.datetime.now()
         proxies = super().get_proxies()
-        response = super().get_response(url, proxies, 0, get_headers(), params)
+        response = super().get_response(data_source, url, proxies, 0, get_headers(), params)
         if response is None or response.status_code != 200:
-            logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
-            raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+            raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params},具体采集数目未知')
         text = json.loads(response.text)
         total = text['body']['totalNum']
         data_list = text['body']['stocks']
