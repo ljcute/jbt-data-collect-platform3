@@ -55,7 +55,7 @@ class CollectHandler(BaseHandler):
                 pass
             except Exception as e:
                 time.sleep(3)
-                logger.error(e)
+                # logger.error(e)
 
             max_retry += 1
 
@@ -63,7 +63,7 @@ class CollectHandler(BaseHandler):
     def target_collect(cls):
         actual_date = datetime.date.today()
         logger.info(f'开始采集申万宏源标的券数据{actual_date}')
-        driver = super().get_driver()
+        driver = super().get_driver(data_source)
         # 标的券
         start_dt = datetime.datetime.now()
         url = 'https://www.swhysc.com/swhysc/financial/marginTradingList?channel=00010017000300020001&listId=2'
@@ -149,7 +149,7 @@ class CollectHandler(BaseHandler):
     def guaranty_collect(cls):
         actual_date = datetime.date.today()
         logger.info(f'开始采集申万宏源担保券券数据{actual_date}')
-        driver = super().get_driver()
+        driver = super().get_driver(data_source)
         # 担保券（可充抵保证金）
         start_dt = datetime.datetime.now()
         url = 'https://www.swhysc.com/swhysc/financial/marginTradingList?channel=00010017000300020001&listId=1'

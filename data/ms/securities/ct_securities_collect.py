@@ -55,7 +55,7 @@ class CollectHandler(BaseHandler):
                 pass
             except Exception as e:
                 time.sleep(3)
-                # logger.error(e)
+                logger.error(e)
 
             max_retry += 1
 
@@ -89,10 +89,9 @@ class CollectHandler(BaseHandler):
         }
         start_dt = datetime.datetime.now()
         proxies = super().get_proxies()
-        response = super().get_response(url, proxies, 1, headers, None, data)
+        response = super().get_response(data_source, url, proxies, 1, headers, None, data)
         if response is None or response.status_code != 200:
-            logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
-            raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+            raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{data}')
         data_list = []
         data_title = ['sec_code', 'sec_name', 'rz_rate', 'rq_rate', 'market']
         if response.status_code == 200:
@@ -163,10 +162,9 @@ class CollectHandler(BaseHandler):
         }
         start_dt = datetime.datetime.now()
         proxies = super().get_proxies()
-        response = super().get_response(url, proxies, 1, headers, None, data)
+        response = super().get_response(data_source, url, proxies, 1, headers, None, data)
         if response is None or response.status_code != 200:
-            logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
-            raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+            raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{data}')
         data_list = []
         data_title = ['sec_code', 'sec_name', 'discount_rate', 'stock_group_name', 'stock_type', 'market']
         if response.status_code == 200:

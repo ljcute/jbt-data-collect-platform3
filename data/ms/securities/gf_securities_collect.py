@@ -82,19 +82,15 @@ class CollectHandler(BaseHandler):
         while is_continue:
             params = {"pageSize": page_size, "pageNum": page, "type": 'fin', 'dir': 'asc', 'init_date': search_date,
                       'sort': 'init_date', 'key': None}
-            response = super().get_response(url, proxies, 0, get_headers(), params)
+            response = super().get_response(data_source, url, proxies, 0, get_headers(), params)
             if response is None or response.status_code != 200:
-                logger.error(f'{data_source}请求失败,第{page}页无成功请求响应，采集总记录数未知。。。')
-                raise Exception(f'{data_source}请求失败,第{page}页无成功请求响应，采集总记录数未知。。。')
+                raise Exception(f'{data_source}数据采集任务请求响应获取异常,第{page}页无成功请求响应，采集记录数未知,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
             if response.status_code == 200:
                 text = json.loads(response.text)
                 total = text['count']
                 result = text['result']
                 soup = BeautifulSoup(result, 'html.parser')
                 dom_td_list = soup.select('td')
-            else:
-                logger.error(f'请求失败，respones.status={response.status_code}')
-                raise Exception(f'请求失败，respones.status={response.status_code}')
 
             if total is not None and type(total) is not str and total > page * page_size:
                 is_continue = True
@@ -155,19 +151,15 @@ class CollectHandler(BaseHandler):
         while is_continue:
             params = {"pageSize": page_size, "pageNum": page, "type": 'slo', 'dir': 'asc', 'init_date': search_date,
                       'sort': 'init_date', 'key': None}
-            response = super().get_response(url, proxies, 0, get_headers(), params)
+            response = super().get_response(data_source, url, proxies, 0, get_headers(), params)
             if response is None or response.status_code != 200:
-                logger.error(f'{data_source}请求失败,第{page}页无成功请求响应，采集总记录数未知。。。')
-                raise Exception(f'{data_source}请求失败,第{page}页无成功请求响应，采集总记录数未知。。。')
+                raise Exception(f'{data_source}数据采集任务请求响应获取异常,第{page}页无成功请求响应，采集记录数未知,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
             if response.status_code == 200:
                 text = json.loads(response.text)
                 total = text['count']
                 result = text['result']
                 soup = BeautifulSoup(result, 'html.parser')
                 dom_td_list = soup.select('td')
-            else:
-                logger.error(f'请求失败，respones.status={response.status_code}')
-                raise Exception(f'请求失败，respones.status={response.status_code}')
 
             if total is not None and type(total) is not str and total > page * page_size:
                 is_continue = True
@@ -228,19 +220,15 @@ class CollectHandler(BaseHandler):
         while is_continue:
             params = {"pageSize": page_size, "pageNum": page, 'dir': 'asc', 'init_date': search_date,
                       'sort': 'init_date', 'key': None}
-            response = super().get_response(url, proxies, 0, get_headers(), params)
+            response = super().get_response(data_source, url, proxies, 0, get_headers(), params)
             if response is None or response.status_code != 200:
-                logger.error(f'{data_source}请求失败,第{page}页无成功请求响应，采集总记录数未知。。。')
-                raise Exception(f'{data_source}请求失败,第{page}页无成功请求响应，采集总记录数未知。。。')
+                raise Exception(f'{data_source}数据采集任务请求响应获取异常,第{page}页无成功请求响应，采集记录数未知,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
             if response.status_code == 200:
                 text = json.loads(response.text)
                 total = text['count']
                 result = text['result']
                 soup = BeautifulSoup(result, 'html.parser')
                 dom_td_list = soup.select('td')
-            else:
-                logger.error(f'请求失败，respones.status={response.status_code}')
-                raise Exception(f'请求失败，respones.status={response.status_code}')
 
             if total is not None and type(total) is not str and total > page * page_size:
                 is_continue = True

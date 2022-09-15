@@ -68,7 +68,7 @@ class CollectHandler(BaseHandler):
                 pass
             except Exception as e:
                 time.sleep(3)
-                # logger.error(e)
+                logger.error(e)
 
             max_retry += 1
 
@@ -80,11 +80,11 @@ class CollectHandler(BaseHandler):
         excel_one_download_url = "https://static.xyzq.cn/xywebsite/attachment/3B8333A8CD0845A9A2.xlsx"
 
         try:
+            data = None
             proxies = super().get_proxies()
-            response = super().get_response(excel_one_download_url, proxies, 0)
+            response = super().get_response(data_source, excel_one_download_url, proxies, 0)
             if response is None or response.status_code != 200:
-                logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
-                raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+                raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{excel_one_download_url},请求参数为:{data}')
             if response.status_code == 200:
                 with open(target_file_path, 'wb') as file:
                     file.write(response.content)
@@ -151,11 +151,11 @@ class CollectHandler(BaseHandler):
         excel_two_download_url = "https://static.xyzq.cn/xywebsite/attachment/B21E17122E41411497.xlsx"
 
         try:
+            data = None
             proxies = super().get_proxies()
-            response = super().get_response(excel_two_download_url, proxies, 0)
+            response = super().get_response(data_source, excel_two_download_url, proxies, 0)
             if response is None or response.status_code != 200:
-                logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
-                raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+                raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{excel_two_download_url},请求参数为:{data}')
             if response.status_code == 200:
                 with open(guaranty_file_path, 'wb') as file:
                     file.write(response.content)

@@ -73,7 +73,7 @@ class CollectHandler(BaseHandler):
     def rz_target_collect(cls):
         actual_date = datetime.date.today()
         logger.info(f'开始采集中国银河证券融资标的证券相关数据{actual_date}')
-        driver = super().get_driver()
+        driver = super().get_driver(data_source)
         # 融资标的证券
         start_dt = datetime.datetime.now()
         url = 'http://www.chinastock.com.cn/newsite/cgs-services/stockFinance/businessAnnc.html?type=marginList'
@@ -128,7 +128,7 @@ class CollectHandler(BaseHandler):
     def rq_target_collect(cls):
         actual_date = datetime.date.today()
         logger.info(f'开始采集中国银河证券融券标的证券相关数据{actual_date}')
-        driver = super().get_driver()
+        driver = super().get_driver(data_source)
         # 融券标的证券
         start_dt = datetime.datetime.now()
         url = 'http://www.chinastock.com.cn/newsite/cgs-services/stockFinance/businessAnnc.html?type=marginList'
@@ -183,7 +183,7 @@ class CollectHandler(BaseHandler):
     def guaranty_collect(cls):
         actual_date = datetime.date.today()
         logger.info(f'开始采集中国银河证券可充抵保证金证券相关数据{actual_date}')
-        driver = super().get_driver()
+        driver = super().get_driver(data_source)
 
         # 可充抵保证金证券
         start_dt = datetime.datetime.now()

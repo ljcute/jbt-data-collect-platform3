@@ -54,7 +54,7 @@ class CollectHandler(BaseHandler):
                 pass
             except Exception as e:
                 time.sleep(3)
-                logger.error(e)
+                # logger.error(e)
 
             max_retry += 1
 
@@ -62,7 +62,7 @@ class CollectHandler(BaseHandler):
     def rzrq_target_collect(cls):
         actual_date = datetime.date.today()
         logger.info(f'开始采集东兴证券融资融券标的证券数据{actual_date}')
-        driver = super().get_driver()
+        driver = super().get_driver(data_source)
         # option = webdriver.ChromeOptions()
         # option.add_argument("--headless")
         # option.binary_location = r'C:\Users\jbt\AppData\Local\Chromium\Application\Chromium.exe'
@@ -141,7 +141,7 @@ class CollectHandler(BaseHandler):
     def guaranty_collect(cls):
         actual_date = datetime.date.today()
         logger.info(f'开始采集东兴证券可充抵保证金证券数据{actual_date}')
-        driver = super().get_driver()
+        driver = super().get_driver(data_source)
         # 创建chrome参数对象
         # option = webdriver.ChromeOptions()
         # option.add_argument("--headless")

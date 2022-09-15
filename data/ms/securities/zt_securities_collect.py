@@ -85,7 +85,7 @@ class CollectHandler(BaseHandler):
                     retry_count = retry_count - 1
                     continue
         if response is None or response.status_code != 200:
-            raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params},具体采集数目未知')
+            raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
 
         text = json.loads(response.text)
         total = int(text['PageTotal'])
@@ -108,9 +108,6 @@ class CollectHandler(BaseHandler):
                         note = i['NOTE']
                         data_list.append((stock_code, stock_name, rz_rate, rq_rate, status, date, note))
                         logger.info(f'已采集数据条数为：{int(len(data_list))}')
-            else:
-                logger.error(f'请求失败，respones.status={response.status_code}')
-                raise Exception(f'请求失败，respones.status={response.status_code}')
 
         logger.info(f'采集中泰证券标的证券数据共{int(len(data_list))}条')
         df_result = super().data_deal(data_list, data_title)
@@ -211,7 +208,7 @@ class CollectHandler(BaseHandler):
             try:
                 response = super().get_response(data_source, url, proxies, 0, headers, params)
                 if response is None or response.status_code != 200:
-                    raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params},具体采集数目未知')
+                    raise Exception(f'{data_source}数据采集任务请求响应获取异常,第{start_page}页无成功请求响应,具体采集数目未知，已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
                 text = json.loads(response.text)
                 all_data_list = text['Items']
             except Exception as e:

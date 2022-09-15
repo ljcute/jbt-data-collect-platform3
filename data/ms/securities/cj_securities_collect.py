@@ -53,7 +53,7 @@ class CollectHandler(BaseHandler):
                 pass
             except Exception as e:
                 time.sleep(3)
-                # logger.error(e)
+                logger.error(e)
 
             max_retry += 1
 
@@ -65,10 +65,9 @@ class CollectHandler(BaseHandler):
         params = {"funcNo": "902122", "i_page": 1, "i_perpage": 10000}  # 默认查询当天
         target_title = ['market', 'stock_code', 'stock_name', 'rz_rate', 'rq_rate']
         proxies = super().get_proxies()
-        response = super().get_response(url, proxies, 0, get_headers(), params)
+        response = super().get_response(data_source, url, proxies, 0, get_headers(), params)
         if response is None or response.status_code != 200:
-            logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
-            raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+            raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
         if response.status_code == 200:
             start_dt = datetime.datetime.now()
             text = json.loads(response.text)
@@ -122,10 +121,9 @@ class CollectHandler(BaseHandler):
         params = {"funcNo": "902124", "i_page": 1, "i_perpage": 10000}  # 默认查询当天
         target_title = ['market', 'stock_code', 'stock_name', 'discount_rate']
         proxies = super().get_proxies()
-        response = super().get_response(url, proxies, 0, get_headers(), params)
+        response = super().get_response(data_source, url, proxies, 0, get_headers(), params)
         if response is None or response.status_code != 200:
-            logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
-            raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+            raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
         if response.status_code == 200:
             start_dt = datetime.datetime.now()
             text = json.loads(response.text)

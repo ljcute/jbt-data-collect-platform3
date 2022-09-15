@@ -56,7 +56,7 @@ class CollectHandler(BaseHandler):
                 pass
             except Exception as e:
                 time.sleep(3)
-                # logger.error(e)
+                logger.error(e)
 
             max_retry += 1
 
@@ -69,17 +69,14 @@ class CollectHandler(BaseHandler):
         proxies = get_proxies(3, 10)
         response = requests.post(url=url, params=data, proxies=proxies, timeout=6)
         if response is None or response.status_code != 200:
-            logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
-            raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+            raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{data}')
+
         db_total_count = None
         if response.status_code == 200:
             text = json.loads(response.text)
             db_hs_count = text['result']['bdHsCount']
             db_ss_count = text['result']['bdSsCount']
             db_total_count = int(db_hs_count) + int(db_ss_count)
-        else:
-            logger.error(f'请求失败，respones.status={response.status_code}')
-            raise Exception(f'请求失败，respones.status={response.status_code}')
 
         logger.info(f'total:{db_total_count}')
         data_title = ['market', 'stock_code', 'stock_name', 'rz_rate', 'rq_rate']
@@ -147,8 +144,7 @@ class CollectHandler(BaseHandler):
                 proxies = get_proxies(3, 10)
                 response = requests.post(url=url, params=data, proxies=proxies, timeout=6)
                 if response is None or response.status_code != 200:
-                    logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
-                    raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+                    raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{data}')
                 text = json.loads(response.text)
                 hs_data_list = text['result']['bdHs']
                 ss_data_list = text['result']['bdSs']
@@ -256,8 +252,7 @@ class CollectHandler(BaseHandler):
                 proxies = get_proxies(3, 10)
                 response = requests.post(url=url, params=params, proxies=proxies, timeout=6)
                 if response is None or response.status_code != 200:
-                    logger.error(f'{data_source}请求失败,第{hs_page}页无成功请求响应，采集总记录数未知。。。')
-                    raise Exception(f'{data_source}请求失败,第{hs_page}页无成功请求响应，采集总记录数未知。。。')
+                    raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
                 text = json.loads(response.text)
                 hs_data_list = text['result']['dbHs']
                 ss_data_list = text['result']['dbSs']

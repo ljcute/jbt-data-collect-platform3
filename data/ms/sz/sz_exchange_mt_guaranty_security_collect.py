@@ -76,9 +76,9 @@ class CollectHandler(BaseHandler):
                 title_list = ['zqdm', 'zqjc']
 
                 start_dt = datetime.datetime.now()
-                response = super().get_response(download_url, proxies, 0, headers, params)
+                response = super().get_response(data_source_szse, download_url, proxies, 0, headers, params)
                 if response is None or response.status_code != 200:
-                    raise Exception(f'请求失败，无成功请求响应，采集总记录数未知。。。深圳交易所今日数据采集失败')
+                    raise Exception(f'{data_source_szse}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{download_url},请求参数为:{params}')
                 logger.info("开始下载excel")
                 cls.download_excel(response)
                 logger.info("excel下载完成")

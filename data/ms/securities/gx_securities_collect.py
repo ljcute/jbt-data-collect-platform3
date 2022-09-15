@@ -76,8 +76,7 @@ class CollectHandler(BaseHandler):
         proxies = super().get_proxies()
         response = requests.post(url, params, proxies)
         if response is None or response.status_code != 200:
-            logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
-            raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+            raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
         if response.status_code == 200:
             text = json.loads(response.text)
             all_data_list = text['data']
@@ -113,9 +112,6 @@ class CollectHandler(BaseHandler):
                                           exchange_mt_financing_underlying_security, data_source, message)
 
                 logger.info("国信证券融资标的证券数据采集完成")
-        else:
-            logger.error(f'请求失败，respones.status={response.status_code}')
-            raise Exception(f'请求失败，respones.status={response.status_code}')
 
     @classmethod
     def rq_target_collect(cls, search_date):
@@ -131,8 +127,7 @@ class CollectHandler(BaseHandler):
         proxies = super().get_proxies()
         response = requests.post(url, params, proxies)
         if response is None or response.status_code != 200:
-            logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
-            raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+            raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
         if response.status_code == 200:
             text = json.loads(response.text)
             all_data_list = text['data']
@@ -168,9 +163,6 @@ class CollectHandler(BaseHandler):
                                           exchange_mt_lending_underlying_security, data_source, message)
 
                 logger.info("国信证券融券标的证券数据采集完成")
-            else:
-                logger.error(f'请求失败，respones.status={response.status_code}')
-                raise Exception(f'请求失败，respones.status={response.status_code}')
 
     @classmethod
     def guaranty_collect(cls, search_date):
@@ -186,8 +178,7 @@ class CollectHandler(BaseHandler):
         proxies = super().get_proxies()
         response = requests.post(url, params, proxies)
         if response is None or response.status_code != 200:
-            logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
-            raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+            raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
         if response.status_code == 200:
             text = json.loads(response.text)
             all_data_list = text['data']

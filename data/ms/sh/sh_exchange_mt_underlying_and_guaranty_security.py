@@ -117,10 +117,10 @@ class CollectHandler(BaseHandler):
     def deal_with(cls, proxies, headers, url, excel_path, save_excel_path, data_type, data_source, title_list,
                   actual_date, log_message):
         start_dt = datetime.datetime.now()
-        response = super().get_response(url, proxies, 0, headers)
+        response = super().get_response(data_source, url, proxies, 0, headers)
+        data = None
         if response is None or response.status_code != 200:
-            logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
-            raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+            raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{data}')
         download_excel(response, excel_path, save_excel_path, actual_date)
         logger.info(f'{log_message}开始采集')
         excel_file = xlrd2.open_workbook(excel_path, encoding_override="utf-8")

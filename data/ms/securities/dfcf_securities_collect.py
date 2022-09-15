@@ -65,7 +65,7 @@ class CollectHandler(BaseHandler):
     def rzrq_target_collect(cls):
         actual_date = datetime.date.today()
         logger.info(f'开始采集东方财富证券融资融券标的证券数据{actual_date}')
-        driver = super().get_driver()
+        driver = super().get_driver(data_source)
         # 融资融券标的证券
         url = 'https://www.xzsec.com/margin/ywxz/bdzqc.html'
         start_dt = datetime.datetime.now()
@@ -130,7 +130,7 @@ class CollectHandler(BaseHandler):
     def guaranty_collect(cls):
         actual_date = datetime.date.today()
         logger.info(f'开始采集东方财富证券可充抵保证金证券数据{actual_date}')
-        driver = super().get_driver()
+        driver = super().get_driver(data_source)
         start_dt = datetime.datetime.now()
         # 可充抵保证金证券
         url = 'https://www.xzsec.com/margin/ywxz/bzjzqc.html'

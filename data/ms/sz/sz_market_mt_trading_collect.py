@@ -72,7 +72,7 @@ class CollectHandler(BaseHandler):
     def get_trade_date(cls):
         try:
             logger.info(f'开始获取深圳交易所最新交易日日期')
-            driver = super().get_driver()
+            driver = super().get_driver(data_source_szse)
             url = 'http://www.szse.cn/disclosure/margin/margin/index.html'
             driver.get(url)
             time.sleep(3)
@@ -103,9 +103,9 @@ class CollectHandler(BaseHandler):
         proxies = super().get_proxies()
         title_list = ['jrrzye', 'jrrjye', 'jrrzrjye', 'jrrzmr', 'jrrjmc', 'jrrjyl']
         start_dt = datetime.datetime.now()
-        response = super().get_response(url, proxies, 0, headers, params)
+        response = super().get_response(data_source_szse, url, proxies, 0, headers, params)
         if response is None or response.status_code != 200:
-            raise Exception(f'请求失败，无成功请求响应，采集总记录数未知。。。深圳交易所今日数据采集失败')
+            raise Exception(f'{data_source_szse}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
         data_list, total = cls.total_deal(response, trade_date)
         logger.info(f'data_list:{data_list}')
         df_result = super().data_deal(data_list, title_list)
@@ -195,7 +195,9 @@ class CollectHandler(BaseHandler):
         proxies = super().get_proxies()
         title_list = ['zqdm', 'zqjc', 'jrrzye', 'jrrzmr', 'jrrjyl', 'jrrjye', 'jrrjmc', 'jrrzrjye']
         start_dt = datetime.datetime.now()
-        response = super().get_response(download_url, proxies, 0, headers, params)
+        response = super().get_response(data_source_szse, download_url, proxies, 0, headers, params)
+        if response is None or response.status_code != 200:
+            raise Exception(f'{data_source_szse}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{download_url},请求参数为:{params}')
         data_list, total_row = cls.item_deal(response, actual_date)
         df_result = super().data_deal(data_list, title_list)
         logger.info(f'df_result:{df_result}')

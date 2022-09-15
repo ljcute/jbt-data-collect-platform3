@@ -53,7 +53,7 @@ class CollectHandler(BaseHandler):
                 pass
             except Exception as e:
                 time.sleep(3)
-                logger.error(e)
+                # logger.error(e)
 
             max_retry += 1
 
@@ -61,7 +61,7 @@ class CollectHandler(BaseHandler):
     def target_collect(cls):
         actual_date = datetime.date.today()
         logger.info(f'开始采集光大证券融资融券标的证券数据{actual_date}')
-        driver = super().get_driver()
+        driver = super().get_driver(data_source)
         # 标的证券
         start_dt = datetime.datetime.now()
         url = 'http://www.ebscn.com/ourBusiness/xyyw/rzrq/cyxx/'
@@ -133,7 +133,7 @@ class CollectHandler(BaseHandler):
     def guaranty_collect(cls):
         actual_date = datetime.date.today()
         logger.info(f'开始采集光大证券可充抵保证金证券数据{actual_date}')
-        driver = super().get_driver()
+        driver = super().get_driver(data_source)
         # 可充抵保证金证券
         start_dt = datetime.datetime.now()
         url = 'http://www.ebscn.com/ourBusiness/xyyw/rzrq/cyxx/'

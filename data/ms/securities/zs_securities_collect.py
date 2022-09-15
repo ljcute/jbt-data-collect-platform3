@@ -71,7 +71,7 @@ class CollectHandler(BaseHandler):
         proxies = super().get_proxies()
         response = super().get_response(data_source, url, proxies, 0, get_headers(), params)
         if response is None or response.status_code != 200:
-            raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params},具体采集数目未知')
+            raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
         text = json.loads(response.text)
         total = text['body']['totalNum']
         data_list = text['body']['stocks']
@@ -119,7 +119,7 @@ class CollectHandler(BaseHandler):
         proxies = super().get_proxies()
         response = super().get_response(data_source, url, proxies, 0, get_headers(), params)
         if response is None or response.status_code != 200:
-            raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params},具体采集数目未知')
+            raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
         text = json.loads(response.text)
         total = text['body']['totalNum']
         data_list = text['body']['stocks']
@@ -169,7 +169,7 @@ class CollectHandler(BaseHandler):
         proxies = super().get_proxies()
         response = super().get_response(data_source, url, proxies, 0, get_headers(), params)
         if response is None or response.status_code != 200:
-            raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params},具体采集数目未知')
+            raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
         text = json.loads(response.text)
         total = text['body']['totalNum']
         data_list = text['body']['stocks']

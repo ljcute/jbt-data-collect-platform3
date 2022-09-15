@@ -73,7 +73,7 @@ class CollectHandler(BaseHandler):
                 pass
             except Exception as e:
                 time.sleep(3)
-                logger.error(e)
+                # logger.error(e)
 
             max_retry += 1
 
@@ -418,7 +418,7 @@ class CollectHandler(BaseHandler):
     def do_guaranty_collect_get_bond(cls, data_type, data_list):
         actual_date = datetime.date.today()
         logger.info(f'开始采集中金公担保品-{data_type}数据{actual_date}')
-        driver = super().get_driver()
+        driver = super().get_driver(data_source)
         url = 'http://www.ciccs.com.cn/stocktrade/collateralList.xhtml?type=BOND'
         driver.get(url)
 

@@ -69,10 +69,9 @@ class CollectHandler(BaseHandler):
         params = {"pageNum": 1, "type": 3, "_": remove_file.get_timestamp(), "stamp": search_date}  # type=3表示融资
         start_dt = datetime.datetime.now()
         proxies = super().get_proxies()
-        response = super().get_response(url, proxies, 0, get_headers(), params, None, allow_redirects=False)
+        response = super().get_response(data_source, url, proxies, 0, get_headers(), params, None, allow_redirects=False)
         if response is None or response.status_code != 200:
-            logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
-            raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+            raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
         total = None
         if response.status_code == 200:
             text = json.loads(response.text)
@@ -143,10 +142,9 @@ class CollectHandler(BaseHandler):
             params = {"pageNum": start_page, "type": 3, "_": remove_file.get_timestamp(),
                       "stamp": search_date}  # type=3表示融资
             try:
-                response = super().get_response(url, proxies, 0, get_headers(), params, None, allow_redirects=False)
+                response = super().get_response(data_source, url, proxies, 0, get_headers(), params, None, allow_redirects=False)
                 if response is None or response.status_code != 200:
-                    logger.error(f'{data_source}请求失败,第{start_page}页无成功请求响应，采集总记录数未知。。。')
-                    raise Exception(f'{data_source}请求失败,第{start_page}页无成功请求响应，采集总记录数未知。。。')
+                    raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
                 text = json.loads(response.text)
                 finance_list = text['finance']
             except Exception as e:
@@ -180,10 +178,9 @@ class CollectHandler(BaseHandler):
         params = {"pageNum": 1, "type": 2, "_": remove_file.get_timestamp(), "stamp": search_date}  # type=3表示融资
         start_dt = datetime.datetime.now()
         proxies = super().get_proxies()
-        response = super().get_response(url, proxies, 0, get_headers(), params, None, allow_redirects=False)
+        response = super().get_response(data_source, url, proxies, 0, get_headers(), params, None, allow_redirects=False)
         if response is None or response.status_code != 200:
-            logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
-            raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+            raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
         total = None
         if response.status_code == 200:
             text = json.loads(response.text)
@@ -253,10 +250,9 @@ class CollectHandler(BaseHandler):
             params = {"pageNum": start_page, "type": 2, "_": remove_file.get_timestamp(),
                       "stamp": search_date}  # type=3表示融资
             try:
-                response = super().get_response(url, proxies, 0, get_headers(), params, None, allow_redirects=False)
+                response = super().get_response(data_source, url, proxies, 0, get_headers(), params, None, allow_redirects=False)
                 if response is None or response.status_code != 200:
-                    logger.error(f'{data_source}请求失败,第{start_page}页无成功请求响应，采集总记录数未知。。。')
-                    raise Exception(f'{data_source}请求失败,第{start_page}页无成功请求响应，采集总记录数未知。。。')
+                    raise Exception(f'{data_source}数据采集任务请求响应获取异常,第{start_page}页无成功响应，具体采集数目未知，已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
                 text = json.loads(response.text)
                 security_list = text['security']
             except Exception as e:
@@ -290,7 +286,10 @@ class CollectHandler(BaseHandler):
         params = {"pageNum": 1, "type": 1, "_": remove_file.get_timestamp(), "stamp": search_date}  # type=3表示融资
         start_dt = datetime.datetime.now()
         proxies = super().get_proxies()
-        response = super().get_response(url, proxies, 0, get_headers(), params, None, allow_redirects=False)
+        response = super().get_response(data_source, url, proxies, 0, get_headers(), params, None, allow_redirects=False)
+        if response is None or response.status_code != 200:
+            raise Exception(
+                f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
         total = None
         if response.status_code == 200:
             text = json.loads(response.text)
@@ -360,10 +359,9 @@ class CollectHandler(BaseHandler):
             params = {"pageNum": start_page, "type": 1, "_": remove_file.get_timestamp(),
                       "stamp": search_date}  # type=3表示融资
             try:
-                response = super().get_response(url, proxies, 0, get_headers(), params, None, allow_redirects=False)
+                response = super().get_response(data_source, url, proxies, 0, get_headers(), params, None, allow_redirects=False)
                 if response is None or response.status_code != 200:
-                    logger.error(f'{data_source}请求失败,第{start_page}页无成功请求响应，采集总记录数未知。。。')
-                    raise Exception(f'{data_source}请求失败,第{start_page}页无成功请求响应，采集总记录数未知。。。')
+                    raise Exception(f'{data_source}数据采集任务请求响应获取异常,第{start_page}页无成功响应，具体采集数目未知，已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
                 text = json.loads(response.text)
                 offset_list = text['offset']
             except Exception as e:

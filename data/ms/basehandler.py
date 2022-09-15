@@ -101,25 +101,24 @@ class BaseHandler(object):
             logger.error(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params,data},具体异常信息为:{e}')
 
     @classmethod
-    def get_driver(cls):
+    def get_driver(cls, data_source):
         logger.info("开始获取webdriver......")
         if int(use_proxy) == 1:
             proxies = get_proxies()
-            if proxies['http'] is None and proxies['https'] is None:
-                logger.error("无可用代理ip，停止采集")
-                raise Exception("无可用代理ip，停止采集")
-            else:
-                logger.info("==================获取代理ip成功!====================")
-                proxy = proxies
-                if proxy is not None:
-                    proxy = proxy['http']
+            logger.info(f'==================获取代理ip成功!,proxies:{proxies}====================')
+            proxy = proxies
+            if proxy is not None:
+                proxy = proxy['http']
+            try:
                 options = webdriver.FirefoxOptions()
                 options.add_argument("--headless")
                 options.add_argument("--proxy-server={}".format(proxy))
                 driver = webdriver.Firefox(options=options)
                 driver.implicitly_wait(10)
                 logger.info("==================webdriver走代理ip成功!====================")
-                return driver
+                return driver, proxies
+            except Exception as e:
+                logger.error(f'{data_source}数据采集任务获取webdriver失败，proxies为：{proxies},具体异常为：{e}')
         elif int(use_proxy) == 0:
             raise Exception("此次数据采集不使用代理,获取driver失败")
         else:

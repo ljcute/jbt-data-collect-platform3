@@ -55,7 +55,7 @@ class CollectHandler(BaseHandler):
                 pass
             except Exception as e:
                 time.sleep(3)
-                # logger.error(e)
+                logger.error(e)
 
             max_retry += 1
 
@@ -74,10 +74,9 @@ class CollectHandler(BaseHandler):
         while is_continue:
             params = {"page": page, "channelid": 257420, "searchword": 'KGNyZWRpdGZ1bmRjdHJsPTAp',
                       "_": get_timestamp()}
-            response = super().get_response(url, proxies, 0, cc_headers, params)
+            response = super().get_response(data_source, url, proxies, 0, cc_headers, params)
             if response is None or response.status_code != 200:
-                logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
-                raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+                raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
             text = json.loads(response.text)
             logger.info("开始处理融资标的券数据")
             row_list = text['rows']
@@ -139,10 +138,9 @@ class CollectHandler(BaseHandler):
         while is_continue:
             params = {"page": page, "channelid": 257420, "searchword": 'KGNyZWRpdHN0a2N0cmw9MCk=',
                       "_": get_timestamp()}
-            response = super().get_response(url, proxies, 0, cc_headers, params)
+            response = super().get_response(data_source, url, proxies, 0, cc_headers, params)
             if response is None or response.status_code != 200:
-                logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
-                raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+                raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
             text = json.loads(response.text)
             row_list = text['rows']
             total = 0
@@ -203,10 +201,9 @@ class CollectHandler(BaseHandler):
         while is_continue:
             params = {"page": page, "channelid": 229873, "searchword": None,
                       "_": get_timestamp()}
-            response = super().get_response(url, proxies, 0, cc_headers, params)
+            response = super().get_response(data_source, url, proxies, 0, cc_headers, params)
             if response is None or response.status_code != 200:
-                logger.error(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
-                raise Exception(f'{data_source}请求失败,无成功请求响应，采集总记录数未知。。。')
+                raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
             text = json.loads(response.text)
             row_list = text['rows']
             total = 0
