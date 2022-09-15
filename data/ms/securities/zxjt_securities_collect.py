@@ -77,7 +77,7 @@ class CollectHandler(BaseHandler):
         start_dt = datetime.datetime.now()
         proxies = super().get_proxies()
         params = {'curPage': 1}
-        response = super().get_response(url, proxies, 0, get_headers(), params)
+        response = super().get_response(data_source, url, proxies, 0, get_headers(), params)
         if response is None or response.status_code != 200:
             raise Exception(f'{data_source}数据采集任务获取请求失败,无成功请求响应,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
 
