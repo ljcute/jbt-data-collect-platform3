@@ -65,6 +65,7 @@ class CollectHandler(BaseHandler):
                 time.sleep(3)
                 logger.error(f'{data_source_szse}交易汇总及详细数据采集任务出现异常，输入参数为：{query_date}，具体异常信息为:{traceback.format_exc()}')
 
+
             max_retry += 1
 
     @classmethod
