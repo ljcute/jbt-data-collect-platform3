@@ -9,6 +9,8 @@ import os
 import sys
 import json
 import time
+import traceback
+
 import xlrd2
 import datetime
 import os
@@ -50,15 +52,15 @@ class CollectHandler(BaseHandler):
         max_retry = 0
         while max_retry < 3:
             logger.info(f'重试第{max_retry}次')
+            start_dt = datetime.datetime.now()
+            actual_date = datetime.date.today() if query_date is None else query_date
+            trade_date = cls.get_trade_date() if query_date is None else query_date
+            logger.info(f'上交所最新交易日期==================为{trade_date}')
+            logger.info(f'上交所数据采集开始{actual_date}')
+            download_excel_url = "http://www.sse.com.cn/market/dealingdata/overview/margin/a/rzrqjygk20220623.xls"
+            replace_str = 'rzrqjygk' + str(trade_date).format("'%Y%m%d'").replace('-', '') + '.xls'
+            download_excel_url = download_excel_url.replace(download_excel_url.split('/')[-1], replace_str)
             try:
-                start_dt = datetime.datetime.now()
-                actual_date = datetime.date.today() if query_date is None else query_date
-                trade_date = cls.get_trade_date() if query_date is None else query_date
-                logger.info(f'上交所最新交易日期==================为{trade_date}')
-                logger.info(f'上交所数据采集开始{actual_date}')
-                download_excel_url = "http://www.sse.com.cn/market/dealingdata/overview/margin/a/rzrqjygk20220623.xls"
-                replace_str = 'rzrqjygk' + str(trade_date).format("'%Y%m%d'").replace('-', '') + '.xls'
-                download_excel_url = download_excel_url.replace(download_excel_url.split('/')[-1], replace_str)
                 proxies = super().get_proxies()
                 response = super().get_response(data_source_sse, download_excel_url, proxies, 0)
                 data = None
@@ -83,7 +85,6 @@ class CollectHandler(BaseHandler):
                     logger.info(f'入库信息：{int(len(data_list))}条')
 
                 elif int(len(data_list)) != total_row - 17:
-                    logger.error(f'采集数据条数{int(len(data_list))}与官网数据条数{total_row - 17}不一致，采集程序存在抖动，需要重新采集')
                     data_status = 2
                     super().data_insert(int(len(data_list)), df_result, trade_date, data_type_market_mt_trading_amount,
                                         data_source_sse, start_dt, end_dt, used_time, download_excel_url, data_status,
@@ -106,7 +107,6 @@ class CollectHandler(BaseHandler):
                                         used_time_detail,
                                         download_excel_url, data_status, save_excel_file_path)
                 elif int(len(data_list_detail)) == total_row_detail - 1:
-                    logger.error(f'采集数据条数{int(len(data_list_detail))}与官网数据条数{total_row_detail - 1}不一致，采集程序存在抖动，需要重新采集')
                     data_status = 2
                     super().data_insert(int(len(data_list_detail)), df_result_detail, trade_date,
                                         data_type_market_mt_trading_items, data_source_sse, start_dt, end_dt_detal,
@@ -124,7 +124,7 @@ class CollectHandler(BaseHandler):
                 pass
             except Exception as e:
                 time.sleep(3)
-                logger.error(e)
+                logger.error(f'{data_source_sse}交易明细及汇总数据采集任务出现异常，请求url为：{download_excel_url}，输入参数为：{trade_date}，具体异常信息为:{traceback.format_exc()}')
             finally:
                 remove_file(excel_file_path)
 
@@ -134,7 +134,7 @@ class CollectHandler(BaseHandler):
     def get_trade_date(cls):
         try:
             logger.info(f'开始获取上海交易所最新交易日日期')
-            driver = super().get_driver(data_source_sse)
+            driver = super().get_driver()
             url = 'http://www.sse.com.cn/market/othersdata/margin/detail/'
             driver.get(url)
             time.sleep(3)
@@ -144,7 +144,7 @@ class CollectHandler(BaseHandler):
         except ProxyTimeOutEx as es:
             pass
         except Exception as e:
-            logger.error(e)
+            raise Exception(e)
 
 
 def download_excel(response, query_date=None):
@@ -155,7 +155,7 @@ def download_excel(response, query_date=None):
             with open(save_excel_file_path, 'wb') as file:
                 file.write(response.content)  # 写excel到当前目录
         except Exception as es:
-            logger.error(es)
+            raise Exception(e)
     else:
         logger.info("上交所该日无数据:txt_date:{}".format(query_date))
 
@@ -185,7 +185,7 @@ def handle_excel_total(excel_file, date):
         logger.info("excel处理完成，开始处理汇总数据")
         return data_list, total_row
     except Exception as e:
-        logger.error(e)
+        raise Exception(e)
 
 
 # 详细信息
@@ -215,7 +215,7 @@ def handle_excel_detail(excel_file, date):
         logger.info("excel处理完成，开始处理详细数据")
         return data_list, total_row
     except Exception as e:
-        logger.error(e)
+        raise Exception(e)
 
 
 if __name__ == '__main__':

@@ -101,7 +101,7 @@ class BaseHandler(object):
             logger.error(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params,data},具体异常信息为:{e}')
 
     @classmethod
-    def get_driver(cls, data_source):
+    def get_driver(cls):
         logger.info("开始获取webdriver......")
         if int(use_proxy) == 1:
             proxies = get_proxies()
@@ -109,16 +109,13 @@ class BaseHandler(object):
             proxy = proxies
             if proxy is not None:
                 proxy = proxy['http']
-            try:
-                options = webdriver.FirefoxOptions()
-                options.add_argument("--headless")
-                options.add_argument("--proxy-server={}".format(proxy))
-                driver = webdriver.Firefox(options=options)
-                driver.implicitly_wait(10)
-                logger.info("==================webdriver走代理ip成功!====================")
-                return driver, proxies
-            except Exception as e:
-                logger.error(f'{data_source}数据采集任务获取webdriver失败，proxies为：{proxies},具体异常为：{e}')
+            options = webdriver.FirefoxOptions()
+            options.add_argument("--headless")
+            options.add_argument("--proxy-server={}".format(proxy))
+            driver = webdriver.Firefox(options=options)
+            driver.implicitly_wait(10)
+            logger.info("==================webdriver走代理ip成功!====================")
+            return driver
         elif int(use_proxy) == 0:
             raise Exception("此次数据采集不使用代理,获取driver失败")
         else:
@@ -127,14 +124,16 @@ class BaseHandler(object):
     @classmethod
     def data_deal(cls, data_list, title_list):
         logger.info("开始进行数据处理......")
-        if data_list and title_list:
-            data_df = pd.DataFrame(data=data_list, columns=title_list)
-            if data_df is not None:
-                df_result = {'columns': title_list, 'data': data_df.values.tolist()}
-                # logger.info(f'df_result:{df_result}')
-                return df_result
-        else:
-            raise Exception('参数data_list,title_list为空，请检查')
+        try:
+            if data_list and title_list:
+                data_df = pd.DataFrame(data=data_list, columns=title_list)
+                if data_df is not None:
+                    df_result = {'columns': title_list, 'data': data_df.values.tolist()}
+                    # logger.info(f'df_result:{df_result}')
+                    return df_result
+        except Exception as e:
+            raise Exception(e)
+
 
     @classmethod
     def data_insert(cls, record_num, data_info, date, data_type, data_source, start_dt,

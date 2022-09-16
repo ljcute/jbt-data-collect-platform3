@@ -7,14 +7,13 @@
 import os
 import sys
 import time
+import traceback
 from configparser import ConfigParser
 
 from selenium.webdriver.common.by import By
 
-
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
-
 
 from utils.exceptions_utils import ProxyTimeOutEx
 from data.ms.basehandler import BaseHandler
@@ -64,25 +63,29 @@ class CollectHandler(BaseHandler):
                 pass
             except Exception as e:
                 time.sleep(3)
-                # logger.error(e)
+                logger.error(f'{data_source_szse}交易汇总及详细数据采集任务出现异常，输入参数为：{query_date}，具体异常信息为:{traceback.format_exc()}')
 
-                max_retry += 1
+            max_retry += 1
 
     @classmethod
     def get_trade_date(cls):
+        url = 'http://www.szse.cn/disclosure/margin/margin/index.html'
         try:
             logger.info(f'开始获取深圳交易所最新交易日日期')
-            driver = super().get_driver(data_source_szse)
-            url = 'http://www.szse.cn/disclosure/margin/margin/index.html'
+            driver = super().get_driver()
             driver.get(url)
             time.sleep(3)
-            trade_date = driver.find_elements(By.XPATH, '/html/body/div[5]/div/div[2]/div/div/div[4]/div[1]/div[1]/div[1]/span[2]')[0].text
+            trade_date = \
+                driver.find_elements(By.XPATH,
+                                     '/html/body/div[5]/div/div[2]/div/div/div[4]/div[1]/div[1]/div[1]/span[2]')[
+                    0].text
             logger.info(f'深圳交易所最新交易日日期为{trade_date}')
             return trade_date
+
         except ProxyTimeOutEx as es:
             pass
         except Exception as e:
-            logger.error(e)
+            raise Exception(f'获取深圳交易所最新交易日日期异常，请求url为：{url}，具体异常信息为：{e}')
 
     @classmethod
     def total(cls, query_date):
@@ -112,13 +115,12 @@ class CollectHandler(BaseHandler):
         logger.info(f'df_result:{df_result}')
         end_dt = datetime.datetime.now()
         used_time = (end_dt - start_dt).seconds
-        if int(len(data_list)) == int(total) and int(len(data_list)) > 0 and int(total) >0:
+        if int(len(data_list)) == int(total) and int(len(data_list)) > 0 and int(total) > 0:
             data_status = 1
             super().data_insert(int(len(data_list)), df_result, trade_date, data_type_market_mt_trading_amount,
                                 data_source_szse, start_dt, end_dt, used_time, url, data_status)
             logger.info(f'数据入库信息,共{int(len(data_list))}条')
         elif int(len(data_list)) != int(total):
-            logger.error(f'采集数据：{int(len(data_list))}与官网数据：{int(total)}不一致，采集存在抖动，需重新采集！')
             data_status = 2
             super().data_insert(int(len(data_list)), df_result, trade_date, data_type_market_mt_trading_amount,
                                 data_source_szse, start_dt, end_dt, used_time, url, data_status)
@@ -139,13 +141,13 @@ class CollectHandler(BaseHandler):
                     file.write(response.content)
                 logger.info("excel下载完成")
             except Exception as e:
-                logger.error(e)
+                raise Exception(e)
 
             excel_file = xlrd2.open_workbook(excel_file_path_anthoer, encoding_override="utf-8")
             data_list, total = cls.handle_excel_total(excel_file, actual_date)
             return data_list, total
         except Exception as e:
-            logger.error(e)
+            raise Exception(e)
         finally:
             remove_file(excel_file_path_anthoer)
 
@@ -171,9 +173,6 @@ class CollectHandler(BaseHandler):
 
             logger.info("excel处理结束")
             return data_list, total_row
-        else:
-            logger.error(f'该查询日期{actual_date}暂无相关交易数据！')
-
 
     @classmethod
     def item(cls, query_date):
@@ -204,11 +203,16 @@ class CollectHandler(BaseHandler):
         end_dt = datetime.datetime.now()
         used_time = (end_dt - start_dt).seconds
         if int(len(data_list)) == total_row - 1:
+            data_status = 1
             super().data_insert(int(len(data_list)), df_result, trade_date, data_type_market_mt_trading_items,
-                                data_source_szse, start_dt, end_dt, used_time, download_url)
+                                data_source_szse, start_dt, end_dt, used_time, download_url, data_status)
             logger.info(f'数据入库信息,共{int(len(data_list))}条')
         else:
-            raise Exception(f'采集数据条数{int(len(data_list))}与官网数据条数{total_row - 1}不一致，入库失败')
+
+            data_status = 2
+            super().data_insert(int(len(data_list)), df_result, trade_date, data_type_market_mt_trading_items,
+                                data_source_szse, start_dt, end_dt, used_time, download_url, data_status)
+            logger.info(f'数据入库信息,共{int(len(data_list))}条')
         message = "sz_market_mt_trading_collect"
         super().kafka_mq_producer(json.dumps(trade_date, cls=ComplexEncoder),
                                   data_type_market_mt_trading_items, data_source_szse, message)
@@ -224,13 +228,13 @@ class CollectHandler(BaseHandler):
                     file.write(response.content)
                 logger.info("excel下载完成")
             except Exception as e:
-                logger.error(e)
+                raise Exception(e)
 
             excel_file = xlrd2.open_workbook(excel_file_path, encoding_override="utf-8")
             data_list, total_row = cls.handle_excel(excel_file, actual_date)
             return data_list, total_row
         except Exception as e:
-            logger.error(e)
+            raise Exception(e)
         finally:
             remove_file(excel_file_path)
 
@@ -259,22 +263,6 @@ class CollectHandler(BaseHandler):
 
             logger.info("excel处理结束")
             return data_list, total_row
-            # except Exception as es:
-            #     logger.error(es)
-        else:
-            logger.error(f'该查询日期{actual_date}暂无相关交易数据！')
-
-
-# def collect_history(begin_dt, end_dt):
-#     # begin = datetime.datetime.strptime('20210605', '%Y%m%d')
-#     begin = datetime.datetime.strptime(begin_dt, '%Y%m%d')
-#     end = datetime.datetime.strptime(end_dt, '%Y%m%d')
-#     b = begin.date()
-#     e = end.date()
-#
-#     for k in range((e - b).days + 1):
-#         cur_date = b + datetime.timedelta(days=k)
-#         collect(cur_date)
 
 
 if __name__ == "__main__":

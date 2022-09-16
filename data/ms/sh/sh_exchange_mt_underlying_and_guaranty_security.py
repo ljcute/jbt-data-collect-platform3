@@ -6,6 +6,7 @@
 
 import os
 import sys
+import traceback
 from configparser import ConfigParser
 
 
@@ -58,27 +59,27 @@ class CollectHandler(BaseHandler):
         max_retry = 0
         while max_retry < 3:
             logger.info(f'重试第{max_retry}次')
+            actual_date = datetime.date.today() if query_date is None else query_date
+            logger.info(f'上交所数据采集开始{actual_date}')
+            url_guaranty = "http://query.sse.com.cn//sseQuery/commonExcelDd.do?FLAG=003&sqlId=COMMON_SSE_FW_JYFW_RZRQ_JYXX_BDZQKCDBZJZQLB_RZRQKCDBZJ_L"
+            url_rz = "http://query.sse.com.cn//sseQuery/commonExcelDd.do?FLAG=001&sqlId=COMMON_SSE_FW_JYFW_RZRQ_JYXX_BDZQKCDBZJZQLB_RZMRBDZQ_L"
+            url_rq = "http://query.sse.com.cn//sseQuery/commonExcelDd.do?FLAG=002&sqlId=COMMON_SSE_FW_JYFW_RZRQ_JYXX_BDZQKCDBZJZQLB_RZMCBDZQ_L"
+            headers = {
+                'Accept': '*/*',
+                'Accept-Encoding': 'gzip, deflate',
+                'Accept-Language': 'zh-CN,zh;q=0.9',
+                'Connection': 'keep-alive',
+                'Cookie': 'yfx_c_g_u_id_10000042=_ck22060711191911485514723010297; '
+                          'VISITED_MENU=%5B%228307%22%2C%229729%22%5D; JSESSIONID=771FCD96DF812328467D7B327B093D35; '
+                          'gdp_user_id=gioenc-6e004388%2C3d26%2C59c4%2C838g%2C4063ea3a9528; '
+                          'ba17301551dcbaf9_gdp_session_id=4a6d84c6-2cd3-4b35-b7eb-4286992ff745; '
+                          'ba17301551dcbaf9_gdp_session_id_4a6d84c6-2cd3-4b35-b7eb-4286992ff745=true; '
+                          'yfx_f_l_v_t_10000042=f_t_1654571959111__r_t_1655691628385__v_t_1655692038721__r_c_5',
+                'Host': 'query.sse.com.cn',
+                'Referer': 'http://www.sse.com.cn/',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.64 Safari/537.36'
+            }
             try:
-                actual_date = datetime.date.today() if query_date is None else query_date
-                logger.info(f'上交所数据采集开始{actual_date}')
-                url_guaranty = "http://query.sse.com.cn//sseQuery/commonExcelDd.do?FLAG=003&sqlId=COMMON_SSE_FW_JYFW_RZRQ_JYXX_BDZQKCDBZJZQLB_RZRQKCDBZJ_L"
-                url_rz = "http://query.sse.com.cn//sseQuery/commonExcelDd.do?FLAG=001&sqlId=COMMON_SSE_FW_JYFW_RZRQ_JYXX_BDZQKCDBZJZQLB_RZMRBDZQ_L"
-                url_rq = "http://query.sse.com.cn//sseQuery/commonExcelDd.do?FLAG=002&sqlId=COMMON_SSE_FW_JYFW_RZRQ_JYXX_BDZQKCDBZJZQLB_RZMCBDZQ_L"
-                headers = {
-                    'Accept': '*/*',
-                    'Accept-Encoding': 'gzip, deflate',
-                    'Accept-Language': 'zh-CN,zh;q=0.9',
-                    'Connection': 'keep-alive',
-                    'Cookie': 'yfx_c_g_u_id_10000042=_ck22060711191911485514723010297; '
-                              'VISITED_MENU=%5B%228307%22%2C%229729%22%5D; JSESSIONID=771FCD96DF812328467D7B327B093D35; '
-                              'gdp_user_id=gioenc-6e004388%2C3d26%2C59c4%2C838g%2C4063ea3a9528; '
-                              'ba17301551dcbaf9_gdp_session_id=4a6d84c6-2cd3-4b35-b7eb-4286992ff745; '
-                              'ba17301551dcbaf9_gdp_session_id_4a6d84c6-2cd3-4b35-b7eb-4286992ff745=true; '
-                              'yfx_f_l_v_t_10000042=f_t_1654571959111__r_t_1655691628385__v_t_1655692038721__r_c_5',
-                    'Host': 'query.sse.com.cn',
-                    'Referer': 'http://www.sse.com.cn/',
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.64 Safari/537.36'
-                }
                 proxies = super().get_proxies()
                 title_list = ['biz_dt', 'sec_code', 'sec_name']
 
@@ -105,7 +106,7 @@ class CollectHandler(BaseHandler):
                 pass
             except Exception as e:
                 time.sleep(3)
-                logger.error(e)
+                logger.error(f'{data_source_sse}标的券及担保券数据采集任务出现异常，请求url为：{url_guaranty}，输入参数为：{actual_date}，具体异常信息为:{traceback.format_exc()}')
             finally:
                 remove_file(sh_guaranty_file_path)
                 remove_file(sh_target_rz_file_path)
@@ -134,7 +135,6 @@ class CollectHandler(BaseHandler):
                                 data_source, start_dt, end_dt, used_time, url, data_statust, save_excel_path)
             logger.info(f'{log_message}入库信息,共{int(len(data_list))}条')
         elif int(len(data_list)) != total_row - 1:
-            logger.error(f'采集数据条数{int(len(data_list))}与官网数据条数{total_row - 1}不一致，采集程序存在抖动，需要重新采集')
             data_statust = 2
             super().data_insert(int(len(data_list)), df_result, actual_date, data_type,
                                 data_source, start_dt, end_dt, used_time, url, data_statust, save_excel_path)
@@ -153,7 +153,7 @@ def download_excel(response, excel_file_path, save_excel_file_path, query_date=N
         with open(save_excel_file_path, 'wb') as file:
             file.write(response.content)
     except Exception as es:
-        logger.error(es)
+        raise Exception(es)
 
 
 def handle_excel(excel_file, date):
@@ -176,7 +176,7 @@ def handle_excel(excel_file, date):
         return data_list, total_row
 
     except Exception as es:
-        logger.error(es)
+        raise Exception(es)
 
 
 if __name__ == '__main__':

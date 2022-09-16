@@ -7,6 +7,7 @@
 import os
 import sys
 import time
+import traceback
 from configparser import ConfigParser
 
 
@@ -57,21 +58,21 @@ class CollectHandler(BaseHandler):
         max_retry = 0
         while max_retry < 3:
             logger.info(f'重试第{max_retry}次')
+            actual_date = datetime.date.today() if query_date is None else query_date
+            logger.info("深交所数据采集日期actual_date:{}".format(actual_date))
+            download_url = 'http://www.szse.cn/api/report/ShowReport'
+            headers = {
+                'User-Agent': random.choice(USER_AGENTS)
+            }
+            params = {
+                'SHOWTYPE': 'xlsx',
+                'CATALOGID': '1835_xxpl',
+                'TABKEY': 'tab1',
+                # 查历史可以传日期
+                'txtDate': actual_date,
+                'random': random_double()
+            }
             try:
-                actual_date = datetime.date.today() if query_date is None else query_date
-                logger.info("深交所数据采集日期actual_date:{}".format(actual_date))
-                download_url = 'http://www.szse.cn/api/report/ShowReport'
-                headers = {
-                    'User-Agent': random.choice(USER_AGENTS)
-                }
-                params = {
-                    'SHOWTYPE': 'xlsx',
-                    'CATALOGID': '1835_xxpl',
-                    'TABKEY': 'tab1',
-                    # 查历史可以传日期
-                    'txtDate': actual_date,
-                    'random': random_double()
-                }
                 proxies = super().get_proxies()
                 title_list = ['zqdm', 'zqjc']
 
@@ -94,7 +95,6 @@ class CollectHandler(BaseHandler):
                                         save_excel_file_path)
                     logger.info(f'入库信息,共{int(len(data_list))}条')
                 elif int(len(data_list)) != total_row - 1:
-                    logger.error(f'采集数据条数{int(len(data_list))}与官网数据条数{total_row - 1}不一致，采集程序存在抖动，需要重新采集')
                     data_status = 2
                     super().data_insert(int(len(data_list)), df_result, actual_date, exchange_mt_guaranty_security,
                                         data_source_szse, start_dt, end_dt, used_time, download_url, data_status,
@@ -112,7 +112,7 @@ class CollectHandler(BaseHandler):
                 pass
             except Exception as e:
                 time.sleep(3)
-                logger.error(e)
+                logger.error(f'{data_source_szse}担保券数据采集任务出现异常，请求url为：{download_url}，输入参数为：{params}，具体异常信息为:{traceback.format_exc()}')
             finally:
                 remove_file(excel_file_path)
 
@@ -126,7 +126,7 @@ class CollectHandler(BaseHandler):
             with open(save_excel_file_path, 'wb') as file:
                 file.write(response.content)
         except Exception as es:
-            logger.error(es)
+            raise Exception(es)
 
     @classmethod
     def handle_excel(cls, excel_file, actual_date):
@@ -151,7 +151,7 @@ class CollectHandler(BaseHandler):
                 logger.info("深交所该日无数据:txt_date:{}".format(actual_date))
 
         except Exception as es:
-            logger.error(es)
+            raise Exception(es)
 
 
 if __name__ == '__main__':

@@ -7,6 +7,7 @@
 import os
 import sys
 import time
+import traceback
 from configparser import ConfigParser
 
 
@@ -59,22 +60,22 @@ class CollectHandler(BaseHandler):
         max_retry = 0
         while max_retry < 3:
             logger.info(f'重试第{max_retry}次')
+            actual_date = datetime.date.today() if query_date is None else query_date
+            logger.info("深交所数据采集日期actual_date:{}".format(actual_date))
+            download_url = 'http://www.szse.cn/api/report/ShowReport'
+            headers = {
+                'User-Agent': random.choice(USER_AGENTS)
+            }
+            params = {
+                'SHOWTYPE': 'xlsx',
+                'CATALOGID': '1834_xxpl',
+                # 查历史可以传日期
+                'txtDate': actual_date,
+                'tab1PAGENO': 1,
+                'random': random_double(),
+                'TABKEY': 'tab1',
+            }
             try:
-                actual_date = datetime.date.today() if query_date is None else query_date
-                logger.info("深交所数据采集日期actual_date:{}".format(actual_date))
-                download_url = 'http://www.szse.cn/api/report/ShowReport'
-                headers = {
-                    'User-Agent': random.choice(USER_AGENTS)
-                }
-                params = {
-                    'SHOWTYPE': 'xlsx',
-                    'CATALOGID': '1834_xxpl',
-                    # 查历史可以传日期
-                    'txtDate': actual_date,
-                    'tab1PAGENO': 1,
-                    'random': random_double(),
-                    'TABKEY': 'tab1',
-                }
                 proxies = super().get_proxies()
                 title_list = ['zqdm', 'zqjc', 'rzbd', 'rqbd', 'drkrz', 'drkrq', 'rqmcjgxz', 'zdfxz']
 
@@ -115,7 +116,7 @@ class CollectHandler(BaseHandler):
                 pass
             except Exception as e:
                 time.sleep(3)
-                logger.error(e)
+                logger.error(f'{data_source_szse}标的券数据采集任务出现异常，请求url为：{download_url}，输入参数为：{params}，具体异常信息为:{traceback.format_exc()}')
             finally:
                 remove_file(excel_file_path)
 
@@ -129,7 +130,7 @@ class CollectHandler(BaseHandler):
             with open(save_excel_file_path, 'wb') as file:
                 file.write(response.content)
         except Exception as es:
-            logger.error(es)
+            raise Exception(es)
 
     @classmethod
     def handle_excel(cls, excel_file, actual_date):
@@ -160,7 +161,7 @@ class CollectHandler(BaseHandler):
             else:
                 logger.info("深交所该日无数据:txt_date:{}".format(actual_date))
         except Exception as es:
-            logger.error(es)
+            raise Exception(es)
 
 
 if __name__ == '__main__':
