@@ -28,7 +28,7 @@ exchange_mt_financing_underlying_security = '4'  # 融资融券融资标的证�
 exchange_mt_lending_underlying_security = '5'  # 融资融券融券标的证券
 exchange_mt_guaranty_and_underlying_security = '99'  # 融资融券可充抵保证金证券和融资融券标的证券
 
-data_source = '国泰君安证券'
+data_source = '国泰君安'
 url_ = 'https://www.gtja.com/cos/rest/margin/path/fuzzy.json'
 
 class CollectHandler(BaseHandler):
@@ -37,13 +37,13 @@ class CollectHandler(BaseHandler):
     def collect_data(cls, business_type, search_date=None):
         search_date = search_date if search_date is not None else datetime.date.today()
         max_retry = 0
-        while max_retry < 3:
+        while max_retry < 5:
             logger.info(f'重试第{max_retry}次')
             if business_type:
                 if business_type == 4:
                     try:
                         # 国泰君安证券融资标的证券采集
-                        cls.rz_target_collect(search_date)
+                        cls.rz_target_collect(search_date, max_retry)
                         break
                     except ProxyTimeOutEx as es:
                         pass
@@ -52,7 +52,7 @@ class CollectHandler(BaseHandler):
                 elif business_type == 5:
                     try:
                         # 国泰君安证券融券标的证券采集
-                        cls.rq_target_collect(search_date)
+                        cls.rq_target_collect(search_date, max_retry)
                         break
                     except ProxyTimeOutEx as es:
                         pass
@@ -61,7 +61,7 @@ class CollectHandler(BaseHandler):
                 elif business_type == 2:
                     try:
                         # 国泰君安证券可充抵保证金采集
-                        cls.guaranty_collect(search_date)
+                        cls.guaranty_collect(search_date, max_retry)
                         break
                     except ProxyTimeOutEx as es:
                         pass
@@ -71,7 +71,7 @@ class CollectHandler(BaseHandler):
             max_retry += 1
 
     @classmethod
-    def rz_target_collect(cls, search_date):
+    def rz_target_collect(cls, search_date, max_retry):
         logger.info(f'开始采集国泰君安证券融资标的证券数据{search_date}')
         url = 'https://www.gtja.com/cos/rest/margin/path/fuzzy.json'
         params = {"pageNum": 1, "type": 3, "_": remove_file.get_timestamp(), "stamp": search_date}  # type=3表示融资
@@ -136,9 +136,10 @@ class CollectHandler(BaseHandler):
 
                 logger.info("国泰君安证券融资标的证券数据采集完成")
         except Exception as e:
-            data_status = 2
-            super().data_insert(0, str(e), search_date, exchange_mt_financing_underlying_security,
-                                data_source, start_dt, None, None, url, data_status)
+            if max_retry == 4:
+                data_status = 2
+                super().data_insert(0, str(e), search_date, exchange_mt_financing_underlying_security,
+                                    data_source, start_dt, None, None, url, data_status)
 
             raise Exception(e)
 
@@ -187,7 +188,7 @@ class CollectHandler(BaseHandler):
         return data_list
 
     @classmethod
-    def rq_target_collect(cls, search_date):
+    def rq_target_collect(cls, search_date, max_retry):
         logger.info(f'开始采集国泰君安证券融券标的证券数据{search_date}')
         url = 'https://www.gtja.com/cos/rest/margin/path/fuzzy.json'
         params = {"pageNum": 1, "type": 2, "_": remove_file.get_timestamp(), "stamp": search_date}  # type=3表示融资
@@ -251,9 +252,10 @@ class CollectHandler(BaseHandler):
 
                 logger.info("国泰君安证券融券标的证券数据采集完成")
         except Exception as e:
-            data_status = 2
-            super().data_insert(0, str(e), search_date, exchange_mt_lending_underlying_security,
-                                data_source, start_dt, None, None, url, data_status)
+            if max_retry == 4:
+                data_status = 2
+                super().data_insert(0, str(e), search_date, exchange_mt_lending_underlying_security,
+                                    data_source, start_dt, None, None, url, data_status)
 
             raise Exception(e)
 
@@ -302,7 +304,7 @@ class CollectHandler(BaseHandler):
         return data_list
 
     @classmethod
-    def guaranty_collect(cls, search_date):
+    def guaranty_collect(cls, search_date, max_retry):
         logger.info(f'开始采集国泰君安证券可充抵保证金证券数据{search_date}')
         url = 'https://www.gtja.com/cos/rest/margin/path/fuzzy.json'
         params = {"pageNum": 1, "type": 1, "_": remove_file.get_timestamp(), "stamp": search_date}  # type=3表示融资
@@ -367,9 +369,10 @@ class CollectHandler(BaseHandler):
 
                 logger.info("国泰君安证券可充抵保证金证券数据采集完成")
         except Exception as e:
-            data_status = 2
-            super().data_insert(0, str(e), search_date, exchange_mt_guaranty_security,
-                                data_source, start_dt, None, None, url, data_status)
+            if max_retry == 4:
+                data_status = 2
+                super().data_insert(0, str(e), search_date, exchange_mt_guaranty_security,
+                                    data_source, start_dt, None, None, url, data_status)
 
             raise Exception(e)
 

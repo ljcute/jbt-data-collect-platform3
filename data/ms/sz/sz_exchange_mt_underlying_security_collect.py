@@ -58,7 +58,7 @@ class CollectHandler(BaseHandler):
     @classmethod
     def collect_data(cls, query_date=None):
         max_retry = 0
-        while max_retry < 3:
+        while max_retry < 5:
             logger.info(f'重试第{max_retry}次')
             actual_date = datetime.date.today() if query_date is None else query_date
             logger.info("深交所数据采集日期actual_date:{}".format(actual_date))
@@ -75,11 +75,10 @@ class CollectHandler(BaseHandler):
                 'random': random_double(),
                 'TABKEY': 'tab1',
             }
+            start_dt = datetime.datetime.now()
             try:
                 proxies = super().get_proxies()
                 title_list = ['zqdm', 'zqjc', 'rzbd', 'rqbd', 'drkrz', 'drkrq', 'rqmcjgxz', 'zdfxz']
-
-                start_dt = datetime.datetime.now()
                 response = super().get_response(data_source_szse, download_url, proxies, 0, headers, params)
                 if response is None or response.status_code != 200:
                     raise Exception(f'{data_source_szse}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{download_url},请求参数为:{params}')
@@ -117,6 +116,10 @@ class CollectHandler(BaseHandler):
             except Exception as e:
                 time.sleep(3)
                 logger.error(f'{data_source_szse}标的券数据采集任务出现异常，请求url为：{download_url}，输入参数为：{params}，具体异常信息为:{traceback.format_exc()}')
+                if max_retry == 4:
+                    data_status = 2
+                    super().data_insert(0, str(e), actual_date, exchange_mt_underlying_security,
+                                        data_source_szse, start_dt, None, None, download_url, data_status)
             finally:
                 remove_file(excel_file_path)
 

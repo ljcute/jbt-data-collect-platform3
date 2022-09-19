@@ -57,7 +57,7 @@ class CollectHandler(BaseHandler):
     @classmethod
     def collect_data(cls, query_date=None):
         max_retry = 0
-        while max_retry < 3:
+        while max_retry < 5:
             logger.info(f'重试第{max_retry}次')
             actual_date = datetime.date.today() if query_date is None else query_date
             logger.info(f'上交所数据采集开始{actual_date}')
@@ -86,19 +86,19 @@ class CollectHandler(BaseHandler):
                 # 担保券
                 log_message_gu = "上交所担保券"
                 cls.deal_with(proxies, headers, url_guaranty, sh_guaranty_file_path, save_excel_file_path_gu,
-                              exchange_mt_guaranty_security, data_source_sse, title_list, actual_date, log_message_gu)
+                              exchange_mt_guaranty_security, data_source_sse, title_list, actual_date, log_message_gu, max_retry)
 
                 # 融资标的券
                 log_message_rz = "上交所融资标的券"
                 cls.deal_with(proxies, headers, url_rz, sh_target_rz_file_path, save_excel_file_path_rz,
                               exchange_mt_financing_underlying_security, data_source_sse, title_list, actual_date,
-                              log_message_rz)
+                              log_message_rz, max_retry)
 
                 # 融券标的券
                 log_message_rq = "上交所融券标的券"
                 cls.deal_with(proxies, headers, url_rq, sh_target_rq_file_path, save_excel_file_path_rq,
                               exchange_mt_lending_underlying_security, data_source_sse, title_list, actual_date,
-                              log_message_rq)
+                              log_message_rq, max_retry)
 
                 logger.info("上交所融资融券数据采集完成")
                 break
@@ -116,34 +116,43 @@ class CollectHandler(BaseHandler):
 
     @classmethod
     def deal_with(cls, proxies, headers, url, excel_path, save_excel_path, data_type, data_source, title_list,
-                  actual_date, log_message):
+                  actual_date, log_message, max_retry):
         start_dt = datetime.datetime.now()
-        response = super().get_response(data_source, url, proxies, 0, headers)
-        data = None
-        if response is None or response.status_code != 200:
-            raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{data}')
-        download_excel(response, excel_path, save_excel_path, actual_date)
-        logger.info(f'{log_message}开始采集')
-        excel_file = xlrd2.open_workbook(excel_path, encoding_override="utf-8")
-        data_list, total_row = handle_excel(excel_file, actual_date)
-        df_result = super().data_deal(data_list, title_list)
-        end_dt = datetime.datetime.now()
-        used_time = (end_dt - start_dt).seconds
-        if int(len(data_list)) == total_row - 1:
-            data_statust = 1
-            super().data_insert(int(len(data_list)), df_result, actual_date, data_type,
-                                data_source, start_dt, end_dt, used_time, url, data_statust, save_excel_path)
-            logger.info(f'{log_message}入库信息,共{int(len(data_list))}条')
-        elif int(len(data_list)) != total_row - 1:
-            data_statust = 2
-            super().data_insert(int(len(data_list)), df_result, actual_date, data_type,
-                                data_source, start_dt, end_dt, used_time, url, data_statust, save_excel_path)
-            logger.info(f'{log_message}入库信息,共{int(len(data_list))}条')
 
-        message_gu = log_message + "数据采集完成"
-        message = 'sh_exchange_mt_underlying_and_guaranty_security'
-        super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
-                                  data_type, data_source_sse, message)
+        try:
+            response = super().get_response(data_source, url, proxies, 0, headers)
+            data = None
+            if response is None or response.status_code != 200:
+                raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{data}')
+            download_excel(response, excel_path, save_excel_path, actual_date)
+            logger.info(f'{log_message}开始采集')
+            excel_file = xlrd2.open_workbook(excel_path, encoding_override="utf-8")
+            data_list, total_row = handle_excel(excel_file, actual_date)
+            df_result = super().data_deal(data_list, title_list)
+            end_dt = datetime.datetime.now()
+            used_time = (end_dt - start_dt).seconds
+            if int(len(data_list)) == total_row - 1:
+                data_statust = 1
+                super().data_insert(int(len(data_list)), df_result, actual_date, data_type,
+                                    data_source, start_dt, end_dt, used_time, url, data_statust, save_excel_path)
+                logger.info(f'{log_message}入库信息,共{int(len(data_list))}条')
+            elif int(len(data_list)) != total_row - 1:
+                data_statust = 2
+                super().data_insert(int(len(data_list)), df_result, actual_date, data_type,
+                                    data_source, start_dt, end_dt, used_time, url, data_statust, save_excel_path)
+                logger.info(f'{log_message}入库信息,共{int(len(data_list))}条')
+
+            message_gu = log_message + "数据采集完成"
+            message = 'sh_exchange_mt_underlying_and_guaranty_security'
+            super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
+                                      data_type, data_source_sse, message)
+        except Exception as e:
+            if max_retry == 4:
+                data_statust = 2
+                super().data_insert(0, str(e), actual_date, data_type,
+                                    data_source, start_dt, None, None, url, data_statust, save_excel_path)
+
+            raise Exception(e)
 
 
 def download_excel(response, excel_file_path, save_excel_file_path, query_date=None):

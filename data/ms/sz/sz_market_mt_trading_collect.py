@@ -52,11 +52,11 @@ class CollectHandler(BaseHandler):
     @classmethod
     def collect_data(cls, query_date=None):
         max_retry = 0
-        while max_retry < 3:
+        while max_retry < 5:
             logger.info(f'重试第{max_retry}次')
             try:
-                cls.total(query_date)
-                cls.item(query_date)
+                cls.total(query_date, max_retry)
+                cls.item(query_date, max_retry)
                 logger.info("深交所交易汇总及详细数据采集完成")
                 break
             except ProxyTimeOutEx as es:
@@ -89,7 +89,7 @@ class CollectHandler(BaseHandler):
             raise Exception(f'获取深圳交易所最新交易日日期异常，请求url为：{url}，具体异常信息为：{e}')
 
     @classmethod
-    def total(cls, query_date):
+    def total(cls, query_date, max_retry):
         actual_date = datetime.date.today() if query_date is None else query_date
         trade_date = cls.get_trade_date() if query_date is None else query_date
         logger.info(f'深交所汇总数据采集开始{actual_date}')
@@ -103,33 +103,42 @@ class CollectHandler(BaseHandler):
             'txtDate': trade_date,  # 查历史可以传日期
             'random': random_double(),
         }
-        # ss_url = 'http://www.szse.cn/api/report/ShowReport?SHOWTYPE=xlsx&CATALOGID=1837_xxpl&TABKEY=tab1&txtDate=2022-08-26&random=0.6332194803268989'
-        proxies = super().get_proxies()
-        title_list = ['jrrzye', 'jrrjye', 'jrrzrjye', 'jrrzmr', 'jrrjmc', 'jrrjyl']
         start_dt = datetime.datetime.now()
-        response = super().get_response(data_source_szse, url, proxies, 0, headers, params)
-        if response is None or response.status_code != 200:
-            raise Exception(f'{data_source_szse}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
-        data_list, total = cls.total_deal(response, trade_date)
-        logger.info(f'data_list:{data_list}')
-        df_result = super().data_deal(data_list, title_list)
-        logger.info(f'df_result:{df_result}')
-        end_dt = datetime.datetime.now()
-        used_time = (end_dt - start_dt).seconds
-        if int(len(data_list)) == int(total) and int(len(data_list)) > 0 and int(total) > 0:
-            data_status = 1
-            super().data_insert(int(len(data_list)), df_result, trade_date, data_type_market_mt_trading_amount,
-                                data_source_szse, start_dt, end_dt, used_time, url, data_status)
-            logger.info(f'数据入库信息,共{int(len(data_list))}条')
-        elif int(len(data_list)) != int(total):
-            data_status = 2
-            super().data_insert(int(len(data_list)), df_result, trade_date, data_type_market_mt_trading_amount,
-                                data_source_szse, start_dt, end_dt, used_time, url, data_status)
-            logger.info(f'数据入库信息,共{int(len(data_list))}条')
+        try:
+            # ss_url = 'http://www.szse.cn/api/report/ShowReport?SHOWTYPE=xlsx&CATALOGID=1837_xxpl&TABKEY=tab1&txtDate=2022-08-26&random=0.6332194803268989'
+            proxies = super().get_proxies()
+            title_list = ['jrrzye', 'jrrjye', 'jrrzrjye', 'jrrzmr', 'jrrjmc', 'jrrjyl']
+            response = super().get_response(data_source_szse, url, proxies, 0, headers, params)
+            if response is None or response.status_code != 200:
+                raise Exception(f'{data_source_szse}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
+            data_list, total = cls.total_deal(response, trade_date)
+            logger.info(f'data_list:{data_list}')
+            df_result = super().data_deal(data_list, title_list)
+            logger.info(f'df_result:{df_result}')
+            end_dt = datetime.datetime.now()
+            used_time = (end_dt - start_dt).seconds
+            if int(len(data_list)) == int(total) and int(len(data_list)) > 0 and int(total) > 0:
+                data_status = 1
+                super().data_insert(int(len(data_list)), df_result, trade_date, data_type_market_mt_trading_amount,
+                                    data_source_szse, start_dt, end_dt, used_time, url, data_status)
+                logger.info(f'数据入库信息,共{int(len(data_list))}条')
+            elif int(len(data_list)) != int(total):
+                data_status = 2
+                super().data_insert(int(len(data_list)), df_result, trade_date, data_type_market_mt_trading_amount,
+                                    data_source_szse, start_dt, end_dt, used_time, url, data_status)
+                logger.info(f'数据入库信息,共{int(len(data_list))}条')
 
-        message = "sz_market_mt_trading_collect"
-        super().kafka_mq_producer(json.dumps(trade_date, cls=ComplexEncoder),
-                                  data_type_market_mt_trading_amount, data_source_szse, message)
+            message = "sz_market_mt_trading_collect"
+            super().kafka_mq_producer(json.dumps(trade_date, cls=ComplexEncoder),
+                                      data_type_market_mt_trading_amount, data_source_szse, message)
+        except Exception as e:
+            if max_retry == 4:
+                data_status = 2
+                super().data_insert(0, str(e), actual_date, data_type_market_mt_trading_amount,
+                                    data_source_szse, start_dt, None, None, url, data_status)
+
+            raise Exception(e)
+
 
     @classmethod
     def total_deal(cls, response, actual_date):
@@ -176,7 +185,7 @@ class CollectHandler(BaseHandler):
             return data_list, total_row
 
     @classmethod
-    def item(cls, query_date):
+    def item(cls, query_date, max_retry):
         actual_date = datetime.date.today() if query_date is None else query_date
         trade_date = cls.get_trade_date() if query_date is None else query_date
 
@@ -192,31 +201,39 @@ class CollectHandler(BaseHandler):
             'random': random_double(),
             'TABKEY': 'tab2'
         }
-        proxies = super().get_proxies()
-        title_list = ['zqdm', 'zqjc', 'jrrzye', 'jrrzmr', 'jrrjyl', 'jrrjye', 'jrrjmc', 'jrrzrjye']
         start_dt = datetime.datetime.now()
-        response = super().get_response(data_source_szse, download_url, proxies, 0, headers, params)
-        if response is None or response.status_code != 200:
-            raise Exception(f'{data_source_szse}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{download_url},请求参数为:{params}')
-        data_list, total_row = cls.item_deal(response, actual_date)
-        df_result = super().data_deal(data_list, title_list)
-        logger.info(f'df_result:{df_result}')
-        end_dt = datetime.datetime.now()
-        used_time = (end_dt - start_dt).seconds
-        if int(len(data_list)) == total_row - 1:
-            data_status = 1
-            super().data_insert(int(len(data_list)), df_result, trade_date, data_type_market_mt_trading_items,
-                                data_source_szse, start_dt, end_dt, used_time, download_url, data_status)
-            logger.info(f'数据入库信息,共{int(len(data_list))}条')
-        else:
+        try:
+            proxies = super().get_proxies()
+            title_list = ['zqdm', 'zqjc', 'jrrzye', 'jrrzmr', 'jrrjyl', 'jrrjye', 'jrrjmc', 'jrrzrjye']
+            response = super().get_response(data_source_szse, download_url, proxies, 0, headers, params)
+            if response is None or response.status_code != 200:
+                raise Exception(f'{data_source_szse}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{download_url},请求参数为:{params}')
+            data_list, total_row = cls.item_deal(response, actual_date)
+            df_result = super().data_deal(data_list, title_list)
+            logger.info(f'df_result:{df_result}')
+            end_dt = datetime.datetime.now()
+            used_time = (end_dt - start_dt).seconds
+            if int(len(data_list)) == total_row - 1:
+                data_status = 1
+                super().data_insert(int(len(data_list)), df_result, trade_date, data_type_market_mt_trading_items,
+                                    data_source_szse, start_dt, end_dt, used_time, download_url, data_status)
+                logger.info(f'数据入库信息,共{int(len(data_list))}条')
+            else:
 
-            data_status = 2
-            super().data_insert(int(len(data_list)), df_result, trade_date, data_type_market_mt_trading_items,
-                                data_source_szse, start_dt, end_dt, used_time, download_url, data_status)
-            logger.info(f'数据入库信息,共{int(len(data_list))}条')
-        message = "sz_market_mt_trading_collect"
-        super().kafka_mq_producer(json.dumps(trade_date, cls=ComplexEncoder),
-                                  data_type_market_mt_trading_items, data_source_szse, message)
+                data_status = 2
+                super().data_insert(int(len(data_list)), df_result, trade_date, data_type_market_mt_trading_items,
+                                    data_source_szse, start_dt, end_dt, used_time, download_url, data_status)
+                logger.info(f'数据入库信息,共{int(len(data_list))}条')
+            message = "sz_market_mt_trading_collect"
+            super().kafka_mq_producer(json.dumps(trade_date, cls=ComplexEncoder),
+                                      data_type_market_mt_trading_items, data_source_szse, message)
+        except Exception as e:
+            if max_retry == 4:
+                data_status = 2
+                super().data_insert(0, str(e), actual_date, data_type_market_mt_trading_items,
+                                    data_source_szse, start_dt, None, None, download_url, data_status)
+
+            raise Exception(e)
 
     @classmethod
     def item_deal(cls, response, actual_date):

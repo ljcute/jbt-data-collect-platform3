@@ -50,7 +50,7 @@ class CollectHandler(BaseHandler):
     @classmethod
     def collect_data(cls, query_date=None):
         max_retry = 0
-        while max_retry < 3:
+        while max_retry < 5:
             logger.info(f'重试第{max_retry}次')
             start_dt = datetime.datetime.now()
             actual_date = datetime.date.today() if query_date is None else query_date
@@ -125,6 +125,10 @@ class CollectHandler(BaseHandler):
             except Exception as e:
                 time.sleep(3)
                 logger.error(f'{data_source_sse}交易明细及汇总数据采集任务出现异常，请求url为：{download_excel_url}，输入参数为：{trade_date}，具体异常信息为:{traceback.format_exc()}')
+                if max_retry == 4:
+                    data_status = 2
+                    super().data_insert(0, str(e), actual_date, data_type_market_mt_trading_items,
+                                        data_source_sse, start_dt, None, None, download_excel_url, data_status)
             finally:
                 remove_file(excel_file_path)
 
@@ -155,7 +159,7 @@ def download_excel(response, query_date=None):
             with open(save_excel_file_path, 'wb') as file:
                 file.write(response.content)  # 写excel到当前目录
         except Exception as es:
-            raise Exception(e)
+            raise Exception(es)
     else:
         logger.info("上交所该日无数据:txt_date:{}".format(query_date))
 

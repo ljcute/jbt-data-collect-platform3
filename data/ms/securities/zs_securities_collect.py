@@ -35,13 +35,13 @@ class CollectHandler(BaseHandler):
     @classmethod
     def collect_data(cls, business_type):
         max_retry = 0
-        while max_retry < 3:
+        while max_retry < 5:
             logger.info(f'重试第{max_retry}次')
             if business_type:
                 if business_type == 4:
                     try:
                         # 招商证券融资标的证券采集
-                        cls.rz_target_collect()
+                        cls.rz_target_collect(max_retry)
                         break
                     except ProxyTimeOutEx as es:
                         pass
@@ -50,7 +50,7 @@ class CollectHandler(BaseHandler):
                 elif business_type == 5:
                     try:
                         # 招商证券融券标的证券采集
-                        cls.rq_target_collect()
+                        cls.rq_target_collect(max_retry)
                         break
                     except ProxyTimeOutEx as es:
                         pass
@@ -59,7 +59,7 @@ class CollectHandler(BaseHandler):
                 elif business_type == 2:
                     try:
                         # 招商证券保证金证券
-                        cls.guaranty_collect()
+                        cls.guaranty_collect(max_retry)
                         break
                     except ProxyTimeOutEx as es:
                         pass
@@ -70,7 +70,7 @@ class CollectHandler(BaseHandler):
 
     # 标的证券及保证金比例采集
     @classmethod
-    def rz_target_collect(cls):
+    def rz_target_collect(cls, max_retry):
         actual_date = datetime.date.today()
         logger.info(f'开始采集招商证券标的证券及保证金比例数据{actual_date}')
         url = 'https://www.cmschina.com/api/newone2019/rzrq/rzrqstock'
@@ -117,14 +117,15 @@ class CollectHandler(BaseHandler):
 
             logger.info("招商证券标的证券数据采集完成")
         except Exception as e:
-            data_status = 2
-            super().data_insert(0, str(e), actual_date, exchange_mt_financing_underlying_security,
-                                data_source, start_dt, None, None, url, data_status)
+            if max_retry == 4:
+                data_status = 2
+                super().data_insert(0, str(e), actual_date, exchange_mt_financing_underlying_security,
+                                    data_source, start_dt, None, None, url, data_status)
 
             raise Exception(e)
 
     @classmethod
-    def rq_target_collect(cls):
+    def rq_target_collect(cls, max_retry):
         actual_date = datetime.date.today()
         logger.info(f'开始采集招商证券标的证券及保证金比例数据{actual_date}')
         url = 'https://www.cmschina.com/api/newone2019/rzrq/rzrqstock'
@@ -172,16 +173,17 @@ class CollectHandler(BaseHandler):
 
             logger.info("招商证券标的证券数据采集完成")
         except Exception as e:
-            data_status = 2
-            super().data_insert(0, str(e), actual_date, exchange_mt_lending_underlying_security,
-                                data_source, start_dt, None, None, url, data_status)
+            if max_retry == 4:
+                data_status = 2
+                super().data_insert(0, str(e), actual_date, exchange_mt_lending_underlying_security,
+                                    data_source, start_dt, None, None, url, data_status)
 
             raise Exception(e)
 
 
     # 可充抵保证金证券及折算率采集
     @classmethod
-    def guaranty_collect(cls):
+    def guaranty_collect(cls, max_retry):
         actual_date = datetime.date.today()
         logger.info(f'开始采集招商证券可充抵保证金证券例数据{actual_date}')
         url = 'https://www.cmschina.com/api/newone2019/rzrq/rzrqstockdiscount'
@@ -228,9 +230,10 @@ class CollectHandler(BaseHandler):
 
             logger.info("招商证券保证金证券数据采集完成")
         except Exception as e:
-            data_status = 2
-            super().data_insert(0, str(e), actual_date, exchange_mt_guaranty_security,
-                                data_source, start_dt, None, None, url, data_status)
+            if max_retry == 4:
+                data_status = 2
+                super().data_insert(0, str(e), actual_date, exchange_mt_guaranty_security,
+                                    data_source, start_dt, None, None, url, data_status)
 
             raise Exception(e)
 

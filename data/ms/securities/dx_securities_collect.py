@@ -38,13 +38,13 @@ class CollectHandler(BaseHandler):
     @classmethod
     def collect_data(cls, business_type):
         max_retry = 0
-        while max_retry < 3:
+        while max_retry < 5:
             logger.info(f'重试第{max_retry}次')
             if business_type:
                 if business_type == 3:
                     try:
                         # 东兴证券融资融券标的证券采集
-                        cls.rzrq_target_collect()
+                        cls.rzrq_target_collect(max_retry)
                         break
                     except ProxyTimeOutEx as es:
                         pass
@@ -53,7 +53,7 @@ class CollectHandler(BaseHandler):
                 elif business_type == 2:
                     try:
                         # 东兴证券可充抵保证金证券采集
-                        cls.guaranty_collect()
+                        cls.guaranty_collect(max_retry)
                         break
                     except ProxyTimeOutEx as es:
                         pass
@@ -63,7 +63,7 @@ class CollectHandler(BaseHandler):
             max_retry += 1
 
     @classmethod
-    def rzrq_target_collect(cls):
+    def rzrq_target_collect(cls, max_retry):
         actual_date = datetime.date.today()
         logger.info(f'开始采集东兴证券融资融券标的证券数据{actual_date}')
         # 融资融券标的证券
@@ -118,9 +118,10 @@ class CollectHandler(BaseHandler):
 
             logger.info("东兴证券融资融券标的证券数据采集完成")
         except Exception as e:
-            data_status = 2
-            super().data_insert(0, str(e), actual_date, exchange_mt_underlying_security,
-                                data_source, start_dt, None, None, url, data_status)
+            if max_retry == 4:
+                data_status = 2
+                super().data_insert(0, str(e), actual_date, exchange_mt_underlying_security,
+                                    data_source, start_dt, None, None, url, data_status)
 
             raise Exception(e)
 
@@ -144,7 +145,7 @@ class CollectHandler(BaseHandler):
             row_list.append(text)
 
     @classmethod
-    def guaranty_collect(cls):
+    def guaranty_collect(cls, max_retry):
         actual_date = datetime.date.today()
         logger.info(f'开始采集东兴证券可充抵保证金证券数据{actual_date}')
         start_dt = datetime.datetime.now()
@@ -196,9 +197,10 @@ class CollectHandler(BaseHandler):
 
             logger.info("东兴证券可充抵保证金担保券数据采集完成")
         except Exception as e:
-            data_status = 2
-            super().data_insert(0, str(e), actual_date, exchange_mt_guaranty_security,
-                                data_source, start_dt, None, None, url, data_status)
+            if max_retry == 4:
+                data_status = 2
+                super().data_insert(0, str(e), actual_date, exchange_mt_guaranty_security,
+                                    data_source, start_dt, None, None, url, data_status)
 
             raise Exception(e)
 

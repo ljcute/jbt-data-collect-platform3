@@ -10,7 +10,6 @@ import traceback
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 
-
 from utils.exceptions_utils import ProxyTimeOutEx
 from utils import remove_file
 from data.ms.basehandler import BaseHandler
@@ -31,20 +30,19 @@ data_source = '国元证券'
 url_ = 'http://www.gyzq.com.cn/servlet/json'
 
 
-
 class CollectHandler(BaseHandler):
 
     @classmethod
     def collect_data(cls, business_type, search_date=None):
         search_date = search_date if search_date is not None else datetime.date.today()
         max_retry = 0
-        while max_retry < 3:
+        while max_retry < 5:
             logger.info(f'重试第{max_retry}次')
             if business_type:
                 if business_type == 4:
                     try:
                         # 国元证券融资标的证券采集
-                        cls.rz_target_collect(search_date)
+                        cls.rz_target_collect(search_date, max_retry)
                         break
                     except ProxyTimeOutEx as es:
                         pass
@@ -53,7 +51,7 @@ class CollectHandler(BaseHandler):
                 elif business_type == 5:
                     try:
                         # 国元证券融券标的证券采集
-                        cls.rq_target_collect(search_date)
+                        cls.rq_target_collect(search_date, max_retry)
                         break
                     except ProxyTimeOutEx as es:
                         pass
@@ -62,7 +60,7 @@ class CollectHandler(BaseHandler):
                 elif business_type == 2:
                     try:
                         # 国元证券可充抵保证金采集
-                        cls.guaranty_collect(search_date)
+                        cls.guaranty_collect(search_date, max_retry)
                         break
                     except ProxyTimeOutEx as es:
                         pass
@@ -72,7 +70,7 @@ class CollectHandler(BaseHandler):
             max_retry += 1
 
     @classmethod
-    def rz_target_collect(cls, search_date):
+    def rz_target_collect(cls, search_date, max_retry):
         logger.info(f'开始采集国元证券融资标的证券数据{search_date}')
         url = 'http://www.gyzq.com.cn/servlet/json'
         # cxlx 0融资,1融券
@@ -124,14 +122,15 @@ class CollectHandler(BaseHandler):
 
                     logger.info("国元证券融资标的证券数据采集完成")
         except Exception as e:
-            data_status = 2
-            super().data_insert(0, str(e), search_date, exchange_mt_financing_underlying_security,
-                                data_source, start_dt, None, None, url, data_status)
+            if max_retry == 4:
+                data_status = 2
+                super().data_insert(0, str(e), search_date, exchange_mt_financing_underlying_security,
+                                    data_source, start_dt, None, None, url, data_status)
 
             raise Exception(e)
 
     @classmethod
-    def rq_target_collect(cls, search_date):
+    def rq_target_collect(cls, search_date, max_retry):
         logger.info(f'开始采集国元证券融券标的证券数据{search_date}')
         url = 'http://www.gyzq.com.cn/servlet/json'
         # cxlx 0融资,1融券
@@ -183,14 +182,15 @@ class CollectHandler(BaseHandler):
 
                     logger.info("国元证券融券标的证券数据采集完成")
         except Exception as e:
-            data_status = 2
-            super().data_insert(0, str(e), search_date, exchange_mt_lending_underlying_security,
-                                data_source, start_dt, None, None, url, data_status)
+            if max_retry == 4:
+                data_status = 2
+                super().data_insert(0, str(e), search_date, exchange_mt_lending_underlying_security,
+                                    data_source, start_dt, None, None, url, data_status)
 
             raise Exception(e)
 
     @classmethod
-    def guaranty_collect(cls, search_date):
+    def guaranty_collect(cls, search_date, max_retry):
         logger.info(f'开始采集国元证券可充抵保证金证券数据{search_date}')
         url = 'http://www.gyzq.com.cn/servlet/json'
         # cxlx 0融资,1融券
@@ -241,11 +241,13 @@ class CollectHandler(BaseHandler):
 
                     logger.info("国元证券可充抵保证金证券数据采集完成")
         except Exception as e:
-            data_status = 2
-            super().data_insert(0, str(e), search_date, exchange_mt_guaranty_security,
-                                data_source, start_dt, None, None, url, data_status)
+            if max_retry == 4:
+                data_status = 2
+                super().data_insert(0, str(e), search_date, exchange_mt_guaranty_security,
+                                    data_source, start_dt, None, None, url, data_status)
 
             raise Exception(e)
+
 
 if __name__ == '__main__':
     collector = CollectHandler()

@@ -52,13 +52,13 @@ class CollectHandler(BaseHandler):
     @classmethod
     def collect_data(cls, business_type):
         max_retry = 0
-        while max_retry < 3:
+        while max_retry < 5:
             logger.info(f'重试第{max_retry}次')
             if business_type:
                 if business_type == 3:
                     try:
                         # 兴业证券标的相关数据采集
-                        cls.target_collect_task()
+                        cls.target_collect_task(max_retry)
                         break
                     except ProxyTimeOutEx as es:
                         pass
@@ -67,7 +67,7 @@ class CollectHandler(BaseHandler):
                 elif business_type == 2:
                     try:
                         # 兴业证券保证金相关数据采集
-                        cls.guaranty_collect_task()
+                        cls.guaranty_collect_task(max_retry)
                         break
                     except ProxyTimeOutEx as es:
                         pass
@@ -78,7 +78,7 @@ class CollectHandler(BaseHandler):
 
     # 兴业证券标的相关数据采集
     @classmethod
-    def target_collect_task(cls):
+    def target_collect_task(cls, max_retry):
         actual_date = datetime.date.today()
         logger.info(f'开始采集兴业证券融资融券融资标的相关数据{actual_date}')
         excel_one_download_url = "https://static.xyzq.cn/xywebsite/attachment/3B8333A8CD0845A9A2.xlsx"
@@ -96,7 +96,7 @@ class CollectHandler(BaseHandler):
                 with open(save_excel_file_path_bd, 'wb') as file:
                     file.write(response.content)
                     excel_file = xlrd2.open_workbook(target_file_path)
-                    cls.target_collect(excel_file, excel_one_download_url)
+                    cls.target_collect(excel_file, excel_one_download_url, max_retry)
         except ProxyTimeOutEx as e:
             pass
         except Exception as es:
@@ -105,7 +105,7 @@ class CollectHandler(BaseHandler):
             remove_file(target_file_path)
 
     @classmethod
-    def target_collect(cls, excel_file, excel_one_download_url):
+    def target_collect(cls, excel_file, excel_one_download_url, max_retry):
         actual_date = datetime.date.today()
         start_dt = datetime.datetime.now()
         try:
@@ -142,15 +142,16 @@ class CollectHandler(BaseHandler):
 
             logger.info("兴业证券融资融券标的证券数据采集完成")
         except Exception as e:
-            data_status = 2
-            super().data_insert(0, str(e), actual_date, exchange_mt_underlying_security,
-                                data_source, start_dt, None, None, excel_one_download_url, data_status)
+            if max_retry == 4:
+                data_status = 2
+                super().data_insert(0, str(e), actual_date, exchange_mt_underlying_security,
+                                    data_source, start_dt, None, None, excel_one_download_url, data_status)
 
             raise Exception(e)
 
     # 兴业证券融资融券可充抵保证金证券及折算率数据采集
     @classmethod
-    def guaranty_collect_task(cls):
+    def guaranty_collect_task(cls, max_retry):
         actual_date = datetime.date.today()
         logger.info(f'开始采集兴业证券保证金证券相关数据{actual_date}')
         excel_two_download_url = "https://static.xyzq.cn/xywebsite/attachment/B21E17122E41411497.xlsx"
@@ -168,7 +169,7 @@ class CollectHandler(BaseHandler):
                 with open(save_excel_file_path_bzj, 'wb') as file:
                     file.write(response.content)
                     excel_file = xlrd2.open_workbook(guaranty_file_path)
-                    cls.guaranty_collect(excel_file, excel_two_download_url)
+                    cls.guaranty_collect(excel_file, excel_two_download_url, max_retry)
         except ProxyTimeOutEx as e:
             pass
         except Exception as es:
@@ -177,7 +178,7 @@ class CollectHandler(BaseHandler):
             remove_file(guaranty_file_path)
 
     @classmethod
-    def guaranty_collect(cls, excel_file, excel_two_download_url):
+    def guaranty_collect(cls, excel_file, excel_two_download_url, max_retry):
         actual_date = datetime.date.today()
         start_dt = datetime.datetime.now()
         try:
@@ -229,9 +230,10 @@ class CollectHandler(BaseHandler):
 
             logger.info("兴业证券保证金证券数据采集完成")
         except Exception as e:
-            data_status = 2
-            super().data_insert(0, str(e), actual_date, exchange_mt_guaranty_security,
-                                data_source, start_dt, None, None, excel_two_download_url, data_status)
+            if max_retry == 4:
+                data_status = 2
+                super().data_insert(0, str(e), actual_date, exchange_mt_guaranty_security,
+                                    data_source, start_dt, None, None, excel_two_download_url, data_status)
 
             raise Exception(e)
 
