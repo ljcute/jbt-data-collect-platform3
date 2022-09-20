@@ -5,13 +5,11 @@
 # 长城证券
 import os
 import sys
-import traceback
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 
-from utils.exceptions_utils import ProxyTimeOutEx
-from data.ms.basehandler import BaseHandler
+from data.ms.basehandler import BaseHandler, get_proxies
 from utils.deal_date import ComplexEncoder
 import json
 import time
@@ -36,47 +34,13 @@ url = 'http://www.cgws.com/was5/web/de.jsp'
 
 class CollectHandler(BaseHandler):
 
-    @classmethod
-    def collect_data(cls, business_type):
-        max_retry = 0
-        while max_retry < 5:
-            logger.info(f'重试第{max_retry}次')
-            if business_type:
-                if business_type == 4:
-                    try:
-                        cls.rz_target_collect(max_retry)
-                        break
-                    except ProxyTimeOutEx as es:
-                        pass
-                    except Exception as e:
-                        time.sleep(3)
-                        logger.error(f'{data_source}融资标的证券采集任务异常，请求url为：{url}，具体异常信息为：{traceback.format_exc()}')
-                elif business_type == 5:
-                    try:
-                        cls.rq_target_collect(max_retry)
-                        break
-                    except ProxyTimeOutEx as es:
-                        pass
-                    except Exception as e:
-                        time.sleep(3)
-                        logger.error(f'{data_source}融券标的证券采集任务异常，请求url为：{url}，具体异常信息为：{traceback.format_exc()}')
-                elif business_type == 2:
-                    try:
-                        cls.guaranty_collect(max_retry)
-                        break
-                    except ProxyTimeOutEx as es:
-                        pass
-                    except Exception as e:
-                        time.sleep(3)
-                        logger.error(f'{data_source}保证金证券采集任务异常，请求url为：{url}，具体异常信息为：{traceback.format_exc()}')
+    def __init__(self):
+        BaseHandler.__init__(self, data_source, url)
+        self.data_source = data_source
+        self.url = url
 
-            max_retry += 1
-
-
-    @classmethod
-    def rz_target_collect(cls, max_retry):
+    def rz_underlying_securities_collect(self):
         actual_date = datetime.date.today()
-        logger.info(f'开始采集长城证券融资标的券数据{actual_date}')
         url = 'http://www.cgws.com/was5/web/de.jsp'
         page = 1
         page_size = 5
@@ -120,6 +84,7 @@ class CollectHandler(BaseHandler):
             df_result = super().data_deal(data_list, title_list)
             end_dt = datetime.datetime.now()
             used_time = (end_dt - start_dt).seconds
+            self.record_num = int(len(data_list))
             if int(len(data_list)) == total and int(len(data_list)) > 0 and total > 0:
                 data_status = 1
                 super().data_insert(int(len(data_list)), df_result, actual_date,
@@ -139,14 +104,13 @@ class CollectHandler(BaseHandler):
 
             logger.info("长城证券融资标的证券数据采集完成")
         except Exception as e:
-            if max_retry == 4:
-                data_status = 2
-                super().data_insert(0, str(e), actual_date, exchange_mt_financing_underlying_security,
-                                    data_source, start_dt, None, None, url, data_status)
+            # if max_retry == 4:
+            #     data_status = 2
+            #     super().data_insert(0, str(e), actual_date, exchange_mt_financing_underlying_security,
+            #                         data_source, start_dt, None, None, url, data_status)
             raise Exception(e)
 
-    @classmethod
-    def rq_target_collect(cls, max_retry):
+    def rq_underlying_securities_collect(self):
         actual_date = datetime.date.today()
         logger.info(f'开始采集长城证券融券标的券数据{actual_date}')
         url = 'http://www.cgws.com/was5/web/de.jsp'
@@ -157,7 +121,7 @@ class CollectHandler(BaseHandler):
         title_list = ['sec_code', 'sec_name', 'round_rate', 'date', 'market']
         start_dt = datetime.datetime.now()
         try:
-            proxies = super().get_proxies()
+            proxies = get_proxies()
             while is_continue:
                 params = {"page": page, "channelid": 257420, "searchword": 'KGNyZWRpdHN0a2N0cmw9MCk=',
                           "_": get_timestamp()}
@@ -209,15 +173,14 @@ class CollectHandler(BaseHandler):
 
             logger.info("长城证券融券标的证券数据采集完成")
         except Exception as e:
-            if max_retry == 4:
-                data_status = 2
-                super().data_insert(0, str(e), actual_date, exchange_mt_financing_underlying_security,
-                                    data_source, start_dt, None, None, url, data_status)
+            # if max_retry == 4:
+            #     data_status = 2
+            #     super().data_insert(0, str(e), actual_date, exchange_mt_financing_underlying_security,
+            #                         data_source, start_dt, None, None, url, data_status)
 
             raise Exception(e)
 
-    @classmethod
-    def guaranty_collect(cls, max_retry):
+    def guaranty_securities_collect(self):
         actual_date = datetime.date.today()
         logger.info(f'开始采集长城证券担保券数据{actual_date}')
         url = 'http://www.cgws.com/was5/web/de.jsp'
@@ -228,7 +191,7 @@ class CollectHandler(BaseHandler):
         title_list = ['sec_code', 'sec_name', 'round_rate', 'date', 'market']
         start_dt = datetime.datetime.now()
         try:
-            proxies = super().get_proxies()
+            proxies = get_proxies()
             while is_continue:
                 params = {"page": page, "channelid": 229873, "searchword": None,
                           "_": get_timestamp()}
@@ -280,10 +243,10 @@ class CollectHandler(BaseHandler):
 
             logger.info("长城证券担保券数据采集完成")
         except Exception as e:
-            if max_retry == 4:
-                data_status = 2
-                super().data_insert(0, str(e), actual_date, exchange_mt_guaranty_security,
-                                    data_source, start_dt, None, None, url, data_status)
+            # if max_retry == 4:
+            #     data_status = 2
+            #     super().data_insert(0, str(e), actual_date, exchange_mt_guaranty_security,
+            #                         data_source, start_dt, None, None, url, data_status)
 
             raise Exception(e)
 
@@ -294,5 +257,5 @@ def get_timestamp():
 
 if __name__ == '__main__':
     collector = CollectHandler()
-    # collector.collect_data(4)
-    collector.collect_data(eval(sys.argv[1]))
+    collector.collect_data(2)
+    # collector.collect_data(eval(sys.argv[1]))

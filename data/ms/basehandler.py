@@ -4,9 +4,11 @@
 # @Time    : 2022/7/12 13:56
 # @Site    : 
 # @File    : basehandler.py
+import datetime
 import json
 import os
 import sys
+import time
 import traceback
 from configparser import ConfigParser
 
@@ -33,12 +35,77 @@ cf.read(full_path, encoding='utf-8')
 kafkaList = cf.get('kafka', 'kafkaList')
 topic = cf.get('kafka', 'topic')
 use_proxy = cf.get('proxy-switch', 'use_proxy')
+biz_type_map = {0: "交易所交易总量", 1: "交易所交易明细", 2: "融资融券可充抵保证金证券", 3: "融资融券标的证券"
+    , 4: "融资标的证券", 5: "融券标的证券", 99: "融资融券可充抵保证金证券和融资融券标的证券"}
 
 
 # 数据采集基类
 class BaseHandler(object):
 
-    @classmethod
+    def __init__(self, data_source, url):
+        self.data_source = data_source
+        self.url = url
+
+    def collect_data(self, biz_type):
+        actual_date = datetime.date.today()
+        logger.info(f'{self.data_source}{biz_type_map.get(biz_type)}数据采集任务开始执行{actual_date}')
+        max_retry = 0
+        while max_retry < 5:
+            logger.info(f'{self.data_source}{biz_type_map.get(biz_type)}数据采集重试第{max_retry}次')
+            try:
+                if biz_type == 0:
+                    self.trading_amount_collect()
+                elif biz_type == 1:
+                    self.trading_items_collect()
+                elif biz_type == 2:
+                    self.guaranty_securities_collect()
+                elif biz_type == 3:
+                    self.rzrq_underlying_securities_collect()
+                elif biz_type == 4:
+                    self.rz_underlying_securities_collect()
+                elif biz_type == 5:
+                    self.rq_underlying_securities_collect()
+                elif biz_type == 99:
+                    self.guaranty_and_underlying_securities_collect()
+
+                logger.info(f'{self.data_source}{biz_type_map.get(biz_type)}数据采集任务执行结束')
+                break
+            except ProxyTimeOutEx as es:
+                pass
+            except Exception as e:
+                time.sleep(3)
+                logger.error(f'{self.data_source}{biz_type_map.get(biz_type)}采集任务异常，请求url为:{self.url}，具体异常信息为:{traceback.format_exc()}')
+
+            max_retry += 1
+
+    # 交易所交易总量
+    def trading_amount_collect(self):
+        pass
+
+    # 交易所交易明细
+    def trading_items_collect(self):
+        pass
+
+    # 融资融券可充抵保证金证券
+    def guaranty_securities_collect(self):
+        pass
+
+    # 融资融券标的证券
+    def rzrq_underlying_securities_collect(self):
+        pass
+
+    # 融资标的证券
+    def rz_underlying_securities_collect(self):
+        pass
+
+    # 融券标的证券
+    def rq_underlying_securities_collect(self):
+        pass
+
+    # 融资融券可充抵保证金证券和融资融券标的证券
+    def guaranty_and_underlying_securities_collect(self):
+        pass
+
     def handle_request(cls, deal_type, request_type, url, headers=None, params=None, data=None, **kwargs):
         """
         网页请求处理
@@ -134,7 +201,6 @@ class BaseHandler(object):
         except Exception as e:
             raise Exception(e)
 
-
     @classmethod
     def data_insert(cls, record_num, data_info, date, data_type, data_source, start_dt,
                     end_dt, used_time, data_url, data_status, excel_file_path=None):
@@ -169,4 +235,4 @@ class BaseHandler(object):
 if __name__ == '__main__':
     s = BaseHandler()
     # s.kafka_mq_producer('20220725', '3', '华泰证券', 'ht_securities_collect')
-    s.kafka_mq_producer('2022-09-15', '99', '中信建投', 'zxjt_securities_collect')
+    s.kafka_mq_producer('2022-09-19', '4', '上海交易所', 'sh_exchange_mt_underlying_and_guaranty_security')
