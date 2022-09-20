@@ -32,7 +32,8 @@ exchange_mt_guaranty_and_underlying_security = '99'  # 融资融券可充抵保�
 class CollectHandler(BaseHandler):
 
     def __init__(self):
-        self.mq_msg = os.path.basename(__file__)
+        super().__init__()
+        self.mq_msg = os.path.basename(__file__).split('.')[0]
         self.data_source = '长城证券'
         self.url = 'http://www.cgws.com/was5/web/de.jsp'
 
@@ -40,23 +41,16 @@ class CollectHandler(BaseHandler):
     def rz_underlying_securities_collect(self):
         page = 1
         page_size = 5
-        data_list = []
+        self.data_list = []
         self.title_list = ['sec_code', 'sec_name', 'round_rate', 'date', 'market']
-        biz_dt = datetime.date.today()
         while True:
             params = {"page": page, "channelid": 257420, "searchword": 'KGNyZWRpdGZ1bmRjdHJsPTAp',
                       "_": get_timestamp()}
             response = self.get_response(self.url, 0, cc_headers, params)
             text = json.loads(response.text)
             row_list = text['rows']
-            total = 0
             if row_list:
-                total = int(text['total'])
-            if total is not None and type(total) is not str and total > page * page_size:
-                is_continue = True
-                page = page + 1
-            else:
-                is_continue = False
+                self.total_num = int(text['total'])
             for i in row_list:
                 sec_code = i['code']
                 if sec_code == "":  # 一页数据,遇到{"code":"","name":"","rate":"","pub_date":"","market":""}表示完结
@@ -71,13 +65,13 @@ class CollectHandler(BaseHandler):
                 else:
                     market = '北京'
                 round_rate = i['rate']
-                biz_dt = i['pub_date']
-                data_list.append((sec_code, sec_name, round_rate, biz_dt, market))
-            self.collect_num = int(len(data_list))
-            self.data_list = data_list
-            self.biz_dt = biz_dt
-
-
+                self.biz_dt = i['pub_date']
+                self.data_list.append((sec_code, sec_name, round_rate, self.biz_dt, market))
+                self.collect_num = int(len(self.data_list))
+            if self.total_num is not None and type(self.total_num) is not str and self.total_num > page * page_size:
+                page = page + 1
+            else:
+                break
 
     def rq_underlying_securities_collect(self):
         actual_date = datetime.date.today()

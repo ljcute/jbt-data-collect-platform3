@@ -59,12 +59,14 @@ class BaseHandler(object):
         self.mq_msg = None
 
     def collect_data(self, biz_type):
+        if int(use_proxy) == 0:
+            logger.info(f"{self.data_source}{self.biz_type_map.get(biz_type)}，此次数据采集不使用代理！")
         self.biz_type = biz_type
-        actual_date = datetime.date.today()
-        logger.info(f'{self.data_source}{self.biz_type_map.get(biz_type)}数据采集任务开始执行{actual_date}')
+        logger.info(f'{self.data_source}{self.biz_type_map.get(biz_type)}数据采集任务开始执行{self.start_dt}')
         max_retry = 0
         while max_retry < 3:
-            logger.info(f'{self.data_source}{self.biz_type_map.get(biz_type)}数据采集重试第{max_retry}次')
+            if max_retry > 0:
+                logger.info(f'{self.data_source}{self.biz_type_map.get(biz_type)}数据采集重试第{max_retry}次')
             try:
                 if biz_type == 0:
                     self.trading_amount_collect()
@@ -130,7 +132,6 @@ class BaseHandler(object):
             logger.info(f'获取代理ip结束,proxies:{proxies}')
             return proxies
         elif int(use_proxy) == 0:
-            logger.info("此次数据采集不使用代理！")
             return None
         else:
             raise Exception("use_proxy参数有误，请检查")
@@ -140,7 +141,8 @@ class BaseHandler(object):
         response = None
         max_retry = 0
         while max_retry < 5:
-            logger.info(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}数据采集重试第{max_retry}次')
+            if max_retry > 0:
+                logger.info(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}数据采集重试第{max_retry}次')
             try:
                 proxies = self.get_proxies()
                 if request_type == 0:
@@ -152,6 +154,7 @@ class BaseHandler(object):
                     logger.error(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}采集任务异常，request_type参数有误')
                 if response is None or response.status_code != 200:
                     raise Exception(f'{self.data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
+                logger.info(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}数据采集: 总记录数(条){self.total_num}, 已采集数(条){self.collect_num}')
                 return response if response.status_code == 200 else None
             except Exception as e:
                 logger.warn(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}采集任务异常，请求url为:{self.url}，具体异常信息为:{traceback.format_exc()}')
@@ -202,7 +205,7 @@ class BaseHandler(object):
             if self.data_list and self.title_list:
                 data_df = pd.DataFrame(data=self.data_list, columns=self.title_list)
                 if data_df is not None:
-                    df_result = {'columns': self.title_list, 'data': self.data_df.values.tolist()}
+                    df_result = {'columns': self.title_list, 'data': data_df.values.tolist()}
                     return df_result
         except Exception as e:
             raise Exception(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}：{e}')

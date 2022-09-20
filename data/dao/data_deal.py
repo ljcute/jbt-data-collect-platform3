@@ -20,9 +20,10 @@ def insert_data_collect(record_num, data_info, date, data_type, data_source, sta
 
         conn.commit()
     except Exception as es:
-        logger.error(f'保存数据SQL执行异常，ex={es}', exc_info=True)
         conn.rollback()
-    conn.close()
+        raise Exception(es)
+    finally:
+        conn.close()
 
 
 def get_max_biz_dt():
@@ -38,6 +39,7 @@ def get_max_biz_dt():
             return result[0][0].strftime("%Y-%m-%d")
         return None
     except Exception as es:
-        logger.error(f'查询数据SQL执行异常，ex={es}', exc_info=True)
         conn.rollback()
-    conn.close()
+        raise Exception(es)
+    finally:
+        conn.close()
