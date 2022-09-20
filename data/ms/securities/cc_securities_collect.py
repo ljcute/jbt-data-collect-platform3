@@ -48,71 +48,56 @@ class CollectHandler(BaseHandler):
         data_list = []
         title_list = ['sec_code', 'sec_name', 'round_rate', 'date', 'market']
         start_dt = datetime.datetime.now()
-        try:
-            proxies = super().get_proxies()
-            while is_continue:
-                params = {"page": page, "channelid": 257420, "searchword": 'KGNyZWRpdGZ1bmRjdHJsPTAp',
-                          "_": get_timestamp()}
-                response = super().get_response(data_source, url, proxies, 0, cc_headers, params)
-                if response is None or response.status_code != 200:
-                    raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
-                text = json.loads(response.text)
-                logger.info("开始处理融资标的券数据")
-                row_list = text['rows']
-                total = 0
-                if row_list:
-                    total = int(text['total'])
-                if total is not None and type(total) is not str and total > page * page_size:
-                    is_continue = True
-                    page = page + 1
-                else:
-                    is_continue = False
-                for i in row_list:
-                    sec_code = i['code']
-                    if sec_code == "":  # 一页数据,遇到{"code":"","name":"","rate":"","pub_date":"","market":""}表示完结
-                        break
-                    u_name = i['name'].replace('u', '\\u')  # 把u4fe1u7acbu6cf0转成\\u4fe1\\u7acb\\u6cf0
-                    sec_name = u_name.encode().decode('unicode_escape')  # unicode转汉字
-                    market = '深圳' if i['market'] == "0" else '上海'
-                    round_rate = i['rate']
-                    date = i['pub_date']
-                    data_list.append((sec_code, sec_name, round_rate, date, market))
+        proxies = BaseHandler.get_proxies(self)
+        while is_continue:
+            params = {"page": page, "channelid": 257420, "searchword": 'KGNyZWRpdGZ1bmRjdHJsPTAp',
+                      "_": get_timestamp()}
+            response = BaseHandler.get_response(self, url, proxies, 0, cc_headers, params)
+            # retry_count = 3
+            # if response is None or response.status_code != 200:
+            #     while retry_count > 0:
+            #         response = BaseHandler.get_response(self, url, proxies, 0, cc_headers, params)
+            #         if response is not None:
+            #             break
+            #         else:
+            #             retry_count = retry_count - 1
+            #             continue
+            text = json.loads(response.text)
+            row_list = text['rows']
+            total = 0
+            if row_list:
+                total = int(text['total'])
+            if total is not None and type(total) is not str and total > page * page_size:
+                is_continue = True
+                page = page + 1
+            else:
+                is_continue = False
+            for i in row_list:
+                sec_code = i['code']
+                if sec_code == "":  # 一页数据,遇到{"code":"","name":"","rate":"","pub_date":"","market":""}表示完结
+                    break
+                u_name = i['name'].replace('u', '\\u')  # 把u4fe1u7acbu6cf0转成\\u4fe1\\u7acb\\u6cf0
+                sec_name = u_name.encode().decode('unicode_escape')  # unicode转汉字
+                market = '深圳' if i['market'] == "0" else '上海'
+                round_rate = i['rate']
+                date = i['pub_date']
+                data_list.append((sec_code, sec_name, round_rate, date, market))
+            logger.info(f'已采集数据条数：{int(len(data_list))}')
 
-                logger.info(f'已采集数据条数：{int(len(data_list))}')
+        logger.info(f'采集融资标的券数据结束,共{int(len(data_list))}条')
+        df_result = BaseHandler.rz_underlying_securities_collect(self, data_list, title_list)
+        end_dt = datetime.datetime.now()
+        used_time = (end_dt - start_dt).seconds
+        BaseHandler.verify_data_record_num(self, int(len(data_list)), total, df_result, actual_date,
+                                           exchange_mt_financing_underlying_security, data_source
+                                           , start_dt, end_dt, used_time, url)
 
-            logger.info(f'采集融资标的券数据结束,共{int(len(data_list))}条')
-            df_result = super().data_deal(data_list, title_list)
-            end_dt = datetime.datetime.now()
-            used_time = (end_dt - start_dt).seconds
-            self.record_num = int(len(data_list))
-            if int(len(data_list)) == total and int(len(data_list)) > 0 and total > 0:
-                data_status = 1
-                super().data_insert(int(len(data_list)), df_result, actual_date,
-                                    exchange_mt_financing_underlying_security,
-                                    data_source, start_dt, end_dt, used_time, url, data_status)
-                logger.info(f'入库信息,共{int(len(data_list))}条')
-            elif int(len(data_list)) != total:
-                data_status = 2
-                super().data_insert(int(len(data_list)), df_result, actual_date,
-                                    exchange_mt_financing_underlying_security,
-                                    data_source, start_dt, end_dt, used_time, url, data_status)
-                logger.info(f'入库信息,共{int(len(data_list))}条')
-
-            message = "cc_securities_collect"
-            super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
+        message = "cc_securities_collect"
+        BaseHandler.kafka_mq_producer(self, json.dumps(actual_date, cls=ComplexEncoder),
                                       exchange_mt_financing_underlying_security, data_source, message)
-
-            logger.info("长城证券融资标的证券数据采集完成")
-        except Exception as e:
-            # if max_retry == 4:
-            #     data_status = 2
-            #     super().data_insert(0, str(e), actual_date, exchange_mt_financing_underlying_security,
-            #                         data_source, start_dt, None, None, url, data_status)
-            raise Exception(e)
 
     def rq_underlying_securities_collect(self):
         actual_date = datetime.date.today()
-        logger.info(f'开始采集长城证券融券标的券数据{actual_date}')
         url = 'http://www.cgws.com/was5/web/de.jsp'
         page = 1
         page_size = 5
@@ -120,69 +105,47 @@ class CollectHandler(BaseHandler):
         data_list = []
         title_list = ['sec_code', 'sec_name', 'round_rate', 'date', 'market']
         start_dt = datetime.datetime.now()
-        try:
-            proxies = get_proxies()
-            while is_continue:
-                params = {"page": page, "channelid": 257420, "searchword": 'KGNyZWRpdHN0a2N0cmw9MCk=',
-                          "_": get_timestamp()}
-                response = super().get_response(data_source, url, proxies, 0, cc_headers, params)
-                if response is None or response.status_code != 200:
-                    raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
-                text = json.loads(response.text)
-                row_list = text['rows']
-                total = 0
-                if row_list:
-                    total = int(text['total'])
-                if total is not None and type(total) is not str and total > page * page_size:
-                    is_continue = True
-                    page = page + 1
-                else:
-                    is_continue = False
-                for i in row_list:
-                    sec_code = i['code']
-                    if sec_code == "":  # 一页数据,遇到{"code":"","name":"","rate":"","pub_date":"","market":""}表示完结
-                        break
-                    u_name = i['name'].replace('u', '\\u')  # 把u4fe1u7acbu6cf0转成\\u4fe1\\u7acb\\u6cf0
-                    sec_name = u_name.encode().decode('unicode_escape')  # unicode转汉字
-                    market = '深圳' if i['market'] == "0" else '上海'
-                    round_rate = i['rate']
-                    date = i['pub_date']
-                    data_list.append((sec_code, sec_name, round_rate, date, market))
-                logger.info(f'已采集数据条数：{int(len(data_list))}')
+        proxies = get_proxies()
+        while is_continue:
+            params = {"page": page, "channelid": 257420, "searchword": 'KGNyZWRpdHN0a2N0cmw9MCk=',
+                      "_": get_timestamp()}
+            response = BaseHandler.get_response(self, url, proxies, 0, cc_headers, params)
+            text = json.loads(response.text)
+            row_list = text['rows']
+            total = 0
+            if row_list:
+                total = int(text['total'])
+            if total is not None and type(total) is not str and total > page * page_size:
+                is_continue = True
+                page = page + 1
+            else:
+                is_continue = False
+            for i in row_list:
+                sec_code = i['code']
+                if sec_code == "":  # 一页数据,遇到{"code":"","name":"","rate":"","pub_date":"","market":""}表示完结
+                    break
+                u_name = i['name'].replace('u', '\\u')  # 把u4fe1u7acbu6cf0转成\\u4fe1\\u7acb\\u6cf0
+                sec_name = u_name.encode().decode('unicode_escape')  # unicode转汉字
+                market = '深圳' if i['market'] == "0" else '上海'
+                round_rate = i['rate']
+                date = i['pub_date']
+                data_list.append((sec_code, sec_name, round_rate, date, market))
+            logger.info(f'已采集数据条数：{int(len(data_list))}')
 
-            logger.info(f'采集融券标的券数据结束,共{int(len(data_list))}条')
-            df_result = super().data_deal(data_list, title_list)
-            end_dt = datetime.datetime.now()
-            # 计算采集数据所需时间used_time
-            used_time = (end_dt - start_dt).seconds
-            if int(len(data_list)) == total and int(len(data_list)) > 0 and total > 0:
-                data_status = 1
-                super().data_insert(int(len(data_list)), df_result, actual_date,
-                                    exchange_mt_lending_underlying_security,
-                                    data_source, start_dt, end_dt, used_time, url, data_status)
-                logger.info(f'入库信息,共{int(len(data_list))}条')
-            elif int(len(data_list)) != total:
-                data_status = 2
-                super().data_insert(int(len(data_list)), df_result, actual_date,
-                                    exchange_mt_financing_underlying_security,
-                                    data_source, start_dt, end_dt, used_time, url, data_status)
-                logger.info(f'入库信息,共{int(len(data_list))}条')
-            message = "cc_securities_collect"
-            super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
+        logger.info(f'采集融券标的券数据结束,共{int(len(data_list))}条')
+        df_result = BaseHandler.rq_underlying_securities_collect(self, data_list, title_list)
+        end_dt = datetime.datetime.now()
+        used_time = (end_dt - start_dt).seconds
+        BaseHandler.verify_data_record_num(self, int(len(data_list)), total, df_result, actual_date,
+                                           exchange_mt_lending_underlying_security,
+                                           data_source, start_dt, end_dt, used_time, url)
+
+        message = "cc_securities_collect"
+        BaseHandler.kafka_mq_producer(self, json.dumps(actual_date, cls=ComplexEncoder),
                                       exchange_mt_lending_underlying_security, data_source, message)
-
-            logger.info("长城证券融券标的证券数据采集完成")
-        except Exception as e:
-            # if max_retry == 4:
-            #     data_status = 2
-            #     super().data_insert(0, str(e), actual_date, exchange_mt_financing_underlying_security,
-            #                         data_source, start_dt, None, None, url, data_status)
-
-            raise Exception(e)
 
     def guaranty_securities_collect(self):
         actual_date = datetime.date.today()
-        logger.info(f'开始采集长城证券担保券数据{actual_date}')
         url = 'http://www.cgws.com/was5/web/de.jsp'
         page = 1
         page_size = 5
@@ -190,65 +153,44 @@ class CollectHandler(BaseHandler):
         data_list = []
         title_list = ['sec_code', 'sec_name', 'round_rate', 'date', 'market']
         start_dt = datetime.datetime.now()
-        try:
-            proxies = get_proxies()
-            while is_continue:
-                params = {"page": page, "channelid": 229873, "searchword": None,
-                          "_": get_timestamp()}
-                response = super().get_response(data_source, url, proxies, 0, cc_headers, params)
-                if response is None or response.status_code != 200:
-                    raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
-                text = json.loads(response.text)
-                row_list = text['rows']
-                total = 0
-                if row_list:
-                    total = int(text['total'])
-                if total is not None and type(total) is not str and total > page * page_size:
-                    is_continue = True
-                    page = page + 1
-                else:
-                    is_continue = False
-                for i in row_list:
-                    sec_code = i['code']
-                    if sec_code == "":  # 一页数据,遇到{"code":"","name":"","rate":"","pub_date":"","market":""}表示完结
-                        break
-                    u_name = i['name'].replace('u', '\\u')  # 把u4fe1u7acbu6cf0转成\\u4fe1\\u7acb\\u6cf0
-                    sec_name = u_name.encode().decode('unicode_escape')  # unicode转汉字
-                    market = '深圳' if i['market'] == "0" else '上海'
-                    round_rate = i['rate']
-                    date = i['pub_date']
-                    data_list.append((sec_code, sec_name, round_rate, date, market))
+        proxies = get_proxies()
+        while is_continue:
+            params = {"page": page, "channelid": 229873, "searchword": None,
+                      "_": get_timestamp()}
+            response = BaseHandler.get_response(self, url, proxies, 0, cc_headers, params)
+            text = json.loads(response.text)
+            row_list = text['rows']
+            total = 0
+            if row_list:
+                total = int(text['total'])
+            if total is not None and type(total) is not str and total > page * page_size:
+                is_continue = True
+                page = page + 1
+            else:
+                is_continue = False
+            for i in row_list:
+                sec_code = i['code']
+                if sec_code == "":  # 一页数据,遇到{"code":"","name":"","rate":"","pub_date":"","market":""}表示完结
+                    break
+                u_name = i['name'].replace('u', '\\u')  # 把u4fe1u7acbu6cf0转成\\u4fe1\\u7acb\\u6cf0
+                sec_name = u_name.encode().decode('unicode_escape')  # unicode转汉字
+                market = '深圳' if i['market'] == "0" else '上海'
+                round_rate = i['rate']
+                date = i['pub_date']
+                data_list.append((sec_code, sec_name, round_rate, date, market))
+            logger.info(f'已采集数据条数：{int(len(data_list))}')
 
-                logger.info(f'已采集数据条数：{int(len(data_list))}')
+        logger.info(f'采集担保券数据结束,共{int(len(data_list))}条')
+        df_result = BaseHandler.guaranty_securities_collect(self, data_list, title_list)
+        end_dt = datetime.datetime.now()
+        used_time = (end_dt - start_dt).seconds
+        BaseHandler.verify_data_record_num(self, int(len(data_list)), total, df_result, actual_date,
+                                           exchange_mt_guaranty_security,
+                                           data_source, start_dt, end_dt, used_time, url)
 
-            logger.info(f'采集担保券数据结束,共{int(len(data_list))}条')
-            df_result = super().data_deal(data_list, title_list)
-            end_dt = datetime.datetime.now()
-            # 计算采集数据所需时间used_time
-            used_time = (end_dt - start_dt).seconds
-            if int(len(data_list)) == total and int(len(data_list)) > 0 and total > 0:
-                data_status = 1
-                super().data_insert(int(len(data_list)), df_result, actual_date, exchange_mt_guaranty_security,
-                                    data_source, start_dt, end_dt, used_time, url, data_status)
-                logger.info(f'入库信息,共{int(len(data_list))}条')
-            elif int(len(data_list)) != total:
-                data_status = 2
-                super().data_insert(int(len(data_list)), df_result, actual_date, exchange_mt_guaranty_security,
-                                    data_source, start_dt, end_dt, used_time, url, data_status)
-                logger.info(f'入库信息,共{int(len(data_list))}条')
-
-            message = "cc_securities_collect"
-            super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
-                                      exchange_mt_guaranty_security, data_source, message)
-
-            logger.info("长城证券担保券数据采集完成")
-        except Exception as e:
-            # if max_retry == 4:
-            #     data_status = 2
-            #     super().data_insert(0, str(e), actual_date, exchange_mt_guaranty_security,
-            #                         data_source, start_dt, None, None, url, data_status)
-
-            raise Exception(e)
+        message = "cc_securities_collect"
+        BaseHandler.kafka_mq_producer(self, json.dumps(actual_date, cls=ComplexEncoder),
+                                  exchange_mt_guaranty_security, data_source, message)
 
 
 def get_timestamp():
@@ -257,5 +199,5 @@ def get_timestamp():
 
 if __name__ == '__main__':
     collector = CollectHandler()
-    collector.collect_data(2)
+    collector.collect_data(5)
     # collector.collect_data(eval(sys.argv[1]))
