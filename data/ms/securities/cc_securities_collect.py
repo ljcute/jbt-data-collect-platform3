@@ -28,40 +28,25 @@ exchange_mt_financing_underlying_security = '4'  # 融资融券融资标的证�
 exchange_mt_lending_underlying_security = '5'  # 融资融券融券标的证券
 exchange_mt_guaranty_and_underlying_security = '99'  # 融资融券可充抵保证金证券和融资融券标的证券
 
-data_source = '长城证券'
-url = 'http://www.cgws.com/was5/web/de.jsp'
-
 
 class CollectHandler(BaseHandler):
 
     def __init__(self):
-        BaseHandler.__init__(self, data_source, url)
-        self.data_source = data_source
-        self.url = url
+        self.mq_msg = os.path.basename(__file__)
+        self.data_source = '长城证券'
+        self.url = 'http://www.cgws.com/was5/web/de.jsp'
+
 
     def rz_underlying_securities_collect(self):
-        actual_date = datetime.date.today()
-        url = 'http://www.cgws.com/was5/web/de.jsp'
         page = 1
         page_size = 5
-        is_continue = True
         data_list = []
-        title_list = ['sec_code', 'sec_name', 'round_rate', 'date', 'market']
-        start_dt = datetime.datetime.now()
-        proxies = BaseHandler.get_proxies(self)
-        while is_continue:
+        self.title_list = ['sec_code', 'sec_name', 'round_rate', 'date', 'market']
+        biz_dt = datetime.date.today()
+        while True:
             params = {"page": page, "channelid": 257420, "searchword": 'KGNyZWRpdGZ1bmRjdHJsPTAp',
                       "_": get_timestamp()}
-            response = BaseHandler.get_response(self, url, proxies, 0, cc_headers, params)
-            # retry_count = 3
-            # if response is None or response.status_code != 200:
-            #     while retry_count > 0:
-            #         response = BaseHandler.get_response(self, url, proxies, 0, cc_headers, params)
-            #         if response is not None:
-            #             break
-            #         else:
-            #             retry_count = retry_count - 1
-            #             continue
+            response = self.get_response(self.url, 0, cc_headers, params)
             text = json.loads(response.text)
             row_list = text['rows']
             total = 0
@@ -78,23 +63,21 @@ class CollectHandler(BaseHandler):
                     break
                 u_name = i['name'].replace('u', '\\u')  # 把u4fe1u7acbu6cf0转成\\u4fe1\\u7acb\\u6cf0
                 sec_name = u_name.encode().decode('unicode_escape')  # unicode转汉字
-                market = '深圳' if i['market'] == "0" else '上海'
+                market = '深圳'
+                if i['market'] == "0":
+                    market = '深圳'
+                elif i['market'] == "1":
+                    market = '上海'
+                else:
+                    market = '北京'
                 round_rate = i['rate']
-                date = i['pub_date']
-                data_list.append((sec_code, sec_name, round_rate, date, market))
-            logger.info(f'已采集数据条数：{int(len(data_list))}')
+                biz_dt = i['pub_date']
+                data_list.append((sec_code, sec_name, round_rate, biz_dt, market))
+            self.collect_num = int(len(data_list))
+            self.data_list = data_list
+            self.biz_dt = biz_dt
 
-        logger.info(f'采集融资标的券数据结束,共{int(len(data_list))}条')
-        df_result = BaseHandler.rz_underlying_securities_collect(self, data_list, title_list)
-        end_dt = datetime.datetime.now()
-        used_time = (end_dt - start_dt).seconds
-        BaseHandler.verify_data_record_num(self, int(len(data_list)), total, df_result, actual_date,
-                                           exchange_mt_financing_underlying_security, data_source
-                                           , start_dt, end_dt, used_time, url)
 
-        message = "cc_securities_collect"
-        BaseHandler.kafka_mq_producer(self, json.dumps(actual_date, cls=ComplexEncoder),
-                                      exchange_mt_financing_underlying_security, data_source, message)
 
     def rq_underlying_securities_collect(self):
         actual_date = datetime.date.today()
@@ -198,6 +181,5 @@ def get_timestamp():
 
 
 if __name__ == '__main__':
-    collector = CollectHandler()
-    collector.collect_data(5)
-    # collector.collect_data(eval(sys.argv[1]))
+    CollectHandler().collect_data(4)
+    # CollectHandler().collect_data(eval(sys.argv[1]))

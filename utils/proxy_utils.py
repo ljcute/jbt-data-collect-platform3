@@ -88,6 +88,7 @@ def check_proxy_ip_valid(ip, port):
     # response = requests.get("http://httpbin.org/ip", proxies=proxies, timeout=10)     # 国外ip，有些代理商不给访问
     try:
         response = requests.get("http://www.baidu.com", proxies=proxies, timeout=10)
+        logger.info(f"IP百度测试结果{response.status_code}")
         return True if int(response.status_code) == 200 else False
     except Exception as es:
         raise ProxyTimeOutEx
