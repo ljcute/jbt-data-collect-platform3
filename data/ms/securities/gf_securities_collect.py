@@ -4,7 +4,6 @@
 # @Time    : 2022/7/21 13:58
 # 广发证券
 
-import concurrent.futures
 import os
 import sys
 import traceback
@@ -12,26 +11,16 @@ import traceback
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 
-
 from utils.exceptions_utils import ProxyTimeOutEx
-from utils.proxy_utils import judge_proxy_is_fail
 from bs4 import BeautifulSoup
-from utils import remove_file
 from data.ms.basehandler import BaseHandler
-from utils.deal_date import ComplexEncoder, date_to_stamp
+from utils.deal_date import ComplexEncoder
 import json
 import time
 from constants import *
 from utils.logs_utils import logger
 import datetime
 
-exchange_mt_guaranty_security = '2'  # 融资融券可充抵保证金证券
-exchange_mt_underlying_security = '3'  # 融资融券标的证券
-exchange_mt_financing_underlying_security = '4'  # 融资融券融资标的证券
-exchange_mt_lending_underlying_security = '5'  # 融资融券融券标的证券
-exchange_mt_guaranty_and_underlying_security = '99'  # 融资融券可充抵保证金证券和融资融券标的证券
-
-data_source = '广发证券'
 url_ = 'http://www.gf.com.cn/business/finance/targetlist'
 url__ = 'http://www.gf.com.cn/business/finance/targetlist'
 url___ = 'http://www.gf.com.cn/business/finance/ratiolist'
@@ -39,286 +28,134 @@ url___ = 'http://www.gf.com.cn/business/finance/ratiolist'
 
 class CollectHandler(BaseHandler):
 
-    @classmethod
-    def collect_data(cls, business_type, search_date=None):
-        search_date = search_date if search_date is not None else datetime.date.today()
+    def __init__(self):
+        super().__init__()
+        self.mq_msg = os.path.basename(__file__).split('.')[0]
+        self.data_source = '广发证券'
+
+    def rz_underlying_securities_collect(self):
+        page = 1
+        page_size = 20
+        retry_count = 3
+        is_continue = True
+        search_date = self.search_date if self.search_date is not None else datetime.date.today()
         search_date = str(search_date).replace('-', '').replace('/', '')
-        max_retry = 0
-        while max_retry < 5:
-            logger.info(f'重试第{max_retry}次')
-            if business_type:
-                if business_type == 4:
-                    try:
-                        # 广发证券融资标的证券采集
-                        cls.rz_target_collect(search_date, max_retry)
-                        break
-                    except ProxyTimeOutEx as es:
-                        pass
-                    except Exception as e:
-                        logger.error(
-                            f'{data_source}融资标的证券采集任务异常，请求url为：{url_}，具体异常信息为：{traceback.format_exc()}')
-                elif business_type == 5:
-                    try:
-                        # 广发证券融券标的证券采集
-                        cls.rq_target_collect(search_date, max_retry)
-                        break
-                    except ProxyTimeOutEx as es:
-                        pass
-                    except Exception as e:
-                        logger.error(
-                            f'{data_source}融券标的证券采集任务异常，请求url为：{url__}，具体异常信息为：{traceback.format_exc()}')
-                elif business_type == 2:
-                    try:
-                        # 广发证券可充抵保证金采集
-                        cls.guaranty_collect(search_date, max_retry)
-                        break
-                    except ProxyTimeOutEx as es:
-                        pass
-                    except Exception as e:
-                        logger.error(
-                            f'{data_source}可充抵保证金证券采集任务异常，请求url为：{url___}，具体异常信息为：{traceback.format_exc()}')
+        self.url = 'http://www.gf.com.cn/business/finance/targetlist'
+        self.data_list = []
+        self.title_list = ['stock_name', 'stock_code', 'rate', 'date']
+        while is_continue:
+            params = {"pageSize": page_size, "pageNum": page, "type": 'fin', 'dir': 'asc', 'init_date': search_date,
+                      'sort': 'init_date', 'key': None}
+            response = self.get_response(self.url, 0, get_headers(), params)
+            text = json.loads(response.text)
+            self.total_num = int(text['count'])
+            result = text['result']
+            soup = BeautifulSoup(result, 'html.parser')
+            dom_td_list = soup.select('td')
+            for i in range(0, len(dom_td_list) - 1, 4):
+                dom_span_list = dom_td_list[i].find_all('span')
+                stock_name = dom_span_list[0].get_text()
+                stock_code = dom_span_list[1].get_text()
+                rate = dom_td_list[i + 1].get_text()
+                self.biz_dt = dom_td_list[i + 2].get_text()
+                self.data_list.append((stock_name, stock_code, rate, self.biz_dt))
+                self.collect_num = int(len(self.data_list))
+            if self.total_num is not None and type(self.total_num) is not str and self.total_num > page * page_size:
+                is_continue = True
+                page = page + 1
+            else:
+                if (len(result) == 0 or self.total_num == 0) and retry_count > 0:
+                    retry_count = retry_count - 1
+                    time.sleep(3)
+                    continue
+                is_continue = False
 
-            max_retry += 1
+    def rq_underlying_securities_collect(self):
+        page = 1
+        page_size = 20
+        is_continue = True
+        retry_count = 3
+        search_date = self.search_date if self.search_date is not None else datetime.date.today()
+        search_date = str(search_date).replace('-', '').replace('/', '')
+        self.url = 'http://www.gf.com.cn/business/finance/targetlist'
+        self.data_list = []
+        self.title_list = ['stock_name', 'stock_code', 'rate', 'date']
+        while is_continue:
+            params = {"pageSize": page_size, "pageNum": page, "type": 'slo', 'dir': 'asc', 'init_date': search_date,
+                      'sort': 'init_date', 'key': None}
+            response = self.get_response(self.url, 0, get_headers(), params)
+            text = json.loads(response.text)
+            self.total_num = int(text['count'])
+            result = text['result']
+            soup = BeautifulSoup(result, 'html.parser')
+            dom_td_list = soup.select('td')
+            for i in range(0, len(dom_td_list) - 1, 4):
+                dom_span_list = dom_td_list[i].find_all('span')
+                stock_name = dom_span_list[0].get_text()
+                stock_code = dom_span_list[1].get_text()
+                rate = dom_td_list[i + 1].get_text()
+                self.biz_dt = dom_td_list[i + 2].get_text()
+                self.data_list.append((stock_name, stock_code, rate, self.biz_dt))
+                self.collect_num = int(len(self.data_list))
+            if self.total_num is not None and type(self.total_num) is not str and self.total_num > page * page_size:
+                is_continue = True
+                page = page + 1
+            else:
+                if (len(result) == 0 or self.total_num == 0) and retry_count > 0:
+                    retry_count = retry_count - 1
+                    time.sleep(3)
+                    continue
+                is_continue = False
 
-    @classmethod
-    def rz_target_collect(cls, search_date, max_retry):
-        logger.info(f'开始采集广发证券融资标的证券数据{search_date}')
-        url = 'http://www.gf.com.cn/business/finance/targetlist'
+    def guaranty_securities_collect(self):
         page = 1
         page_size = 20
         is_continue = True
         total = None
         retry_count = 3
-        data_list = []
-        data_title = ['stock_name', 'stock_code', 'rate', 'date']
-        start_dt = datetime.datetime.now()
-        try:
-            proxies = super().get_proxies()
-            while is_continue:
-                params = {"pageSize": page_size, "pageNum": page, "type": 'fin', 'dir': 'asc', 'init_date': search_date,
-                          'sort': 'init_date', 'key': None}
-                response = super().get_response(data_source, url, proxies, 0, get_headers(), params)
-                if response is None or response.status_code != 200:
-                    raise Exception(
-                        f'{data_source}数据采集任务请求响应获取异常,第{page}页无成功请求响应，采集记录数未知,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
-                if response.status_code == 200:
-                    text = json.loads(response.text)
-                    total = text['count']
-                    result = text['result']
-                    soup = BeautifulSoup(result, 'html.parser')
-                    dom_td_list = soup.select('td')
+        search_date = self.search_date if self.search_date is not None else datetime.date.today()
+        search_date = str(search_date).replace('-', '').replace('/', '')
+        self.url = 'http://www.gf.com.cn/business/finance/ratiolist'
+        self.data_list = []
+        self.title_list = ['stock_name', 'stock_code', 'rate', 'date']
+        while is_continue:
+            params = {"pageSize": page_size, "pageNum": page, 'dir': 'asc', 'init_date': search_date,
+                      'sort': 'init_date', 'key': None}
+            response = self.get_response(self.url, 0, get_headers(), params)
+            text = json.loads(response.text)
+            self.total_num = int(text['count'])
+            result = text['result']
+            soup = BeautifulSoup(result, 'html.parser')
+            dom_td_list = soup.select('td')
+            for i in range(0, len(dom_td_list) - 1, 4):
+                dom_span_list = dom_td_list[i].find_all('span')
+                stock_name = dom_span_list[0].get_text()
+                stock_code = dom_span_list[1].get_text()
+                rate = dom_td_list[i + 1].get_text()
+                self.biz_dt = dom_td_list[i + 2].get_text()
+                self.data_list.append((stock_name, stock_code, rate, self.biz_dt))
+                self.collect_num = int(len(self.data_list))
+                logger.info(f'已采集数据条数为：{int(len(self.data_list))}')
 
-                if total is not None and type(total) is not str and total > page * page_size:
-                    is_continue = True
-                    page = page + 1
-                else:
-                    if (len(result) == 0 or total == 0) and retry_count > 0:
-                        retry_count = retry_count - 1
-                        time.sleep(3)
-                        continue
-                    is_continue = False
-
-                for i in range(0, len(dom_td_list) - 1, 4):
-                    dom_span_list = dom_td_list[i].find_all('span')
-                    stock_name = dom_span_list[0].get_text()
-                    stock_code = dom_span_list[1].get_text()
-                    rate = dom_td_list[i + 1].get_text()
-                    date = dom_td_list[i + 2].get_text()
-                    data_list.append((stock_name, stock_code, rate, date))
-                    logger.info(f'已采集数据条数为：{int(len(data_list))}')
-
-            logger.info(f'采集广发证券融资标的证券数据共{int(len(data_list))}条')
-            df_result = super().data_deal(data_list, data_title)
-            end_dt = datetime.datetime.now()
-            used_time = (end_dt - start_dt).seconds
-            if int(len(data_list)) == int(total) and int(len(data_list)) > 0 and int(total) > 0:
-                data_status = 1
-                super().data_insert(int(len(data_list)), df_result, search_date,
-                                    exchange_mt_financing_underlying_security,
-                                    data_source, start_dt, end_dt, used_time, url, data_status)
-                logger.info(f'入库信息,共{int(len(data_list))}条')
-            elif int(len(data_list)) != int(total):
-                data_status = 2
-                super().data_insert(int(len(data_list)), df_result, search_date,
-                                    exchange_mt_financing_underlying_security,
-                                    data_source, start_dt, end_dt, used_time, url, data_status)
-                logger.info(f'入库信息,共{int(len(data_list))}条')
-
-            message = "gf_securities_collect"
-            super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
-                                      exchange_mt_financing_underlying_security, data_source, message)
-
-            logger.info("广发证券融资标的证券数据采集完成")
-        except Exception as e:
-            if max_retry == 4:
-                data_status = 2
-                super().data_insert(0, str(e), search_date, exchange_mt_financing_underlying_security,
-                                    data_source, start_dt, None, None, url, data_status)
-
-            raise Exception(e)
-
-    @classmethod
-    def rq_target_collect(cls, search_date, max_retry):
-        logger.info(f'开始采集广发证券融券标的证券数据{search_date}')
-        url = 'http://www.gf.com.cn/business/finance/targetlist'
-        page = 1
-        page_size = 20
-        is_continue = True
-        total = None
-        retry_count = 3
-        data_list = []
-        data_title = ['stock_name', 'stock_code', 'rate', 'date']
-        start_dt = datetime.datetime.now()
-        try:
-            proxies = super().get_proxies()
-            while is_continue:
-                params = {"pageSize": page_size, "pageNum": page, "type": 'slo', 'dir': 'asc', 'init_date': search_date,
-                          'sort': 'init_date', 'key': None}
-                response = super().get_response(data_source, url, proxies, 0, get_headers(), params)
-                if response is None or response.status_code != 200:
-                    raise Exception(
-                        f'{data_source}数据采集任务请求响应获取异常,第{page}页无成功请求响应，采集记录数未知,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
-                if response.status_code == 200:
-                    text = json.loads(response.text)
-                    total = text['count']
-                    result = text['result']
-                    soup = BeautifulSoup(result, 'html.parser')
-                    dom_td_list = soup.select('td')
-
-                if total is not None and type(total) is not str and total > page * page_size:
-                    is_continue = True
-                    page = page + 1
-                else:
-                    if (len(result) == 0 or total == 0) and retry_count > 0:
-                        retry_count = retry_count - 1
-                        time.sleep(3)
-                        continue
-                    is_continue = False
-
-                for i in range(0, len(dom_td_list) - 1, 4):
-                    dom_span_list = dom_td_list[i].find_all('span')
-                    stock_name = dom_span_list[0].get_text()
-                    stock_code = dom_span_list[1].get_text()
-                    rate = dom_td_list[i + 1].get_text()
-                    date = dom_td_list[i + 2].get_text()
-                    data_list.append((stock_name, stock_code, rate, date))
-                    logger.info(f'已采集数据条数为：{int(len(data_list))}')
-
-            logger.info(f'采集广发证券融券标的证券数据共{int(len(data_list))}条')
-            df_result = super().data_deal(data_list, data_title)
-            end_dt = datetime.datetime.now()
-            used_time = (end_dt - start_dt).seconds
-            if int(len(data_list)) == int(total) and int(len(data_list)) > 0 and int(total) > 0:
-                data_status = 1
-                super().data_insert(int(len(data_list)), df_result, search_date,
-                                    exchange_mt_lending_underlying_security,
-                                    data_source, start_dt, end_dt, used_time, url, data_status)
-                logger.info(f'入库信息,共{int(len(data_list))}条')
-            elif int(len(data_list)) != int(total):
-                data_status = 2
-                super().data_insert(int(len(data_list)), df_result, search_date,
-                                    exchange_mt_lending_underlying_security,
-                                    data_source, start_dt, end_dt, used_time, url, data_status)
-                logger.info(f'入库信息,共{int(len(data_list))}条')
-
-            message = "gf_securities_collect"
-            super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
-                                      exchange_mt_lending_underlying_security, data_source, message)
-
-            logger.info("广发证券融券标的证券数据采集完成")
-        except Exception as e:
-            if max_retry == 4:
-                data_status = 2
-                super().data_insert(0, str(e), search_date, exchange_mt_lending_underlying_security,
-                                    data_source, start_dt, None, None, url, data_status)
-
-            raise Exception(e)
-
-    @classmethod
-    def guaranty_collect(cls, search_date, max_retry):
-        logger.info(f'开始采集广发证券可充抵保证金证券数据{search_date}')
-        url = 'http://www.gf.com.cn/business/finance/ratiolist'
-        page = 1
-        page_size = 20
-        is_continue = True
-        total = None
-        retry_count = 3
-        data_list = []
-        data_title = ['stock_name', 'stock_code', 'rate', 'date']
-        start_dt = datetime.datetime.now()
-        try:
-            proxies = super().get_proxies()
-            while is_continue:
-                params = {"pageSize": page_size, "pageNum": page, 'dir': 'asc', 'init_date': search_date,
-                          'sort': 'init_date', 'key': None}
-                response = super().get_response(data_source, url, proxies, 0, get_headers(), params)
-                if response is None or response.status_code != 200:
-                    raise Exception(
-                        f'{data_source}数据采集任务请求响应获取异常,第{page}页无成功请求响应，采集记录数未知,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
-                if response.status_code == 200:
-                    text = json.loads(response.text)
-                    total = text['count']
-                    result = text['result']
-                    soup = BeautifulSoup(result, 'html.parser')
-                    dom_td_list = soup.select('td')
-
-                if total is not None and type(total) is not str and total > page * page_size:
-                    is_continue = True
-                    page = page + 1
-                else:
-                    if (len(result) == 0 or total == 0) and retry_count > 0:
-                        retry_count = retry_count - 1
-                        time.sleep(3)
-                        continue
-                    is_continue = False
-
-                for i in range(0, len(dom_td_list) - 1, 4):
-                    dom_span_list = dom_td_list[i].find_all('span')
-                    stock_name = dom_span_list[0].get_text()
-                    stock_code = dom_span_list[1].get_text()
-                    rate = dom_td_list[i + 1].get_text()
-                    date = dom_td_list[i + 2].get_text()
-                    data_list.append((stock_name, stock_code, rate, date))
-                    logger.info(f'已采集数据条数为：{int(len(data_list))}')
-
-            logger.info(f'采集广发证券可充抵保证金证券数据共{int(len(data_list))}条')
-            df_result = super().data_deal(data_list, data_title)
-            end_dt = datetime.datetime.now()
-            used_time = (end_dt - start_dt).seconds
-            if int(len(data_list)) == int(total) and int(len(data_list)) > 0 and int(total) > 0:
-                data_status = 1
-                super().data_insert(int(len(data_list)), df_result, search_date,
-                                    exchange_mt_guaranty_security,
-                                    data_source, start_dt, end_dt, used_time, url, data_status)
-                logger.info(f'入库信息,共{int(len(data_list))}条')
-            elif int(len(data_list)) != int(total):
-                data_status = 2
-                super().data_insert(int(len(data_list)), df_result, search_date,
-                                    exchange_mt_guaranty_security,
-                                    data_source, start_dt, end_dt, used_time, url, data_status)
-                logger.info(f'入库信息,共{int(len(data_list))}条')
-
-            message = "gf_securities_collect"
-            super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
-                                      exchange_mt_guaranty_security, data_source, message)
-
-            logger.info("广发证券可充抵保证金证券数据采集完成")
-        except Exception as e:
-            if max_retry == 4:
-                data_status = 2
-                super().data_insert(0, str(e), search_date, exchange_mt_guaranty_security,
-                                    data_source, start_dt, None, None, url, data_status)
-
-            raise Exception(e)
+            if self.total_num is not None and type(self.total_num) is not str and self.total_num > page * page_size:
+                is_continue = True
+                page = page + 1
+            else:
+                if (len(result) == 0 or self.total_num == 0) and retry_count > 0:
+                    retry_count = retry_count - 1
+                    time.sleep(3)
+                    continue
+                is_continue = False
 
 
 if __name__ == '__main__':
-    collector = CollectHandler()
-    # collector.collect_data(4, '2022-07-12')
+    # collector = CollectHandler()
     # collector.collect_data(4)
-    if len(sys.argv) > 2:
-        collector.collect_data(eval(sys.argv[1]), sys.argv[2])
-    elif len(sys.argv) == 2:
-        collector.collect_data(eval(sys.argv[1]))
-    elif len(sys.argv) < 2:
-        raise Exception(f'business_type为必输参数')
+    # collector.collect_data(4)
+    # if len(sys.argv) > 2:
+    #     CollectHandler.collect_data(eval(sys.argv[1]), sys.argv[2])
+    # elif len(sys.argv) == 2:
+    #     CollectHandler.collect_data(eval(sys.argv[1]))
+    # elif len(sys.argv) < 2:
+    #     raise Exception(f'business_type为必输参数')
+    pass

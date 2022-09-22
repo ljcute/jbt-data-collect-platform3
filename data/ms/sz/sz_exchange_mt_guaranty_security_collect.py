@@ -31,12 +31,6 @@ from utils.logs_utils import logger
 base_dir = os.path.dirname(os.path.abspath(__file__))
 excel_file_path = os.path.join(base_dir, 'sz_exchange_mt_guaranty_security.xlsx')
 
-exchange_mt_guaranty_security = '2'  # 融资融券可充抵保证金证券
-exchange_mt_underlying_security = '3'  # 融资融券标的证券
-exchange_mt_financing_underlying_security = '4'  # 融资融券融资标的证券
-exchange_mt_lending_underlying_security = '5'  # 融资融券融券标的证券
-exchange_mt_guaranty_and_underlying_security = '99'  # 融资融券可充抵保证金证券和融资融券标的证券
-
 base_dir = os.path.dirname(os.path.abspath(__file__))
 full_path = os.path.join(base_dir, '../../../config/config.ini')
 cf = ConfigParser()
@@ -44,85 +38,39 @@ cf.read(full_path, encoding='utf-8')
 paths = cf.get('excel-path', 'save_excel_file_path')
 save_excel_file_path = os.path.join(paths, "深交所担保券{}.xlsx".format(datetime.date.today()))
 
-data_source_szse = '深圳交易所'
-data_source_sse = '上海交易所'
-
 regrex_pattern = re.compile(r"[(](.*?)[)]", re.S)  # 最小匹配,提取括号内容
 regrex_pattern2 = re.compile(r"[(](.*)[)]", re.S)  # 贪婪匹配
 
 
 class CollectHandler(BaseHandler):
 
-    @classmethod
-    def collect_data(cls, query_date=None):
-        max_retry = 0
-        while max_retry < 5:
-            logger.info(f'重试第{max_retry}次')
-            actual_date = datetime.date.today() if query_date is None else query_date
-            logger.info("深交所数据采集日期actual_date:{}".format(actual_date))
-            download_url = 'http://www.szse.cn/api/report/ShowReport'
-            headers = {
-                'User-Agent': random.choice(USER_AGENTS)
-            }
-            params = {
-                'SHOWTYPE': 'xlsx',
-                'CATALOGID': '1835_xxpl',
-                'TABKEY': 'tab1',
-                # 查历史可以传日期
-                'txtDate': actual_date,
-                'random': random_double()
-            }
-            start_dt = datetime.datetime.now()
-            try:
-                proxies = super().get_proxies()
-                title_list = ['zqdm', 'zqjc']
-                response = super().get_response(data_source_szse, download_url, proxies, 0, headers, params)
-                if response is None or response.status_code != 200:
-                    raise Exception(f'{data_source_szse}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{download_url},请求参数为:{params}')
-                logger.info("开始下载excel")
-                cls.download_excel(response)
-                logger.info("excel下载完成")
-                excel_file = xlrd2.open_workbook(excel_file_path, encoding_override="utf-8")
-                data_list, total_row = cls.handle_excel(excel_file, actual_date)
-                df_result = super().data_deal(data_list, title_list)
-                end_dt = datetime.datetime.now()
-                used_time = (end_dt - start_dt).seconds
-                if int(len(data_list)) == total_row - 1:
-                    data_status = 1
-                    super().data_insert(int(len(data_list)), df_result, actual_date, exchange_mt_guaranty_security,
-                                        data_source_szse, start_dt, end_dt, used_time, download_url, data_status,
-                                        save_excel_file_path)
-                    logger.info(f'入库信息,共{int(len(data_list))}条')
-                elif int(len(data_list)) != total_row - 1:
-                    data_status = 2
-                    super().data_insert(int(len(data_list)), df_result, actual_date, exchange_mt_guaranty_security,
-                                        data_source_szse, start_dt, end_dt, used_time, download_url, data_status,
-                                        save_excel_file_path)
-                    logger.info(f'入库信息,共{int(len(data_list))}条')
+    def __init__(self):
+        super().__init__()
+        self.mq_msg = os.path.basename(__file__).split('.')[0]
+        self.data_source = '深圳交易所'
 
-                message = "sz_exchange_mt_guaranty_security_collect"
-                super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
-                                          exchange_mt_guaranty_security, data_source_szse, message)
+    def guaranty_securities_collect(self):
+        actual_date = datetime.date.today() if self.search_date is None else self.search_date
+        self.url = 'http://www.szse.cn/api/report/ShowReport'
+        headers = {
+            'User-Agent': random.choice(USER_AGENTS)
+        }
+        params = {
+            'SHOWTYPE': 'xlsx',
+            'CATALOGID': '1835_xxpl',
+            'TABKEY': 'tab1',
+            # 查历史可以传日期
+            'txtDate': actual_date,
+            'random': random_double()
+        }
+        response = self.get_response(self.url, 0, headers, params)
+        self.download_excel(response)
+        excel_file = xlrd2.open_workbook(excel_file_path, encoding_override="utf-8")
+        self.data_list, total_row = self.handle_excel(excel_file, actual_date)
+        self.total_num = total_row - 1
+        self.collect_num = len(self.data_list)
 
-                logger.info("深交所融资融券可充抵保证金证券数据采集完成")
-
-                break
-            except ProxyTimeOutEx as es:
-                pass
-            except Exception as e:
-                time.sleep(3)
-                logger.error(f'{data_source_szse}担保券数据采集任务出现异常，请求url为：{download_url}，输入参数为：{params}，具体异常信息为:{traceback.format_exc()}')
-                if max_retry == 4:
-                    data_status = 2
-                    super().data_insert(0, str(e), actual_date, exchange_mt_guaranty_security,
-                                        data_source_szse, start_dt, None, None, download_url, data_status)
-            finally:
-                remove_file(excel_file_path)
-
-            max_retry += 1
-
-    @classmethod
-    def download_excel(cls, response):
+    def download_excel(self, response):
         try:
             with open(excel_file_path, 'wb') as file:
                 file.write(response.content)
@@ -131,8 +79,7 @@ class CollectHandler(BaseHandler):
         except Exception as es:
             raise Exception(es)
 
-    @classmethod
-    def handle_excel(cls, excel_file, actual_date):
+    def handle_excel(self, excel_file, actual_date):
         logger.info("开始处理excel")
         sheet_0 = excel_file.sheet_by_index(0)
         total_row = sheet_0.nrows
@@ -160,6 +107,6 @@ class CollectHandler(BaseHandler):
 if __name__ == '__main__':
     collector = CollectHandler()
     if len(sys.argv) > 1:
-        collector.collect_data(sys.argv[1])
+        collector.collect_data(eval(sys.argv[1]))
     else:
-        collector.collect_data()
+        logger.error(f'business_type为必传参数')

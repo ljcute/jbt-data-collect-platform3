@@ -39,63 +39,18 @@ paths = cf.get('excel-path', 'save_excel_file_path')
 save_excel_file_path = os.path.join(paths, "深交所融资融券{}.xlsx".format(datetime.date.today()))
 save_excel_file_path_total = os.path.join(paths, "深交所融资融券交易总量{}.xlsx".format(datetime.date.today()))
 
-data_type_market_mt_trading_amount = '0'  # 市场融资融券交易总量
-data_type_market_mt_trading_items = '1'  # 市场融资融券交易明细
-
-data_source_szse = '深圳交易所'
-data_source_sse = '上海交易所'
-broker_id = 1000092
-
 
 class CollectHandler(BaseHandler):
 
-    @classmethod
-    def collect_data(cls, query_date=None):
-        max_retry = 0
-        while max_retry < 5:
-            logger.info(f'重试第{max_retry}次')
-            try:
-                cls.total(query_date, max_retry)
-                cls.item(query_date, max_retry)
-                logger.info("深交所交易汇总及详细数据采集完成")
-                break
-            except ProxyTimeOutEx as es:
-                pass
-            except Exception as e:
-                time.sleep(3)
-                logger.error(f'{data_source_szse}交易汇总及详细数据采集任务出现异常，输入参数为：{query_date}，具体异常信息为:{traceback.format_exc()}')
+    def __init__(self):
+        super().__init__()
+        self.mq_msg = os.path.basename(__file__).split('.')[0]
+        self.data_source = '深圳交易所'
 
-
-            max_retry += 1
-
-    @classmethod
-    def get_trade_date(cls):
-        url = 'http://www.szse.cn/disclosure/margin/margin/index.html'
-        try:
-            logger.info(f'开始获取深圳交易所最新交易日日期')
-            driver = super().get_driver()
-            driver.get(url)
-            time.sleep(3)
-            trade_date = \
-                driver.find_elements(By.XPATH,
-                                     '/html/body/div[5]/div/div[2]/div/div/div[4]/div[1]/div[1]/div[1]/span[2]')[
-                    0].text
-            logger.info(f'深圳交易所最新交易日日期为{trade_date}')
-            return trade_date
-
-        except ProxyTimeOutEx as es:
-            pass
-        except Exception as e:
-            raise Exception(f'获取深圳交易所最新交易日日期异常，请求url为：{url}，具体异常信息为：{e}')
-
-    @classmethod
-    def total(cls, query_date, max_retry):
-        actual_date = datetime.date.today() if query_date is None else query_date
-        trade_date = cls.get_trade_date() if query_date is None else query_date
-        logger.info(f'深交所汇总数据采集开始{actual_date}')
-        logger.info(f'深圳交易所最新交易日日期为{trade_date}')
-
-        url = 'http://www.szse.cn/api/report/ShowReport?SHOWTYPE=xlsx&CATALOGID=1837_xxpl&TABKEY=tab1'
+    def trading_amount_collect(self):
+        trade_date = self.get_trade_date()
+        self.biz_dt = trade_date
+        self.url = 'http://www.szse.cn/api/report/ShowReport?SHOWTYPE=xlsx&CATALOGID=1837_xxpl&TABKEY=tab1'
         headers = {
             'User-Agent': random.choice(USER_AGENTS)
         }
@@ -103,45 +58,11 @@ class CollectHandler(BaseHandler):
             'txtDate': trade_date,  # 查历史可以传日期
             'random': random_double(),
         }
-        start_dt = datetime.datetime.now()
-        try:
-            # ss_url = 'http://www.szse.cn/api/report/ShowReport?SHOWTYPE=xlsx&CATALOGID=1837_xxpl&TABKEY=tab1&txtDate=2022-08-26&random=0.6332194803268989'
-            proxies = super().get_proxies()
-            title_list = ['jrrzye', 'jrrjye', 'jrrzrjye', 'jrrzmr', 'jrrjmc', 'jrrjyl']
-            response = super().get_response(data_source_szse, url, proxies, 0, headers, params)
-            if response is None or response.status_code != 200:
-                raise Exception(f'{data_source_szse}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{params}')
-            data_list, total = cls.total_deal(response, trade_date)
-            logger.info(f'data_list:{data_list}')
-            df_result = super().data_deal(data_list, title_list)
-            logger.info(f'df_result:{df_result}')
-            end_dt = datetime.datetime.now()
-            used_time = (end_dt - start_dt).seconds
-            if int(len(data_list)) == int(total) and int(len(data_list)) > 0 and int(total) > 0:
-                data_status = 1
-                super().data_insert(int(len(data_list)), df_result, trade_date, data_type_market_mt_trading_amount,
-                                    data_source_szse, start_dt, end_dt, used_time, url, data_status)
-                logger.info(f'数据入库信息,共{int(len(data_list))}条')
-            elif int(len(data_list)) != int(total):
-                data_status = 2
-                super().data_insert(int(len(data_list)), df_result, trade_date, data_type_market_mt_trading_amount,
-                                    data_source_szse, start_dt, end_dt, used_time, url, data_status)
-                logger.info(f'数据入库信息,共{int(len(data_list))}条')
+        response = self.get_response(self.url, 0, headers, params)
+        self.data_list, total_num = self.total_deal(response, trade_date)
+        self.collect_num = self.total_num = len(self.data_list)
 
-            message = "sz_market_mt_trading_collect"
-            super().kafka_mq_producer(json.dumps(trade_date, cls=ComplexEncoder),
-                                      data_type_market_mt_trading_amount, data_source_szse, message)
-        except Exception as e:
-            if max_retry == 4:
-                data_status = 2
-                super().data_insert(0, str(e), actual_date, data_type_market_mt_trading_amount,
-                                    data_source_szse, start_dt, None, None, url, data_status)
-
-            raise Exception(e)
-
-
-    @classmethod
-    def total_deal(cls, response, actual_date):
+    def total_deal(self, response, actual_date):
         try:
             try:
                 logger.info("开始下载excel")
@@ -154,15 +75,14 @@ class CollectHandler(BaseHandler):
                 raise Exception(e)
 
             excel_file = xlrd2.open_workbook(excel_file_path_anthoer, encoding_override="utf-8")
-            data_list, total = cls.handle_excel_total(excel_file, actual_date)
+            data_list, total = self.handle_excel_total(excel_file, actual_date)
             return data_list, total
         except Exception as e:
             raise Exception(e)
         finally:
             remove_file(excel_file_path_anthoer)
 
-    @classmethod
-    def handle_excel_total(cls, excel_file, actual_date):
+    def handle_excel_total(self, excel_file, actual_date):
         logger.info("开始处理excel")
         sheet_0 = excel_file.sheet_by_index(0)
         total_row = sheet_0.nrows
@@ -184,13 +104,10 @@ class CollectHandler(BaseHandler):
             logger.info("excel处理结束")
             return data_list, total_row
 
-    @classmethod
-    def item(cls, query_date, max_retry):
-        actual_date = datetime.date.today() if query_date is None else query_date
-        trade_date = cls.get_trade_date() if query_date is None else query_date
-
-        logger.info(f'深交所详细数据采集开始{actual_date}')
-        download_url = "https://www.szse.cn/api/report/ShowReport"
+    def trading_items_collect(self):
+        trade_date = self.get_trade_date()
+        self.biz_dt = trade_date
+        self.url = "https://www.szse.cn/api/report/ShowReport"
         headers = {
             'User-Agent': random.choice(USER_AGENTS)
         }
@@ -201,42 +118,11 @@ class CollectHandler(BaseHandler):
             'random': random_double(),
             'TABKEY': 'tab2'
         }
-        start_dt = datetime.datetime.now()
-        try:
-            proxies = super().get_proxies()
-            title_list = ['zqdm', 'zqjc', 'jrrzye', 'jrrzmr', 'jrrjyl', 'jrrjye', 'jrrjmc', 'jrrzrjye']
-            response = super().get_response(data_source_szse, download_url, proxies, 0, headers, params)
-            if response is None or response.status_code != 200:
-                raise Exception(f'{data_source_szse}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{download_url},请求参数为:{params}')
-            data_list, total_row = cls.item_deal(response, actual_date)
-            df_result = super().data_deal(data_list, title_list)
-            logger.info(f'df_result:{df_result}')
-            end_dt = datetime.datetime.now()
-            used_time = (end_dt - start_dt).seconds
-            if int(len(data_list)) == total_row - 1:
-                data_status = 1
-                super().data_insert(int(len(data_list)), df_result, trade_date, data_type_market_mt_trading_items,
-                                    data_source_szse, start_dt, end_dt, used_time, download_url, data_status)
-                logger.info(f'数据入库信息,共{int(len(data_list))}条')
-            else:
+        response = self.get_response(self.url, 0, headers, params)
+        self.data_list, total_num = self.item_deal(response, trade_date)
+        self.collect_num = self.total_num = len(self.data_list)
 
-                data_status = 2
-                super().data_insert(int(len(data_list)), df_result, trade_date, data_type_market_mt_trading_items,
-                                    data_source_szse, start_dt, end_dt, used_time, download_url, data_status)
-                logger.info(f'数据入库信息,共{int(len(data_list))}条')
-            message = "sz_market_mt_trading_collect"
-            super().kafka_mq_producer(json.dumps(trade_date, cls=ComplexEncoder),
-                                      data_type_market_mt_trading_items, data_source_szse, message)
-        except Exception as e:
-            if max_retry == 4:
-                data_status = 2
-                super().data_insert(0, str(e), actual_date, data_type_market_mt_trading_items,
-                                    data_source_szse, start_dt, None, None, download_url, data_status)
-
-            raise Exception(e)
-
-    @classmethod
-    def item_deal(cls, response, actual_date):
+    def item_deal(self, response, actual_date):
         try:
             try:
                 logger.info("开始下载excel")
@@ -249,15 +135,33 @@ class CollectHandler(BaseHandler):
                 raise Exception(e)
 
             excel_file = xlrd2.open_workbook(excel_file_path, encoding_override="utf-8")
-            data_list, total_row = cls.handle_excel(excel_file, actual_date)
+            data_list, total_row = self.handle_excel(excel_file, actual_date)
             return data_list, total_row
         except Exception as e:
             raise Exception(e)
         finally:
             remove_file(excel_file_path)
 
-    @classmethod
-    def handle_excel(cls, excel_file, actual_date):
+    def get_trade_date(self):
+        url = 'http://www.szse.cn/disclosure/margin/margin/index.html'
+        try:
+            logger.info(f'开始获取深圳交易所最新交易日日期')
+            driver = super().get_driver()
+            driver.get(url)
+            time.sleep(3)
+            trade_date = \
+                driver.find_elements(By.XPATH,
+                                     '/html/body/div[5]/div/div[2]/div/div/div[4]/div[1]/div[1]/div[1]/span[2]')[
+                    0].text
+            logger.info(f'深圳交易所最新交易日日期为{trade_date}')
+            return trade_date
+
+        except ProxyTimeOutEx as es:
+            pass
+        except Exception as e:
+            raise Exception(f'获取深圳交易所最新交易日日期异常，请求url为：{url}，具体异常信息为：{e}')
+
+    def handle_excel(self, excel_file, actual_date):
         logger.info("开始处理excel")
         sheet_0 = excel_file.sheet_by_index(0)
         total_row = sheet_0.nrows
@@ -285,8 +189,7 @@ class CollectHandler(BaseHandler):
 
 if __name__ == "__main__":
     collector = CollectHandler()
-    # collector.collect_data('2022-07-12')
     if len(sys.argv) > 1:
-        collector.collect_data(sys.argv[1])
+        collector.collect_data(eval(sys.argv[1]))
     else:
-        collector.collect_data()
+        logger.error(f'business_type为必传参数')

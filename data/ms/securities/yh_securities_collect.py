@@ -246,6 +246,7 @@ class CollectHandler(BaseHandler):
 
 
 if __name__ == '__main__':
-    collector = CollectHandler()
-    # collector.collect_data(3)
-    collector.collect_data(eval(sys.argv[1]))
+    # collector = CollectHandler()
+    # # collector.collect_data(3)
+    # collector.collect_data(eval(sys.argv[1]))
+    pass

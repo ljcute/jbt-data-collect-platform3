@@ -19,51 +19,21 @@ from constants import *
 from utils.logs_utils import logger
 import datetime
 
-exchange_mt_guaranty_security = '2'  # 融资融券可充抵保证金证券
-exchange_mt_underlying_security = '3'  # 融资融券标的证券
-exchange_mt_financing_underlying_security = '4'  # 融资融券融资标的证券
-exchange_mt_lending_underlying_security = '5'  # 融资融券融券标的证券
-exchange_mt_guaranty_and_underlying_security = '99'  # 融资融券可充抵保证金证券和融资融券标的证券
-
 data_source = '中信证券'
-url_ = 'https://kong.citics.com/pub/api/v1/website/rzrq/rzrqObjects'
+url = 'https://kong.citics.com/pub/api/v1/website/rzrq/rzrqObjects'
 
 
 class CollectHandler(BaseHandler):
 
-    @classmethod
-    def collect_data(cls, business_type, search_date=None):
-        search_date = search_date if search_date is not None else datetime.date.today()
+    def __init__(self):
+        super().__init__()
+        self.mq_msg = os.path.basename(__file__).split('.')[0]
+        self.data_source = '中信证券'
+
+    def rzrq_underlying_securities_collect(self):
+        search_date = self.search_date if self.search_date is not None else datetime.date.today()
         search_date = str(search_date).replace('-', '').replace('/', '')
-        max_retry = 0
-        while max_retry < 5:
-            logger.info(f'重试第{max_retry}次')
-            if business_type:
-                if business_type == 3:
-                    try:
-                        # 中信证券标的证券采集
-                        cls.target_collect(search_date, max_retry)
-                        break
-                    except ProxyTimeOutEx as es:
-                        pass
-                    except Exception as e:
-                        logger.error(f'{data_source}标的证券采集任务异常，请求url为：{url_}，具体异常信息为：{traceback.format_exc()}')
-                elif business_type == 2:
-                    try:
-                        # 中信证券可充抵保证金采集
-                        cls.guaranty_collect(search_date, max_retry)
-                        break
-                    except ProxyTimeOutEx as es:
-                        pass
-                    except Exception as e:
-                        logger.error(f'{data_source}可充抵保证金证券采集任务异常，请求url为：{url_}，具体异常信息为：{traceback.format_exc()}')
-
-            max_retry += 1
-
-    @classmethod
-    def target_collect(cls, search_date, max_retry):
-        logger.info(f'开始采集中信证券标的证券数据{search_date}')
-        url = 'https://kong.citics.com/pub/api/v1/website/rzrq/rzrqObjects'
+        self.url = 'https://kong.citics.com/pub/api/v1/website/rzrq/rzrqObjects'
         headers = {
             'Accept': '*/*',
             'Accept-Encoding': 'gzip, deflate, br',
@@ -85,93 +55,41 @@ class CollectHandler(BaseHandler):
             'currPage': curr_page,
             'searchDate': search_date
         }
-        start_dt = datetime.datetime.now()
-        try:
-            proxies = super().get_proxies()
-            response = super().get_response(data_source, url, proxies, 1, headers, None, data)
+        response = self.get_response(self.url, 1, headers, None, data)
+        self.data_list = []
+        text = json.loads(response.text)
+        if text['errorCode'] == '100008':
+            logger.error(f'该日{search_date}为非交易日,无相应数据')
+            raise Exception(f'该日{search_date}为非交易日,无相应数据')
 
-            data_list = []
-            data_title = ['stock_code', 'stock_name', 'rz_rate', 'rq_rate', 'date', 'markert']
-            # 请求失败。重试三次
-            retry_count = 3
-            if response is None:
-                while retry_count > 0:
-                    response = super().get_response(data_source, url, proxies, 1, headers, None, data)
-                    if response is not None:
-                        break
-                    else:
-                        retry_count = retry_count - 1
-                        continue
+        self.total_num = int(text['data']['totalRecord'])
+        total_page = int(self.total_num / 20) + 1
 
-            if response is None or response.status_code != 200:
-                raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{data}')
+        for curr_page in range(1, total_page + 1):
+            logger.info(f'当前为第{curr_page}页')
+            data = {
+                'pageSize': 20,
+                'currPage': curr_page,
+                'searchDate': search_date
+            }
+            response = self.get_response(self.url, 1, headers, None, data)
+            text = json.loads(response.text)
+            data = text['data']['data']
+            if data:
+                for i in data:
+                    # stock_code = i['stockCode']
+                    # stock_name = i['stockName']
+                    # rz_rate = i['rzPercent']
+                    # rq_rate = i['rqPercent']
+                    # date = i['dataDate']
+                    # markert = i['exchangeCode']
+                    self.data_list.append(i)
+                    self.collect_num = len(self.data_list)
 
-            if response.status_code == 200:
-                text = json.loads(response.text)
-                if text['errorCode'] == '100008':
-                    logger.error(f'该日{search_date}为非交易日,无相应数据')
-                    raise Exception(f'该日{search_date}为非交易日,无相应数据')
-
-                total = text['data']['totalRecord']
-                total_page = int(total / 20) + 1
-
-                for curr_page in range(1, total_page + 1):
-                    logger.info(f'当前为第{curr_page}页')
-                    data = {
-                        'pageSize': 20,
-                        'currPage': curr_page,
-                        'searchDate': search_date
-                    }
-                    response = super().get_response(data_source, url, proxies, 1, headers, None, data)
-                    if response.status_code == 200:
-                        text = json.loads(response.text)
-                        data = text['data']['data']
-
-                    if data:
-                        for i in data:
-                            stock_code = i['stockCode']
-                            stock_name = i['stockName']
-                            rz_rate = i['rzPercent']
-                            rq_rate = i['rqPercent']
-                            date = i['dataDate']
-                            markert = i['exchangeCode']
-                            data_list.append((stock_code, stock_name, rz_rate, rq_rate, date, markert))
-                            logger.info(f'已采集数据条数为：{int(len(data_list))}')
-
-                logger.info(f'采集中信证券融资融券标的证券数据共{int(len(data_list))}条')
-                df_result = super().data_deal(data_list, data_title)
-                end_dt = datetime.datetime.now()
-                used_time = (end_dt - start_dt).seconds
-                if int(len(data_list)) == int(total) and int(len(data_list)) > 0 and int(total) > 0:
-                    data_status = 1
-                    super().data_insert(int(len(data_list)), df_result, search_date,
-                                        exchange_mt_underlying_security,
-                                        data_source, start_dt, end_dt, used_time, url, data_status)
-                    logger.info(f'入库信息,共{int(len(data_list))}条')
-                elif int(len(data_list)) != int(total):
-                    data_status = 2
-                    super().data_insert(int(len(data_list)), df_result, search_date,
-                                        exchange_mt_underlying_security,
-                                        data_source, start_dt, end_dt, used_time, url, data_status)
-                    logger.info(f'入库信息,共{int(len(data_list))}条')
-
-                message = "zx_securities_collect"
-                super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
-                                          exchange_mt_underlying_security, data_source, message)
-
-                logger.info("中信证券融资融券标的证券数据采集完成")
-        except Exception as e:
-            if max_retry == 4:
-                data_status = 2
-                super().data_insert(0, str(e), search_date, exchange_mt_underlying_security,
-                                    data_source, start_dt, None, None, url, data_status)
-
-            raise Exception(e)
-
-    @classmethod
-    def guaranty_collect(cls, search_date, max_retry):
-        logger.info(f'开始采集中信证券可充抵保证金比例数据{search_date}')
-        url = 'https://kong.citics.com/pub/api/v1/website/rzrq/punching'
+    def guaranty_securities_collect(self):
+        search_date = self.search_date if self.search_date is not None else datetime.date.today()
+        search_date = str(search_date).replace('-', '').replace('/', '')
+        self.url = 'https://kong.citics.com/pub/api/v1/website/rzrq/punching'
         headers = {
             'Accept': '*/*',
             'Accept-Encoding': 'gzip, deflate, br',
@@ -193,94 +111,42 @@ class CollectHandler(BaseHandler):
             'currPage': curr_page,
             'searchDate': search_date
         }
-        start_dt = datetime.datetime.now()
-        try:
-            proxies = super().get_proxies()
-            response = super().get_response(data_source, url, proxies, 1, headers, None, data)
-            data_list = []
-            data_title = ['market', 'stock_code', 'stock_name', 'rate', 'date', 'status', 'stockgroup_name']
+        self.data_list = []
+        response = self.get_response(self.url, 1, headers, None, data)
+        text = json.loads(response.text)
+        if text['errorCode'] == '100008':
+            logger.error(f'该日{search_date}为非交易日,无相应数据')
+            raise Exception(f'该日{search_date}为非交易日,无相应数据')
 
-            # 请求失败。重试三次
-            retry_count = 3
-            if response is None:
-                while retry_count > 0:
-                    response = super().get_response(data_source, url, proxies, 1, headers, None, data)
-                    if response is not None:
-                        break
-                    else:
-                        retry_count = retry_count - 1
-                        continue
-            if response is None or response.status_code != 200:
-                raise Exception(f'{data_source}数据采集任务请求响应获取异常,已获取代理ip为:{proxies}，请求url为:{url},请求参数为:{data}')
-            if response.status_code == 200:
-                text = json.loads(response.text)
-                if text['errorCode'] == '100008':
-                    logger.error(f'该日{search_date}为非交易日,无相应数据')
-                    raise Exception(f'该日{search_date}为非交易日,无相应数据')
+        self.total_num = int(text['data']['totalRecord'])
+        total_page = int(self.total_num / 20) + 1
 
-                total = text['data']['totalRecord']
-                total_page = int(total / 20) + 1
-
-                for curr_page in range(1, total_page + 1):
-                    logger.info(f'当前为第{curr_page}页')
-                    data = {
-                        'pageSize': 20,
-                        'currPage': curr_page,
-                        'searchDate': search_date
-                    }
-                    response = super().get_response(data_source, url, proxies, 1, headers, None, data)
-                    if response.status_code == 200:
-                        text = json.loads(response.text)
-                        data = text['data']['data']
-
-                    if data:
-                        for i in data:
-                            market = i['exchangeCode']
-                            stock_code = i['stockCode']
-                            stock_name = i['stockName']
-                            rate = i['percent']
-                            date = i['dataDate']
-                            status = i['status']
-                            stockgroup_name = i['stockgroup_name']
-                            data_list.append((market, stock_code, stock_name, rate, date, status, stockgroup_name))
-                            logger.info(f'已采集数据条数为：{int(len(data_list))}')
-
-                logger.info(f'采集中信证券可充抵保证金证券数据共{int(len(data_list))}条')
-                df_result = super().data_deal(data_list, data_title)
-                end_dt = datetime.datetime.now()
-                used_time = (end_dt - start_dt).seconds
-                if int(len(data_list)) == int(total) and int(len(data_list)) > 0 and int(total) > 0:
-                    data_status = 1
-                    super().data_insert(int(len(data_list)), df_result, search_date,
-                                        exchange_mt_guaranty_security,
-                                        data_source, start_dt, end_dt, used_time, url, data_status)
-                    logger.info(f'入库信息,共{int(len(data_list))}条')
-                elif int(len(data_list)) != int(total):
-                    data_status = 2
-                    super().data_insert(int(len(data_list)), df_result, search_date,
-                                        exchange_mt_guaranty_security,
-                                        data_source, start_dt, end_dt, used_time, url, data_status)
-                    logger.info(f'入库信息,共{int(len(data_list))}条')
-
-                message = "zx_securities_collect"
-                super().kafka_mq_producer(json.dumps(search_date, cls=ComplexEncoder),
-                                          exchange_mt_guaranty_security, data_source, message)
-
-                logger.info("中信证券可充抵保证金证券数据采集完成")
-        except Exception as e:
-            if max_retry == 4:
-                data_status = 2
-                super().data_insert(0, str(e), search_date, exchange_mt_guaranty_security,
-                                    data_source, start_dt, None, None, url, data_status)
-
-            raise Exception(e)
+        for curr_page in range(1, total_page + 1):
+            logger.info(f'当前为第{curr_page}页')
+            data = {
+                'pageSize': 20,
+                'currPage': curr_page,
+                'searchDate': search_date
+            }
+            response = self.get_response(self.url, 1, headers, None, data)
+            text = json.loads(response.text)
+            data = text['data']['data']
+            if data:
+                for i in data:
+                    # market = i['exchangeCode']
+                    # stock_code = i['stockCode']
+                    # stock_name = i['stockName']
+                    # rate = i['percent']
+                    # date = i['dataDate']
+                    # status = i['status']
+                    # stockgroup_name = i['stockgroup_name']
+                    self.data_list.append(i)
+                    self.collect_num = len(self.data_list)
 
 
 if __name__ == '__main__':
     collector = CollectHandler()
-    # collector.collect_data(3)
-    # collector.collect_data(search_date='2022-07-18')
-    # collector.collect_data(eval(sys.argv[1]), sys.argv[2])
+    # collector.collect_data(2)
     if len(sys.argv) > 2:
         collector.collect_data(eval(sys.argv[1]), sys.argv[2])
     elif len(sys.argv) == 2:
