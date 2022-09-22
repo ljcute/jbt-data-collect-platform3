@@ -5,18 +5,13 @@
 # 招商证券 --interface
 import os
 import sys
-import traceback
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 
-from utils.exceptions_utils import ProxyTimeOutEx
 from data.ms.basehandler import BaseHandler
-from utils.deal_date import ComplexEncoder
 import json
 from constants import *
-from utils.logs_utils import logger
-import datetime
 
 url_ = 'https://www.cmschina.com/api/newone2019/rzrq/rzrqstock'
 

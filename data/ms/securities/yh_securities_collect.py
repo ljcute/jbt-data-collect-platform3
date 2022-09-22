@@ -6,121 +6,39 @@
 
 import os
 import sys
-import traceback
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 
-
-from utils.exceptions_utils import ProxyTimeOutEx
 from data.ms.basehandler import BaseHandler
-from utils.deal_date import ComplexEncoder
 
 import os
 import time
-import json
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
-from utils.logs_utils import logger
-import datetime
 
 os.environ['NUMEXPR_MAX_THREADS'] = "16"
 
-# 定义常量
-broker_id = 10011
-
-exchange_mt_guaranty_security = '2'  # 融资融券可充抵保证金证券
-exchange_mt_underlying_security = '3'  # 融资融券标的证券
-exchange_mt_financing_underlying_security = '4'  # 融资融券融资标的证券
-exchange_mt_lending_underlying_security = '5'  # 融资融券融券标的证券
-exchange_mt_guaranty_and_underlying_security = '99'  # 融资融券可充抵保证金证券和融资融券标的证券
-
-data_source = '中国银河'
-url_ = 'http://www.chinastock.com.cn/newsite/cgs-services/stockFinance/businessAnnc.html?type=marginList'
 
 class CollectHandler(BaseHandler):
 
-    @classmethod
-    def collect_data(cls, business_type):
-        max_retry = 0
-        while max_retry < 5:
-            logger.info(f'重试第{max_retry}次')
-            if business_type:
-                if business_type == 4:
-                    try:
-                        # 银河证券融资标的证券采集
-                        cls.rz_target_collect(max_retry)
-                        break
-                    except ProxyTimeOutEx as es:
-                        pass
-                    except Exception as e:
-                        logger.error(f'{data_source}融资标的证券采集任务异常，请求url为：{url_}，具体异常信息为：{traceback.format_exc()}')
-                elif business_type == 5:
-                    try:
-                        # 银河证券融券标的证券采集
-                        cls.rq_target_collect(max_retry)
-                        break
-                    except ProxyTimeOutEx as es:
-                        pass
-                    except Exception as e:
-                        logger.error(f'{data_source}融券标的证券采集任务异常，请求url为：{url_}，具体异常信息为：{traceback.format_exc()}')
-                elif business_type == 2:
-                    try:
-                        # 银河证券可充抵保证金证券采集
-                        cls.guaranty_collect(max_retry)
-                        break
-                    except ProxyTimeOutEx as es:
-                        pass
-                    except Exception as e:
-                        logger.error(f'{data_source}可充抵保证金证券采集任务异常，请求url为：{url_}，具体异常信息为：{traceback.format_exc()}')
+    def __init__(self):
+        super().__init__()
+        self.mq_msg = os.path.basename(__file__).split('.')[0]
+        self.data_source = '中国银河'
+        self.url = 'http://www.chinastock.com.cn/newsite/cgs-services/stockFinance/businessAnnc.html?type=marginList'
 
-            max_retry += 1
+    def rz_underlying_securities_collect(self):
+        driver = self.get_driver()
+        driver.get(self.url)
+        self.data_list = []
+        time.sleep(3)
+        driver.find_elements(By.XPATH, '//a[text()="融资标的证券名单"]')[0].click()
+        html_content = str(driver.page_source)
+        self.resolve_page_content_rz(html_content, self.data_list)
+        self.collect_num = self.total_num = int(len(self.data_list))
 
-    # 中国银河证券融资标的证券采集
-    @classmethod
-    def rz_target_collect(cls, max_retry):
-        actual_date = datetime.date.today()
-        logger.info(f'开始采集中国银河证券融资标的证券相关数据{actual_date}')
-        # 融资标的证券
-        start_dt = datetime.datetime.now()
-        url = 'http://www.chinastock.com.cn/newsite/cgs-services/stockFinance/businessAnnc.html?type=marginList'
-        try:
-            driver = super().get_driver()
-            driver.get(url)
-            original_data_list = []
-            original_data_title = ['sec_code', 'sec_name', 'margin_ratio']
-            time.sleep(3)
-            driver.find_elements(By.XPATH, '//a[text()="融资标的证券名单"]')[0].click()
-            html_content = str(driver.page_source)
-            cls.resolve_page_content_rz(html_content, original_data_list)
-
-            logger.info(f'采集中国银河证券融资标的证券相关数据结束,共{int(len(original_data_list))}条')
-
-            df_result = super().data_deal(original_data_list, original_data_title)
-            end_dt = datetime.datetime.now()
-            used_time = (end_dt - start_dt).seconds
-            if df_result is not None:
-                data_status = 1
-                super().data_insert(int(len(original_data_list)), df_result, actual_date,
-                                    exchange_mt_financing_underlying_security,
-                                    data_source, start_dt, end_dt, used_time, url, data_status)
-                logger.info(f'入库信息,共{int(len(original_data_list))}条')
-
-            message = "yh_securities_collect"
-            super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
-                                      exchange_mt_financing_underlying_security, data_source, message)
-
-            logger.info("中国银河证券融资标的证券相关数据采集完成")
-        except Exception as e:
-            if max_retry == 4:
-                data_status = 2
-                super().data_insert(0, str(e), actual_date, exchange_mt_financing_underlying_security,
-                                    data_source, start_dt, None, None, url, data_status)
-
-            raise Exception(e)
-
-    @classmethod
-    def resolve_page_content_rz(cls, html_content, original_data_list):
+    def resolve_page_content_rz(self, html_content, original_data_list):
         time.sleep(3)
         soup = BeautifulSoup(html_content, 'html.parser')
         collapseFour_content = soup.select('#table-bordered-finabcing')
@@ -132,51 +50,17 @@ class CollectHandler(BaseHandler):
                 row_list.append(k.text)
             original_data_list.append(row_list)
 
-    # 中国银河证券融券标的证券采集
-    @classmethod
-    def rq_target_collect(cls, max_retry):
-        actual_date = datetime.date.today()
-        logger.info(f'开始采集中国银河证券融券标的证券相关数据{actual_date}')
-        start_dt = datetime.datetime.now()
-        url = 'http://www.chinastock.com.cn/newsite/cgs-services/stockFinance/businessAnnc.html?type=marginList'
-        try:
-            driver = super().get_driver()
-            # 融券标的证券
-            driver.get(url)
-            original_data_list = []
-            original_data_title = ['sec_code', 'sec_name', 'margin_ratio']
-            time.sleep(3)
-            driver.find_elements(By.XPATH, '//a[text()="融券标的证券名单"]')[0].click()
-            html_content = str(driver.page_source)
-            cls.resolve_page_content_rq(html_content, original_data_list)
+    def rq_underlying_securities_collect(self):
+        driver = self.get_driver()
+        driver.get(self.url)
+        self.data_list = []
+        time.sleep(3)
+        driver.find_elements(By.XPATH, '//a[text()="融券标的证券名单"]')[0].click()
+        html_content = str(driver.page_source)
+        self.resolve_page_content_rq(html_content, self.data_list)
+        self.collect_num = self.total_num = int(len(self.data_list))
 
-            logger.info(f'采集中国银河证券融券标的证券相关数据结束,共{int(len(original_data_list))}条')
-            df_result = super().data_deal(original_data_list, original_data_title)
-            end_dt = datetime.datetime.now()
-            used_time = (end_dt - start_dt).seconds
-
-            if df_result is not None:
-                data_status = 1
-                super().data_insert(int(len(original_data_list)), df_result, actual_date,
-                                    exchange_mt_lending_underlying_security,
-                                    data_source, start_dt, end_dt, used_time, url, data_status)
-                logger.info(f'入库信息,共{int(len(original_data_list))}条')
-
-            message = "yh_securities_collect"
-            super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
-                                      exchange_mt_lending_underlying_security, data_source, message)
-
-            logger.info("中国银河证券融券标的证券相关数据完成")
-        except Exception as e:
-            if max_retry == 4:
-                data_status = 2
-                super().data_insert(0, str(e), actual_date, exchange_mt_lending_underlying_security,
-                                    data_source, start_dt, None, None, url, data_status)
-
-            raise Exception(e)
-
-    @classmethod
-    def resolve_page_content_rq(cls, html_content, original_data_list):
+    def resolve_page_content_rq(self, html_content, original_data_list):
         time.sleep(3)
         soup = BeautifulSoup(html_content, 'html.parser')
         collapseFive_content = soup.select('#table-bordered-rong')
@@ -188,51 +72,17 @@ class CollectHandler(BaseHandler):
                 row_list.append(k.text)
             original_data_list.append(row_list)
 
-    # 中国银河证券可充抵保证金证券名单采集
-    @classmethod
-    def guaranty_collect(cls, max_retry):
-        actual_date = datetime.date.today()
-        logger.info(f'开始采集中国银河证券可充抵保证金证券相关数据{actual_date}')
-        # 可充抵保证金证券
-        start_dt = datetime.datetime.now()
-        url = 'http://www.chinastock.com.cn/newsite/cgs-services/stockFinance/businessAnnc.html?type=marginList'
-        try:
-            driver = super().get_driver()
-            driver.get(url)
-            original_data_list = []
-            original_data_title = ['sec_code', 'sec_name', 'margin_ratio']
-            time.sleep(3)
-            driver.find_elements(By.XPATH, '//a[text()="可充抵保证金证券名单"]')[0].click()
-            html_content = str(driver.page_source)
-            cls.resolve_page_content_bzj(html_content, original_data_list)
+    def guaranty_securities_collect(self):
+        driver = self.get_driver()
+        driver.get(self.url)
+        self.data_list = []
+        time.sleep(3)
+        driver.find_elements(By.XPATH, '//a[text()="可充抵保证金证券名单"]')[0].click()
+        html_content = str(driver.page_source)
+        self.resolve_page_content_bzj(html_content, self.data_list)
+        self.collect_num = self.total_num = int(len(self.data_list))
 
-            logger.info(f'采集中国银河证券可充抵保证金证券相关数据结束,共{int(len(original_data_list))}条')
-            df_result = super().data_deal(original_data_list, original_data_title)
-            end_dt = datetime.datetime.now()
-            used_time = (end_dt - start_dt).seconds
-
-            if df_result is not None:
-                data_status = 1
-                super().data_insert(int(len(original_data_list)), df_result, actual_date,
-                                    exchange_mt_guaranty_security,
-                                    data_source, start_dt, end_dt, used_time, url, data_status)
-                logger.info(f'入库信息,共{int(len(original_data_list))}条')
-
-            message = "yh_securities_collect"
-            super().kafka_mq_producer(json.dumps(actual_date, cls=ComplexEncoder),
-                                      exchange_mt_guaranty_security, data_source, message)
-
-            logger.info("中国银河证券可充抵保证金证券相关数据采集完成")
-        except Exception as e:
-            if max_retry == 4:
-                data_status = 2
-                super().data_insert(0, str(e), actual_date, exchange_mt_guaranty_security,
-                                    data_source, start_dt, None, None, url, data_status)
-
-            raise Exception(e)
-
-    @classmethod
-    def resolve_page_content_bzj(cls, html_content, original_data_list):
+    def resolve_page_content_bzj(self, html_content, original_data_list):
         time.sleep(3)
         soup = BeautifulSoup(html_content, 'html.parser')
         collapseSix_content = soup.select('#table-bordered-chong')
@@ -246,7 +96,5 @@ class CollectHandler(BaseHandler):
 
 
 if __name__ == '__main__':
-    # collector = CollectHandler()
-    # # collector.collect_data(3)
-    # collector.collect_data(eval(sys.argv[1]))
-    pass
+    collector = CollectHandler()
+    collector.collect_data(eval(sys.argv[1]))

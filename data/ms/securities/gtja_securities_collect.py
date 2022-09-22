@@ -71,7 +71,6 @@ class CollectHandler(BaseHandler):
                 text = json.loads(response.text)
                 finance_list = text['finance']
             except Exception as e:
-                logger.error(e)
                 is_continue = False
                 if retry_count > 0:
                     retry_count = retry_count - 1
@@ -96,7 +95,6 @@ class CollectHandler(BaseHandler):
         search_date = str(search_date).replace('-', '').replace('/', '')
         params = {"pageNum": 1, "type": 2, "_": remove_file.get_timestamp(), "stamp": search_date}  # type=3表示融资
         self.data_list = []
-        self.title_list = ['stock_code', 'stock_name', 'rate', 'branch']
         response = self.get_response(self.url, 0, get_headers(), params, None, allow_redirects=False)
         text = json.loads(response.text)
         self.total_num = int(text['total'])
@@ -136,7 +134,6 @@ class CollectHandler(BaseHandler):
                 text = json.loads(response.text)
                 security_list = text['security']
             except Exception as e:
-                logger.error(e)
                 is_continue = False
                 if retry_count > 0:
                     retry_count = retry_count - 1
@@ -161,7 +158,6 @@ class CollectHandler(BaseHandler):
         search_date = str(search_date).replace('-', '').replace('/', '')
         params = {"pageNum": 1, "type": 1, "_": remove_file.get_timestamp(), "stamp": search_date}  # type=3表示融资
         self.data_list = []
-        self.title_list = ['stock_code', 'stock_name', 'rate', 'branch']
         response = self.get_response(self.url, 0, get_headers(), params, None, allow_redirects=False)
         text = json.loads(response.text)
         self.total_num = int(text['total'])
@@ -186,7 +182,6 @@ class CollectHandler(BaseHandler):
                     self.data_list.extend(data_temp_list)
                     self.collect_num = len(self.data_list)
 
-
     def collect_by_partition_bzj(self, start_page, end_page, search_date):
         data_list = []
         if end_page is None:
@@ -202,7 +197,6 @@ class CollectHandler(BaseHandler):
                 text = json.loads(response.text)
                 offset_list = text['offset']
             except Exception as e:
-                logger.error(e)
                 is_continue = False
                 if retry_count > 0:
                     retry_count = retry_count - 1

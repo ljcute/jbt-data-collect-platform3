@@ -23,6 +23,7 @@ from utils.proxy_utils import get_proxies
 from utils.logs_utils import logger
 from selenium import webdriver
 from kafka.producer import KafkaProducer
+from constants import *
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 full_path = os.path.join(base_dir, '../../config/config.ini')
@@ -88,10 +89,9 @@ class BaseHandler(object):
                 self.process_result()
                 break
             except Exception as e:
-                logger.warn(f'{self.data_source}{self.biz_type_map.get(biz_type)}采集任务异常，请求url为:{self.url}，具体异常信息为:{traceback.format_exc()}')
                 if max_retry == 2:
-                    logger.error(f'{self.data_source}{self.biz_type_map.get(biz_type)}采集任务异常，请求url为:{self.url}，具体异常信息为:{traceback.format_exc()}')
-                time.sleep(30)
+                    logger.error(f'{self.data_source}{self.biz_type_map.get(biz_type)}采集任务异常，业务请求次数上限：{out_cycle}，已重试次数{max_retry}，请求url为:{self.url}，具体异常信息为:{traceback.format_exc()}')
+                time.sleep(3)
             max_retry += 1
 
     # 交易所交易总量
@@ -146,9 +146,11 @@ class BaseHandler(object):
             try:
                 if request_type == 0:
                     response = requests.get(url=url, params=params, proxies=self.proxies, headers=headers,
-                                            allow_redirects=allow_redirects, timeout=10)
+                                            allow_redirects=allow_redirects, timeout=30)
                 elif request_type == 1:
-                    response = requests.post(url=url, data=data, proxies=self.proxies, headers=headers, timeout=10)
+                    response = requests.post(url=url, data=data, proxies=self.proxies, headers=headers, timeout=30)
+                elif request_type == 2:
+                    response = session.post(url=url, data=data, headers=headers, proxies=self.proxies, timeout=30)
                 else:
                     logger.error(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}采集任务异常，request_type参数有误')
                 if response is None or response.status_code != 200:
@@ -158,11 +160,10 @@ class BaseHandler(object):
             except ProxyTimeOutEx as es:
                 self.proxies = self.get_proxies()
             except Exception as e:
-                logger.warn(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}采集任务异常，请求url为:{self.url}，具体异常信息为:{traceback.format_exc()}')
                 if max_retry == 4:
-                    logger.error(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}采集任务异常，请求url为:{self.url}，具体异常信息为:{traceback.format_exc()}')
+                    logger.error(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}采集任务异常，单次请求次数上限：{out_cycle}，已重试次数{max_retry}，请求url为:{self.url}，具体异常信息为:{traceback.format_exc()}')
                     raise Exception(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}采集任务异常，请求url为:{self.url}')
-                time.sleep(30)
+                time.sleep(3)
             max_retry += 1
 
     def get_driver(self):
