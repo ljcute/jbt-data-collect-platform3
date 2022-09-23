@@ -90,7 +90,6 @@ class CollectHandler(BaseHandler):
 
 if __name__ == '__main__':
     collector = CollectHandler()
-    collector.collect_data(eval(sys.argv[1]), sys.argv[2])
     if len(sys.argv) > 2:
         collector.collect_data(eval(sys.argv[1]), sys.argv[2])
     elif len(sys.argv) == 2:
