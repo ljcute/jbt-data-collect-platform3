@@ -202,14 +202,21 @@ class BaseHandler(object):
         used_time = (self.end_dt - self.start_dt).seconds
         if 0 < self.collect_num == self.total_num > 0:
             data_status = 1
+            logger.info(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}---开始进行数据入库')
+            self.biz_dt = self.search_date
+            data_deal.insert_data_collect(self.collect_num, self.data_deal(), self.biz_dt, self.biz_type,
+                                          self.data_source, self.start_dt,
+                                          self.end_dt, used_time, self.url, data_status, self.excel_file_path)
+            logger.info(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}---数据入库结束,共{self.collect_num}条')
         else:
             data_status = 2
-        logger.info(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}---开始进行数据入库')
-        self.biz_dt = self.search_date
-        data_deal.insert_data_collect(self.collect_num, self.data_deal(), self.biz_dt, self.biz_type,
-                                      self.data_source, self.start_dt,
-                                      self.end_dt, used_time, self.url, data_status, self.excel_file_path)
-        logger.info(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}---数据入库结束,共{self.collect_num}条')
+            logger.info(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}---开始进行数据入库')
+            self.biz_dt = self.search_date
+            data_deal.insert_data_collect(self.collect_num, self.data_deal(), self.biz_dt, self.biz_type,
+                                          self.data_source, self.start_dt,
+                                          self.end_dt, used_time, self.url, data_status, self.excel_file_path)
+            logger.info(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}---数据入库结束,共{self.collect_num}条')
+            raise Exception(f'采集数据条数:{self.collect_num}与官网条数:{self.total_num}不一致，采集存在抖动，重新采集')
 
         self.kafka_mq_producer()
 
