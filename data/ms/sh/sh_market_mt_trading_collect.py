@@ -12,7 +12,6 @@ import datetime
 import os
 from configparser import ConfigParser
 from selenium.webdriver.common.by import By
-from constants import get_headers
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
@@ -20,6 +19,7 @@ sys.path.append(BASE_DIR)
 from utils.exceptions_utils import ProxyTimeOutEx
 from utils.logs_utils import logger
 from data.ms.basehandler import BaseHandler
+from constants import get_headers
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 excel_file_path = os.path.join(base_dir, 'sh_balance.xls')
