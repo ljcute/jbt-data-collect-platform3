@@ -95,7 +95,6 @@ class CollectHandler(BaseHandler):
                 hs_data_list = text['result']['bdHs']
                 ss_data_list = text['result']['bdSs']
             except Exception as e:
-                logger.error(e)
                 hs_is_continue = ss_is_continue = False
                 if retry_count > 0:
                     retry_count = retry_count - 1

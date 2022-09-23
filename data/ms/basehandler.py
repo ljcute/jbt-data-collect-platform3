@@ -91,6 +91,8 @@ class BaseHandler(object):
             except Exception as e:
                 if max_retry == 2:
                     logger.error(f'{self.data_source}{self.biz_type_map.get(biz_type)}采集任务异常，业务请求次数上限：{out_cycle}，已重试次数{max_retry}，请求url为:{self.url}，具体异常信息为:{traceback.format_exc()}')
+                    self.data_list.append(e)
+                    self.process_result()
                 time.sleep(30)
             max_retry += 1
 
