@@ -143,6 +143,32 @@ class CollectHandler(BaseHandler):
                     self.data_list.append(i)
                     self.collect_num = len(self.data_list)
 
+        # for curr_page in range(1, total_page + 1):
+        #     logger.info(f'当前为第{curr_page}页')
+        #     data = {
+        #         'pageSize': 20,
+        #         'currPage': curr_page,
+        #         'searchDate': search_date
+        #     }
+        #     response = self.get_response(self.url, 1, headers, None, data)
+        #     text = json.loads(response.text)
+        #     data = text['data']['data']
+        #     if data:
+        #         for i in data:
+        #             market = i['exchangeCode']
+        #             stock_code = i['stockCode']
+        #             stock_name = i['stockName']
+        #             rate = i['percent']
+        #             date = i['dataDate']
+        #             status = i['status']
+        #             stockgroup_name = i['stockgroup_name']
+        #             self.data_list.append((market, stock_code, stock_name, rate, date, status, stockgroup_name))
+        #             # self.data_list.append(i)
+        #             self.collect_num = len(self.data_list)
+        # print(f'长度:{len(self.data_list)}')
+        # df = pd.DataFrame(data=self.data_list, columns=['市场', '证券代码', '证券简称', '折算率', '日期', '买入及转入状态', '证券集中度分组'])
+        # print(df)
+        # df.to_excel('中信证券-0923.xlsx')
 
 if __name__ == '__main__':
     collector = CollectHandler()

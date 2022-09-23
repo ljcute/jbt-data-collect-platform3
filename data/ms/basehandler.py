@@ -89,7 +89,7 @@ class BaseHandler(object):
                 self.process_result()
                 break
             except Exception as e:
-                if max_retry == 2:
+                if max_retry == int(out_cycle) - 1:
                     logger.error(f'{self.data_source}{self.biz_type_map.get(biz_type)}采集任务异常，业务请求次数上限：{out_cycle}，已重试次数{max_retry}，请求url为:{self.url}，具体异常信息为:{traceback.format_exc()}')
                     self.data_list.append(e)
                     self.process_result()
@@ -159,12 +159,12 @@ class BaseHandler(object):
                     raise Exception(f'{self.data_source}数据采集任务请求响应获取异常,已获取代理ip为:{self.proxies}，请求url为:{url},请求参数为:{params}')
                 logger.info(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}数据采集: 总记录数(条){self.total_num}, 已采集数(条){self.collect_num}')
                 return response if response.status_code == 200 else None
-            except ProxyTimeOutEx as es:
-                self.proxies = self.get_proxies()
             except Exception as e:
-                if max_retry == 4:
-                    logger.error(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}采集任务异常，单次请求次数上限：{out_cycle}，已重试次数{max_retry}，请求url为:{self.url}，具体异常信息为:{traceback.format_exc()}')
-                    raise Exception(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}采集任务异常，请求url为:{self.url}')
+                self.proxies = self.get_proxies()
+                headers = get_headers()
+                if max_retry == int(in_cycle) - 1:
+                    # logger.error(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}采集任务异常，单次请求次数上限：{out_cycle}，已重试次数{max_retry}，请求url为:{self.url}，具体异常信息为:{traceback.format_exc()}')
+                    raise Exception(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}采集任务异常，请求url为:{self.url},Exception:{e},具体异常信息为:{traceback.format_exc()}')
                 time.sleep(30)
             max_retry += 1
 
@@ -187,10 +187,11 @@ class BaseHandler(object):
                     return driver
                 except Exception as e:
                     logger.warn(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}采集任务异常，请求url为:{self.url}，具体异常信息为:{traceback.format_exc()}')
-                    if max_retry == 4:
-                        logger.error(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}采集任务异常，请求url为:{self.url}，具体异常信息为:{traceback.format_exc()}')
-                        raise Exception(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}采集任务异常，请求url为:{self.url}')
-                    time.sleep(3)
+                    self.proxies = self.get_proxies()
+                    if max_retry == int(in_cycle) - 1:
+                        # logger.error(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}采集任务异常，请求url为:{self.url}，具体异常信息为:{traceback.format_exc()}')
+                        raise Exception(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}采集任务异常，请求url为:{self.url},Exception:{e},具体异常信息为:{traceback.format_exc()}')
+                    time.sleep(30)
                 max_retry += 1
         elif int(use_proxy) == 0:
             raise Exception(f"{self.data_source}{self.biz_type_map.get(self.biz_type)}此次数据采集不使用代理,获取driver失败")
@@ -223,14 +224,13 @@ class BaseHandler(object):
 
     def kafka_mq_producer(self):
         logger.info(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}---开始发送mq消息')
-        # biz_dt = json.dumps(self.biz_dt, cls=ComplexEncoder)
         biz_dt = str(self.biz_dt).replace('-', '')
         producer = KafkaProducer(bootstrap_servers=kafkaList,
                                  key_serializer=lambda k: json.dumps(k).encode(),
                                  value_serializer=lambda v: json.dumps(v).encode())
         msg = {
             "user_id": 1,
-            "biz_dt": '20220922',
+            "biz_dt": biz_dt,
             "data_type": self.biz_type,
             "data_source": self.data_source,
             "message": self.mq_msg
