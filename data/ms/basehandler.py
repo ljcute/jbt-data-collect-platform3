@@ -225,6 +225,10 @@ class BaseHandler(object):
         try:
             if self.data_list:
                 return pd.DataFrame(self.data_list).to_json(orient="records", force_ascii=False)
+            else:
+                e = '未采集到相关数据，需重新采集！'
+                e_list = [e]
+                return pd.DataFrame(e_list).to_json(orient="records", force_ascii=False)
         except Exception as e:
             raise Exception(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}：{e}')
 

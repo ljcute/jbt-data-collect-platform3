@@ -60,7 +60,8 @@ class CollectHandler(BaseHandler):
         }
         response = self.get_response(self.url, 0, headers, params)
         self.data_list, total_num = self.total_deal(response, trade_date)
-        self.collect_num = self.total_num = len(self.data_list)
+        self.total_num = total_num - 1
+        self.collect_num = len(self.data_list)
 
     def total_deal(self, response, actual_date):
         try:
