@@ -80,7 +80,11 @@ class CollectHandler(BaseHandler):
         driver.find_elements(By.XPATH, '//a[text()="可充抵保证金证券名单"]')[0].click()
         html_content = str(driver.page_source)
         self.resolve_page_content_bzj(html_content, self.data_list)
-        self.collect_num = self.total_num = int(len(self.data_list))
+        self.collect_num = int(len(self.data_list))
+        if self.collect_num > 1000:
+            self.total_num = self.collect_num
+        else:
+            self.total_num = 1
 
     def resolve_page_content_bzj(self, html_content, original_data_list):
         time.sleep(3)

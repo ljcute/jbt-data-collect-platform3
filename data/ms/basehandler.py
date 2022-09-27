@@ -92,7 +92,7 @@ class BaseHandler(object):
                 if max_retry == int(out_cycle) - 1:
                     logger.error(f'{self.data_source}{self.biz_type_map.get(biz_type)}采集任务异常，业务请求次数上限：{out_cycle}，已重试次数{max_retry}，请求url为:{self.url}，具体异常信息为:{traceback.format_exc()}')
                     self.data_list.append(e)
-                    self.process_result()
+                    self.process_result(True)
                 time.sleep(30)
             max_retry += 1
 
@@ -198,7 +198,7 @@ class BaseHandler(object):
         else:
             raise Exception(f"{self.data_source}{self.biz_type_map.get(self.biz_type)}use_proxy参数有误，请检查")
 
-    def process_result(self):
+    def process_result(self, e_flag=None):
         used_time = (self.end_dt - self.start_dt).seconds
         if 0 < self.collect_num == self.total_num > 0:
             data_status = 1
@@ -209,14 +209,16 @@ class BaseHandler(object):
                                           self.end_dt, used_time, self.url, data_status, self.excel_file_path)
             logger.info(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}---数据入库结束,共{self.collect_num}条')
         else:
-            data_status = 2
-            logger.info(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}---开始进行数据入库')
-            self.biz_dt = self.search_date
-            data_deal.insert_data_collect(self.collect_num, self.data_deal(), self.biz_dt, self.biz_type,
-                                          self.data_source, self.start_dt,
-                                          self.end_dt, used_time, self.url, data_status, self.excel_file_path)
-            logger.info(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}---数据入库结束,共{self.collect_num}条')
-            raise Exception(f'采集数据条数:{self.collect_num}与官网条数:{self.total_num}不一致，采集存在抖动，重新采集')
+            if e_flag:
+                data_status = 2
+                logger.info(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}---开始进行数据入库')
+                self.biz_dt = self.search_date
+                data_deal.insert_data_collect(self.collect_num, self.data_deal(), self.biz_dt, self.biz_type,
+                                              self.data_source, self.start_dt,
+                                              self.end_dt, used_time, self.url, data_status, self.excel_file_path)
+                logger.info(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}---数据入库结束,共{self.collect_num}条')
+            else:
+                raise Exception(f'采集数据条数:{self.collect_num}与官网条数:{self.total_num}不一致，采集存在抖动，重新采集')
 
         self.kafka_mq_producer()
 
