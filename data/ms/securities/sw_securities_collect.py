@@ -56,7 +56,7 @@ class CollectHandler(BaseHandler):
         for_count = int(total_page) + 1  # range不包括后者
         for current_page in range(2, for_count):
             driver.execute_script('arguments[0].click();', next_page_button_element)
-            time.sleep(0.8)
+            time.sleep(1)
 
             # 处理第[2, total_page]页html
             html_content = str(driver.page_source)
@@ -118,7 +118,7 @@ class CollectHandler(BaseHandler):
         for current_page in range(2, for_count):
             driver.implicitly_wait(120)
             driver.execute_script('arguments[0].click();', next_page_button_element)
-            time.sleep(0.8)
+            time.sleep(1)
             # 处理第[2, total_page]页html
             html_content = str(driver.page_source)
             logger.info("申万宏源担保券第{}页，共10条".format(current_page))
