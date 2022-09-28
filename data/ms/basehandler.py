@@ -163,7 +163,7 @@ class BaseHandler(object):
                 self.proxies = self.get_proxies()
                 headers = get_headers()
                 if max_retry == int(in_cycle) - 1:
-                    logger.error(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}采集任务异常，单次请求次数上限：{in_cycle}，已重试次数{max_retry}，请求url为:{self.url}，具体异常信息为:{traceback.format_exc()}')
+                    # logger.error(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}采集任务异常，单次请求次数上限：{in_cycle}，已重试次数{max_retry}，请求url为:{self.url}，具体异常信息为:{traceback.format_exc()}')
                     raise Exception(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}采集任务异常，请求url为:{self.url},Exception:{e},具体异常信息为:{traceback.format_exc()}')
                 time.sleep(30)
             max_retry += 1
