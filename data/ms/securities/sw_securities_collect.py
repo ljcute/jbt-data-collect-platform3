@@ -41,7 +41,7 @@ class CollectHandler(BaseHandler):
         html_content = str(driver.page_source)
         logger.info("申万标的券第{}页，共10条".format(1))
         self.resolve_single_target_page(html_content, self.data_list)
-        time.sleep(1)
+        time.sleep(3)
         # 找到总页数
         total_page = 0
         li_elements = driver.find_elements(By.XPATH,
@@ -56,7 +56,7 @@ class CollectHandler(BaseHandler):
         for_count = int(total_page) + 1  # range不包括后者
         for current_page in range(2, for_count):
             driver.execute_script('arguments[0].click();', next_page_button_element)
-            time.sleep(1)
+            time.sleep(2)
 
             # 处理第[2, total_page]页html
             html_content = str(driver.page_source)
@@ -88,7 +88,7 @@ class CollectHandler(BaseHandler):
         self.data_list = []
 
         driver.execute_script("window.scrollTo(0,document.body.scrollHeight);")
-        time.sleep(1)
+        time.sleep(3)
         # driver.implicitly_wait(120)
         # 找到券商官网写的总条数
         # span_element = driver.find_elements(By.XPATH,
@@ -118,7 +118,7 @@ class CollectHandler(BaseHandler):
         for current_page in range(2, for_count):
             driver.implicitly_wait(120)
             driver.execute_script('arguments[0].click();', next_page_button_element)
-            time.sleep(1)
+            time.sleep(2)
             # 处理第[2, total_page]页html
             html_content = str(driver.page_source)
             logger.info("申万宏源担保券第{}页，共10条".format(current_page))

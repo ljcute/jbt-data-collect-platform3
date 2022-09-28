@@ -3,14 +3,21 @@
 # author yanpan
 # 2022/06/30 13:19
 # 兴业证券
-
+import time
 import os
 import sys
 from configparser import ConfigParser
+from urllib import parse
+
+import requests
+from bs4 import BeautifulSoup
+
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 from data.ms.basehandler import BaseHandler
+from constants import *
+from utils.logs_utils import logger
 
 from utils.exceptions_utils import ProxyTimeOutEx
 import os
@@ -38,17 +45,44 @@ class CollectHandler(BaseHandler):
         super().__init__()
         self.mq_msg = os.path.basename(__file__).split('.')[0]
         self.data_source = '兴业证券'
+        self.url = "https://www.xyzq.com.cn/xysec/"
+
 
     def rzrq_underlying_securities_collect(self):
-        self.url = "https://static.xyzq.cn/xywebsite/attachment/3B8333A8CD0845A9A2.xlsx"
+        query_date = time.strftime('%Y%m%d', time.localtime())
+        title_url = "https://www.xyzq.com.cn/xysec/biz/11116"
         try:
-            response = self.get_response(self.url, 0)
-            with open(target_file_path, 'wb') as file:
-                file.write(response.content)
-            with open(save_excel_file_path_bd, 'wb') as file:
-                file.write(response.content)
-                excel_file = xlrd2.open_workbook(target_file_path)
-                self.target_collect(excel_file)
+            data = {'word': target_excel_name, "cur": 1}
+            self.data_list = []
+            encode_data = parse.urlencode(data)
+            response = self.get_response(title_url, 0, get_headers(), encode_data)
+            soup = BeautifulSoup(response.content.decode('utf-8'), 'html.parser')
+            label_div_list = soup.select('.newsBox')
+            if label_div_list:
+                label_div = label_div_list[0]
+                my_id = label_div['myid']
+                my_path = label_div['mypath']
+
+                label_span_list = soup.select('.newsBox span')
+                sc_newest_date = label_span_list[1].text.strip() + label_span_list[0].text.strip().replace('-', "")
+                if query_date != sc_newest_date:
+                    logger.info(f'{self.data_source}还未更新今日{query_date}数据')
+                elif query_date == sc_newest_date:
+                    full_download_page_url = self.url + my_path + my_id
+                    response = self.get_response(full_download_page_url, 0, get_headers(), encode_data)
+                    soup = BeautifulSoup(response.content.decode('utf-8'), 'html.parser')
+
+                    label_aa_list = soup.select("div .fujian a")
+                    if label_aa_list:
+                        # download_url = label_aa_list[0]['href']
+                        download_url = label_aa_list[0]['myurl']  # 兴业改了html,20210817
+                        response = requests.get(download_url, timeout=20)
+                        with open(target_file_path, 'wb') as file:
+                            file.write(response.content)
+                        with open(save_excel_file_path_bd, 'wb') as file:
+                            file.write(response.content)
+                            excel_file = xlrd2.open_workbook(target_file_path)
+                            self.target_collect(excel_file)
         except ProxyTimeOutEx as e:
             pass
         finally:
@@ -68,18 +102,43 @@ class CollectHandler(BaseHandler):
             rq_rate = str(row[5].value)
             self.data_list.append((no, sec_code, sec_name, rz_rate, rq_rate))
             self.collect_num = len(self.data_list)
-        self.total_num = len(self.data_list)
+        self.total_num = total_row - 1
 
     def guaranty_securities_collect(self):
-        self.url = "https://static.xyzq.cn/xywebsite/attachment/B21E17122E41411497.xlsx"
+        query_date = time.strftime('%Y%m%d', time.localtime())
+        title_url = "https://www.xyzq.com.cn/xysec/biz/11117"
         try:
-            response = self.get_response(self.url, 0)
-            with open(guaranty_file_path, 'wb') as file:
-                file.write(response.content)
-            with open(save_excel_file_path_bzj, 'wb') as file:
-                file.write(response.content)
-                excel_file = xlrd2.open_workbook(guaranty_file_path)
-                self.guaranty_collect(excel_file)
+            data = {'word': guaranty_excel_name, "cur": 1}
+            self.data_list = []
+            encode_data = parse.urlencode(data)
+            response = self.get_response(title_url, 0, get_headers(), encode_data)
+            soup = BeautifulSoup(response.content.decode('utf-8'), 'html.parser')
+            label_div_list = soup.select('.newsBox')
+            if label_div_list:
+                label_div = label_div_list[0]
+                my_id = label_div['myid']
+                my_path = label_div['mypath']
+
+                label_span_list = soup.select('.newsBox span')
+                sc_newest_date = label_span_list[1].text.strip() + label_span_list[0].text.strip().replace('-', "")
+                if query_date != sc_newest_date:
+                    logger.info(f'{self.data_source}还未更新今日{query_date}数据')
+                elif query_date == sc_newest_date:
+                    full_download_page_url = self.url + my_path + my_id
+                    response = self.get_response(full_download_page_url, 0, get_headers(), encode_data)
+                    soup = BeautifulSoup(response.content.decode('utf-8'), 'html.parser')
+
+                    label_aa_list = soup.select("div .fujian a")
+                    if label_aa_list:
+                        # download_url = label_aa_list[0]['href']
+                        download_url = label_aa_list[0]['myurl']  # 兴业改了html,20210817
+                        response = requests.get(download_url, timeout=20)
+                        with open(guaranty_file_path, 'wb') as file:
+                            file.write(response.content)
+                        with open(save_excel_file_path_bzj, 'wb') as file:
+                            file.write(response.content)
+                            excel_file = xlrd2.open_workbook(guaranty_file_path)
+                            self.guaranty_collect(excel_file)
         except ProxyTimeOutEx as e:
             pass
         finally:
