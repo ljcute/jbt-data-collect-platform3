@@ -7,6 +7,8 @@
 import os
 import sys
 
+import pandas
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 
@@ -31,6 +33,8 @@ class CollectHandler(BaseHandler):
         driver.get(self.url)
         self.data_list = []
 
+        driver.execute_script("window.scrollTo(0,document.body.scrollHeight);")
+        time.sleep(3)
         # 找到券商官网写的总条数
         span_element = driver.find_elements(By.XPATH,
                                             "//*[@id='root']/section/div[2]/div/div[3]/div/div[1]/form/div[1]/div/div/div/span")
@@ -41,29 +45,37 @@ class CollectHandler(BaseHandler):
         html_content = str(driver.page_source)
         logger.info("申万标的券第{}页，共10条".format(1))
         self.resolve_single_target_page(html_content, self.data_list)
-        time.sleep(3)
+
         # 找到总页数
         total_page = 0
-        li_elements = driver.find_elements(By.XPATH,
-                                           "//*[@id='root']/section/div[2]/div/div[3]/div/div[2]/div/div/div/ul/li[8]/a")
+        li_elements = driver.find_elements(By.XPATH, "//li[contains(@class, 'ant-pagination-item')]")
         if len(li_elements) > 0:
             total_page = li_elements[len(li_elements) - 1].text
-
+        print(f'total_page:{total_page}')
         # 找到下一页 >按钮
         elements = driver.find_elements(By.XPATH, "//button[@class='ant-pagination-item-link']")
         next_page_button_element = elements[1]
 
         for_count = int(total_page) + 1  # range不包括后者
         for current_page in range(2, for_count):
-            driver.execute_script('arguments[0].click();', next_page_button_element)
-            time.sleep(2)
-
+            driver.implicitly_wait(3)
+            if not next_page_button_element.is_selected():
+                driver.execute_script('arguments[0].click();', next_page_button_element)
+            time.sleep(0.8)
             # 处理第[2, total_page]页html
             html_content = str(driver.page_source)
             logger.info("申万标的券第{}页，共10条".format(current_page))
             self.resolve_single_target_page(html_content, self.data_list)
             self.collect_num = int(len(self.data_list))
-        self.total_num = int(len(self.data_list))
+        pd = pandas.DataFrame(self.data_list)
+        pd.sort_values(by=[0, 1, 2], ascending=[True, True, True])
+        dep_data = pd.duplicated([0, 1, 2]).sum()
+        dep_line = pd[pd.duplicated([0, 1, 2], keep='last')]  # 查看删除重复的行
+        dep_list = dep_line.values.tolist()
+        logger.info(f'采集的重复数据为：{dep_list},共{len(dep_list)}条')
+        if dep_list:
+            self.rzrq_underlying_securities_collect()
+        self.total_num = sc_total
 
     def resolve_single_target_page(self, html_content, original_data_list):
         soup = BeautifulSoup(html_content, "html.parser")
@@ -91,8 +103,6 @@ class CollectHandler(BaseHandler):
         time.sleep(3)
         # driver.implicitly_wait(120)
         # 找到券商官网写的总条数
-        # span_element = driver.find_elements(By.XPATH,
-        #                                     "//div[contains(@class, 'ant-form-item-control-input-content')]/span")
         span_element = driver.find_elements(By.XPATH,
                                             "//*[@id='root']/section/div[2]/div/div[3]/div/div[1]/form/div[1]/div/div/div/span")
         sc_total = int(span_element[0].text)
@@ -110,21 +120,29 @@ class CollectHandler(BaseHandler):
         if len(li_elements) > 0:
             total_page = li_elements[len(li_elements) - 1].text
         # 找到下一页 >按钮
-        elements = driver.find_elements(By.XPATH,
-                                        "//button[@class='ant-pagination-item-link']/span[@class='anticon anticon-right']")
-        next_page_button_element = elements[0]
+        elements = driver.find_elements(By.XPATH, "//button[@class='ant-pagination-item-link']")
+        next_page_button_element = elements[1]
 
         for_count = int(total_page) + 1  # range不包括后者
         for current_page in range(2, for_count):
-            driver.implicitly_wait(120)
-            driver.execute_script('arguments[0].click();', next_page_button_element)
-            time.sleep(2)
+            driver.implicitly_wait(3)
+            if not next_page_button_element.is_selected():
+                driver.execute_script('arguments[0].click();', next_page_button_element)
+            time.sleep(0.8)
             # 处理第[2, total_page]页html
             html_content = str(driver.page_source)
             logger.info("申万宏源担保券第{}页，共10条".format(current_page))
             self.resolve_single_guaranty_page(html_content, self.data_list)
             self.collect_num = int(len(self.data_list))
-        self.total_num = int(len(self.data_list))
+        pd = pandas.DataFrame(self.data_list)
+        pd.sort_values(by=[0, 1, 2], ascending=[True, True, True])
+        dep_data = pd.duplicated([0, 1, 2]).sum()
+        dep_line = pd[pd.duplicated([0, 1, 2], keep='last')]  # 查看删除重复的行
+        dep_list = dep_line.values.tolist()
+        logger.info(f'采集的重复数据为：{dep_list},共{len(dep_list)}条')
+        if dep_list:
+            self.guaranty_securities_collect()
+        self.total_num = sc_total
 
     def resolve_single_guaranty_page(self, html_content, all_data_list):
         soup = BeautifulSoup(html_content, "html.parser")
