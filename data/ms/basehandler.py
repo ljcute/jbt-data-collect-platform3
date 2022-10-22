@@ -43,17 +43,28 @@ class BaseHandler(object):
         , 4: "融资标的证券", 5: "融券标的证券", 99: "融资融券可充抵保证金证券和融资融券标的证券"}
 
     def __init__(self):
+        # 数据来源：上交所、深交所、XXX券商等
         self.data_source = ''
+        # 数据来源url
         self.url = ''
+        # 数据类型是Excel时，Excel的路径
         self.excel_file_path = None
+        # 采集的数据的业务类型：担保券、标的券、融资标的券、融券标的券等
         self.biz_type = 0
+        # 实际采集的记录数
         self.collect_num = 0
+        # 采集的数据里面记录的总记录数
         self.total_num = 0
+        # 采集到的数据清单
         self.data_list = []
+        # 采集的数据的业务时间
         self.biz_dt = datetime.date.today()
+        # 数据采集执行开始时间
         self.start_dt = datetime.datetime.now()
+        # 数据采集执行结束时间
         self.end_dt = self.start_dt
         self.mq_msg = None
+        # 采集数据时，查询入参日期
         self.search_date = ''
 
     def collect_data(self, biz_type, search_date=None):
@@ -61,8 +72,8 @@ class BaseHandler(object):
             logger.info(f"{self.data_source}{self.biz_type_map.get(biz_type)}，此次数据采集不使用代理！")
         self.biz_type = biz_type
         self.search_date = search_date if search_date is not None else datetime.date.today()
-        query_date = self.start_dt if self.search_date is None else self.search_date
-        logger.info(f'{self.data_source}{self.biz_type_map.get(biz_type)}数据采集任务开始执行{query_date}')
+        self.biz_dt = self.search_date
+        logger.info(f'{self.data_source}{self.biz_type_map.get(biz_type)}数据采集任务开始执行{self.search_date}')
         max_retry = 0
         while max_retry < int(out_cycle):
             if max_retry > 0:
@@ -203,7 +214,6 @@ class BaseHandler(object):
         if 0 < self.collect_num == self.total_num > 0:
             data_status = 1
             logger.info(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}---开始进行数据入库')
-            self.biz_dt = self.search_date
             data_deal.insert_data_collect(self.collect_num, self.data_deal(), self.biz_dt, self.biz_type,
                                           self.data_source, self.start_dt,
                                           self.end_dt, used_time, self.url, data_status, self.excel_file_path)
@@ -212,7 +222,6 @@ class BaseHandler(object):
             if e_flag:
                 data_status = 2
                 logger.info(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}---开始进行数据入库')
-                self.biz_dt = self.search_date
                 data_deal.insert_data_collect(self.collect_num, self.data_deal(), self.biz_dt, self.biz_type,
                                               self.data_source, self.start_dt,
                                               self.end_dt, used_time, self.url, data_status, self.excel_file_path)

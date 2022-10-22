@@ -64,7 +64,7 @@ class CollectHandler(BaseHandler):
         response = self.get_response(self.url, 0, self.headers)
         download_excel(response, sh_target_rz_file_path, save_excel_file_path_rz, actual_date)
         excel_file = xlrd2.open_workbook(sh_target_rz_file_path, encoding_override="utf-8")
-        self.data_list, total_num = handle_excel(excel_file, actual_date)
+        self.biz_dt, self.data_list, total_num = handle_excel(excel_file, actual_date)
         self.collect_num = self.total_num = len(self.data_list)
 
     def rq_underlying_securities_collect(self):
@@ -74,7 +74,7 @@ class CollectHandler(BaseHandler):
         response = self.get_response(self.url, 0, self.headers)
         download_excel(response, sh_target_rq_file_path, save_excel_file_path_rq, actual_date)
         excel_file = xlrd2.open_workbook(sh_target_rq_file_path, encoding_override="utf-8")
-        self.data_list, total_num = handle_excel(excel_file, actual_date)
+        self.biz_dt, self.data_list, total_num = handle_excel(excel_file, actual_date)
         self.collect_num = self.total_num =  len(self.data_list)
 
     def guaranty_securities_collect(self):
@@ -84,7 +84,7 @@ class CollectHandler(BaseHandler):
         response = self.get_response(self.url, 0, self.headers)
         download_excel(response, sh_guaranty_file_path, save_excel_file_path_gu, actual_date)
         excel_file = xlrd2.open_workbook(sh_guaranty_file_path, encoding_override="utf-8")
-        self.data_list, total_num = handle_excel(excel_file, actual_date)
+        self.biz_dt, self.data_list, total_num = handle_excel(excel_file, actual_date)
         self.collect_num = len(self.data_list)
         self.collect_num = self.total_num =  len(self.data_list)
 
@@ -103,6 +103,7 @@ def handle_excel(excel_file, date):
     logger.info("开始处理excel")
     sheet_0 = excel_file.sheet_by_index(0)
     total_row = sheet_0.nrows
+    biz_dt = None
     try:
         logger.info("开始处理excel数据")
         data_list = []
@@ -116,15 +117,18 @@ def handle_excel(excel_file, date):
             data_list.append((biz_dt, sec_code, sec_name))
 
         logger.info("采集上交所数据结束")
-        return data_list, total_row
+        return biz_dt, data_list, total_row
 
     except Exception as es:
         raise Exception(es)
 
 
 if __name__ == '__main__':
-    collector = CollectHandler()
-    if len(sys.argv) > 1:
-        collector.collect_data(eval(sys.argv[1]))
-    else:
-        logger.error(f'business_type为必传参数')
+    CollectHandler().collect_data(4)
+    CollectHandler().collect_data(5)
+    #
+    # collector = CollectHandler()
+    # if len(sys.argv) > 1:
+    #     collector.collect_data(eval(sys.argv[1]))
+    # else:
+    #     logger.error(f'business_type为必传参数')
