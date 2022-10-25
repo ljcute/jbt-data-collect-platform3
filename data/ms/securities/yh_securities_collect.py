@@ -2,22 +2,15 @@
 # -*- coding: utf-8 -*-
 # author yanpan
 # 2022/06/28 13:34
-# 中国银河证券
 
 import os
 import sys
+import time
+import pandas as pd
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
-
 from data.ms.basehandler import BaseHandler
-
-import os
-import time
-from selenium.webdriver.common.by import By
-from bs4 import BeautifulSoup
-
-os.environ['NUMEXPR_MAX_THREADS'] = "16"
 
 
 class CollectHandler(BaseHandler):
@@ -28,77 +21,32 @@ class CollectHandler(BaseHandler):
         self.data_source = '中国银河'
         self.url = 'http://www.chinastock.com.cn/newsite/cgs-services/stockFinance/businessAnnc.html?type=marginList'
 
-    def rz_underlying_securities_collect(self):
-        driver = self.get_driver()
-        driver.get(self.url)
-        self.data_list = []
-        time.sleep(3)
-        driver.find_elements(By.XPATH, '//a[text()="融资标的证券名单"]')[0].click()
-        html_content = str(driver.page_source)
-        self.resolve_page_content_rz(html_content, self.data_list)
-        self.collect_num = self.total_num = int(len(self.data_list))
-
-    def resolve_page_content_rz(self, html_content, original_data_list):
-        time.sleep(3)
-        soup = BeautifulSoup(html_content, 'html.parser')
-        collapseFour_content = soup.select('#table-bordered-finabcing')
-        text_content = collapseFour_content[0].select('tr')
-        for i in text_content:
-            j = i.select('td')
-            row_list = []
-            for k in j:
-                row_list.append(k.text)
-            original_data_list.append(row_list)
-
-    def rq_underlying_securities_collect(self):
-        driver = self.get_driver()
-        driver.get(self.url)
-        self.data_list = []
-        time.sleep(3)
-        driver.find_elements(By.XPATH, '//a[text()="融券标的证券名单"]')[0].click()
-        html_content = str(driver.page_source)
-        self.resolve_page_content_rq(html_content, self.data_list)
-        self.collect_num = self.total_num = int(len(self.data_list))
-
-    def resolve_page_content_rq(self, html_content, original_data_list):
-        time.sleep(3)
-        soup = BeautifulSoup(html_content, 'html.parser')
-        collapseFive_content = soup.select('#table-bordered-rong')
-        text_content = collapseFive_content[0].select('tr')
-        for i in text_content:
-            j = i.select('td')
-            row_list = []
-            for k in j:
-                row_list.append(k.text)
-            original_data_list.append(row_list)
-
-    def guaranty_securities_collect(self):
-        driver = self.get_driver()
-        driver.get(self.url)
-        self.data_list = []
-        time.sleep(3)
-        driver.find_elements(By.XPATH, '//a[text()="可充抵保证金证券名单"]')[0].click()
-        html_content = str(driver.page_source)
-        self.resolve_page_content_bzj(html_content, self.data_list)
-        self.collect_num = int(len(self.data_list))
-        if self.collect_num > 1000:
+    def guaranty_and_underlying_securities_collect(self):
+        try:
+            driver = self.get_driver()
+            driver.get(self.url)
+            time.sleep(5)
+            df_list = pd.read_html(str(driver.page_source))
+            for df_str in df_list:
+                df = pd.DataFrame(df_str)
+                if ('证券代码', '证券简称', '融券保证金比例') == tuple(df.columns):
+                    df['type'] = "rq"
+                    df.rename(columns={r'融券保证金比例': 'rate'}, inplace=True)
+                elif ('证券代码', '证券简称', '融资保证金比例') == tuple(df.columns):
+                    df['type'] = "rz"
+                    df.rename(columns={r'融资保证金比例': 'rate'}, inplace=True)
+                elif ('证券代码', '证券简称', '折算率') == tuple(df.columns):
+                    df['type'] = "db"
+                    df.rename(columns={r'折算率': 'rate'}, inplace=True)
+                else:
+                    continue
+                self.tmp_df = pd.concat([self.tmp_df, df])
+            self.collect_num = self.tmp_df.index.size
             self.total_num = self.collect_num
-        else:
-            self.total_num = 1
-
-    def resolve_page_content_bzj(self, html_content, original_data_list):
-        time.sleep(3)
-        soup = BeautifulSoup(html_content, 'html.parser')
-        collapseSix_content = soup.select('#table-bordered-chong')
-        text_content = collapseSix_content[0].select('tr')
-        for i in text_content:
-            j = i.select('td')
-            row_list = []
-            for k in j:
-                row_list.append(k.text)
-            original_data_list.append(row_list)
+            self.data_text = self.tmp_df.to_string()
+        finally:
+            driver.quit()
 
 
 if __name__ == '__main__':
-    collector = CollectHandler()
-    collector.collect_data(eval(sys.argv[1]))
+    CollectHandler().argv_param_invoke((99, ), sys.argv)
