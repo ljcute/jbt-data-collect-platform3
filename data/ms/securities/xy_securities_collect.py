@@ -2,41 +2,17 @@
 # -*- coding: utf-8 -*-
 # author yanpan
 # 2022/06/30 13:19
-# 兴业证券
 import time
 import os
 import sys
-from configparser import ConfigParser
+import warnings
+import pandas as pd
 from urllib import parse
-
-import requests
 from bs4 import BeautifulSoup
-
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
-from data.ms.basehandler import BaseHandler
-from constants import *
-from utils.logs_utils import logger
-
-from utils.exceptions_utils import ProxyTimeOutEx
-import os
-import xlrd2
-import datetime
-
-target_excel_name = '兴业证券融资融券标的证券及保证金比例明细表'
-guaranty_excel_name = '兴业证券融资融券可充抵保证金证券及折算率明细表'
-
-guaranty_file_path = './' + 'guaranty.xlsx'
-target_file_path = './' + 'target.xlsx'
-
-base_dir = os.path.dirname(os.path.abspath(__file__))
-full_path = os.path.join(base_dir, '../../../config/config.ini')
-cf = ConfigParser()
-cf.read(full_path, encoding='utf-8')
-paths = cf.get('excel-path', 'save_excel_file_path')
-save_excel_file_path_bd = os.path.join(paths, "兴业证券标的券{}.xlsx".format(datetime.date.today()))
-save_excel_file_path_bzj = os.path.join(paths, "兴业证券保证金券{}.xlsx".format(datetime.date.today()))
+from data.ms.basehandler import BaseHandler, get_headers
 
 
 class CollectHandler(BaseHandler):
@@ -46,146 +22,56 @@ class CollectHandler(BaseHandler):
         self.mq_msg = os.path.basename(__file__).split('.')[0]
         self.data_source = '兴业证券'
         self.url = "https://www.xyzq.com.cn/xysec/"
-
+        self.target_excel_name = '兴业证券融资融券标的证券及保证金比例明细表'
+        self.guaranty_excel_name = '兴业证券融资融券可充抵保证金证券及折算率明细表'
 
     def rzrq_underlying_securities_collect(self):
-        query_date = time.strftime('%Y%m%d', time.localtime())
         title_url = "https://www.xyzq.com.cn/xysec/biz/11116"
-        try:
-            data = {'word': target_excel_name, "cur": 1}
-            self.data_list = []
-            encode_data = parse.urlencode(data)
-            response = self.get_response(title_url, 0, get_headers(), encode_data)
-            soup = BeautifulSoup(response.content.decode('utf-8'), 'html.parser')
-            label_div_list = soup.select('.newsBox')
-            if label_div_list:
-                label_div = label_div_list[0]
-                my_id = label_div['myid']
-                my_path = label_div['mypath']
-
-                label_span_list = soup.select('.newsBox span')
-                sc_newest_date = label_span_list[1].text.strip() + label_span_list[0].text.strip().replace('-', "")
-                if query_date != sc_newest_date:
-                    logger.info(f'{self.data_source}还未更新今日{query_date}数据')
-                elif query_date == sc_newest_date:
-                    full_download_page_url = self.url + my_path + my_id
-                    response = self.get_response(full_download_page_url, 0, get_headers(), encode_data)
-                    soup = BeautifulSoup(response.content.decode('utf-8'), 'html.parser')
-
-                    label_aa_list = soup.select("div .fujian a")
-                    if label_aa_list:
-                        # download_url = label_aa_list[0]['href']
-                        download_url = label_aa_list[0]['myurl']  # 兴业改了html,20210817
-                        response = requests.get(download_url, timeout=20)
-                        with open(target_file_path, 'wb') as file:
-                            file.write(response.content)
-                        with open(save_excel_file_path_bd, 'wb') as file:
-                            file.write(response.content)
-                            excel_file = xlrd2.open_workbook(target_file_path)
-                            self.target_collect(excel_file)
-        except ProxyTimeOutEx as e:
-            pass
-        finally:
-            remove_file(target_file_path)
-
-    def target_collect(self, excel_file):
-        sheet_0 = excel_file.sheet_by_index(0)
-        total_row = sheet_0.nrows
-        for i in range(1, total_row):
-            row = sheet_0.row(i)
-            if row is None:
-                break
-            no = str(row[0].value)
-            sec_code = str(row[1].value)
-            sec_name = str(row[2].value)
-            rz_rate = str(row[4].value)
-            rq_rate = str(row[5].value)
-            self.data_list.append((no, sec_code, sec_name, rz_rate, rq_rate))
-            self.collect_num = len(self.data_list)
-        self.total_num = total_row - 1
+        self._securities_collect(title_url, self.target_excel_name, 'bd')
 
     def guaranty_securities_collect(self):
-        query_date = time.strftime('%Y%m%d', time.localtime())
         title_url = "https://www.xyzq.com.cn/xysec/biz/11117"
-        try:
-            data = {'word': guaranty_excel_name, "cur": 1}
-            self.data_list = []
-            encode_data = parse.urlencode(data)
-            response = self.get_response(title_url, 0, get_headers(), encode_data)
+        self._securities_collect(title_url, self.guaranty_excel_name, 'db')
+
+    def _securities_collect(self, title_url, word, biz_type):
+        data = {'word': word, "cur": 1}
+        encode_data = parse.urlencode(data)
+        response = self.get_response(title_url, 0, get_headers(), encode_data)
+        soup = BeautifulSoup(response.content.decode('utf-8'), 'html.parser')
+        # 查所有存在href、且title=word的a标签
+        a_hrefs = soup.find_all('a', href=True, title=word)
+        if len(a_hrefs) > 0:
+            href_str = a_hrefs[0]['href']
+            # 从a['href']里面提取相对路径和文件ID
+            arr = href_str[href_str.index('(')+1:href_str.index(')')].replace("'", "").split(',')
+            url = self.url + arr[0].strip() + arr[1].strip()
+            response = self.get_response(url, 0, get_headers())
             soup = BeautifulSoup(response.content.decode('utf-8'), 'html.parser')
-            label_div_list = soup.select('.newsBox')
-            if label_div_list:
-                label_div = label_div_list[0]
-                my_id = label_div['myid']
-                my_path = label_div['mypath']
-
-                label_span_list = soup.select('.newsBox span')
-                sc_newest_date = label_span_list[1].text.strip() + label_span_list[0].text.strip().replace('-', "")
-                if query_date != sc_newest_date:
-                    logger.info(f'{self.data_source}还未更新今日{query_date}数据')
-                elif query_date == sc_newest_date:
-                    full_download_page_url = self.url + my_path + my_id
-                    response = self.get_response(full_download_page_url, 0, get_headers(), encode_data)
-                    soup = BeautifulSoup(response.content.decode('utf-8'), 'html.parser')
-
-                    label_aa_list = soup.select("div .fujian a")
-                    if label_aa_list:
-                        # download_url = label_aa_list[0]['href']
-                        download_url = label_aa_list[0]['myurl']  # 兴业改了html,20210817
-                        response = requests.get(download_url, timeout=20)
-                        with open(guaranty_file_path, 'wb') as file:
-                            file.write(response.content)
-                        with open(save_excel_file_path_bzj, 'wb') as file:
-                            file.write(response.content)
-                            excel_file = xlrd2.open_workbook(guaranty_file_path)
-                            self.guaranty_collect(excel_file)
-        except ProxyTimeOutEx as e:
-            pass
-        finally:
-            remove_file(guaranty_file_path)
-
-    def guaranty_collect(self, excel_file):
-        sheet_0 = excel_file.sheet_by_index(0)
-        total_row = sheet_0.nrows
-        data_list = []
-        data_tile = ['no', 'sec_code', 'sec_name', 'discount_rate']
-        current_read_part = 1  # 担保券excel文件的sheet0分两部份，要遍历2次
-        total_part = 2
-        reading_row_num = 1  # 从第2行开始遍历
-        reading_column_num = 0  # 从第几列开始读,第一部份是第0列,第二部分是第5列,用于判断该部份是否有数据，没有数据就认为结束
-        while reading_row_num < total_row and current_read_part <= total_part:
-            row = sheet_0.row(reading_row_num)
-            if row[reading_column_num].value == '':
-                reading_row_num = 1  # 读到空行结束当前部份，重置行号
-                current_read_part = current_read_part + 1  # 下一部份
-                reading_column_num = reading_column_num + 5
-                continue
-
-            reading_row_num = reading_row_num + 1  # 行号+1
-
-            if current_read_part == 1:  # 读第1部份数据(左侧)
-                no = str(row[0].value)
-                sec_code = str(row[1].value)
-                sec_name = str(row[2].value)
-                discount_rate = str(row[3].value)
-            else:  # 读第2部份数据(右侧)
-                no = str(row[5].value)
-                sec_code = str(row[6].value)
-                sec_name = str(row[7].value)
-                discount_rate = str(row[8].value)
-            self.data_list.append((no, sec_code, sec_name, discount_rate))
-            self.collect_num = len(self.data_list)
-        self.total_num = len(self.data_list)
-
-
-def remove_file(file_path):
-    try:
-        if os.path.exists(file_path):
-            os.remove(file_path)
-    except Exception as e:
-        raise Exception(e)
+            a_hrefs = soup.find_all('a', href=True, myurl=True)
+            for a_href in a_hrefs:
+                if a_href.text.startswith(word):
+                    biz_dt = a_href.text.replace(word, '').replace('-', '').replace('.xlsx', '').replace('.xsl', '').replace('.csv', '')
+                    response = self.get_response(a_href['myurl'], 0, get_headers())
+                    warnings.filterwarnings('ignore')
+                    df = pd.read_excel(response.content, header=0)
+                    if biz_type == 'db':
+                        df_sh = df[['序号', '证券代码', '证券简称', '折算率']]
+                        df_sh.dropna(axis=0, how='all', inplace=True)
+                        df_sh['exchange'] = 'sh'
+                        df_sh['序号'] = df_sh['序号'].apply(lambda x: int(x))
+                        df_sh['证券代码'] = df_sh['证券代码'].apply(lambda x: int(x))
+                        df_sz = df[['序号.1', '证券代码.1', '证券简称.1', '折算率.1']]
+                        df_sz.rename(columns={'序号.1': '序号', '证券代码.1': '证券代码', '证券简称.1': '证券简称', '折算率.1': '折算率'}, inplace=True)
+                        df_sz['exchange'] = 'sz'
+                        self.tmp_df = pd.concat([df_sh, df_sz])
+                    else:
+                        self.tmp_df = df
+                    self.tmp_df['biz_dt'] = biz_dt
+                    self.collect_num = self.tmp_df.index.size
+                    self.total_num = self.collect_num
+                    self.data_text = self.tmp_df.to_string()
+                    return
 
 
 if __name__ == '__main__':
-    collector = CollectHandler()
-    collector.collect_data(eval(sys.argv[1]))
+    CollectHandler().argv_param_invoke((2, 3), sys.argv)

@@ -5,15 +5,12 @@
 # 招商证券 --interface
 import os
 import sys
+import json
+import pandas as pd
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
-
-from data.ms.basehandler import BaseHandler
-import json
-from constants import *
-
-url_ = 'https://www.cmschina.com/api/newone2019/rzrq/rzrqstock'
+from data.ms.basehandler import BaseHandler, get_headers, random_page_size
 
 
 class CollectHandler(BaseHandler):
@@ -24,69 +21,28 @@ class CollectHandler(BaseHandler):
         self.data_source = '招商证券'
 
     def rz_underlying_securities_collect(self):
-        page_size = random_page_size()
-        params = {"pageSize": page_size, "pageNum": 1, "rqbdflag": 1}  # rqbdflag = 1融资
         self.url = 'https://www.cmschina.com/api/newone2019/rzrq/rzrqstock'
-        self.data_list = []
-        response = self.get_response(self.url, 0, get_headers(), params)
-        text = json.loads(response.text)
-        self.total_num = int(text['body']['totalNum'])
-        data = text['body']['stocks']
-        for i in data:
-            # stock_code = i['stkcode']
-            # stock_name = i['stkname']
-            # margin_rate = i['marginratefund']
-            # market = '沪市' if i['market'] == '1' else '深市'
-            self.data_list.append(i)
-            self.collect_num = len(self.data_list)
+        params = {"pageSize": random_page_size(), "pageNum": 1, "rqbdflag": 1}  # rqbdflag = 1融资
+        self._securities_collect(params)
 
     def rq_underlying_securities_collect(self):
-        page_size = random_page_size()
-        params = {"pageSize": page_size, "pageNum": 1, "rqbdflag": 2}  # rqbdflag = 1融资,2融券
         self.url = 'https://www.cmschina.com/api/newone2019/rzrq/rzrqstock'
-        self.data_list = []
-        response = self.get_response(self.url, 0, get_headers(), params)
-        text = json.loads(response.text)
-        self.total_num = int(text['body']['totalNum'])
-        data = text['body']['stocks']
-        for i in data:
-            # stock_code = i['stkcode']
-            # stock_name = i['stkname']
-            # margin_rate = i['marginratefund']
-            # market = '沪市' if i['market'] == '1' else '深市'
-            self.data_list.append(i)
-            self.collect_num = len(self.data_list)
+        params = {"pageSize": random_page_size(), "pageNum": 1, "rqbdflag": 2}  # rqbdflag = 1融资,2融券
+        self._securities_collect(params)
 
     def guaranty_securities_collect(self):
-        page_size = random_page_size()
-        params = {"pageSize": page_size, "pageNum": 1}
         self.url = 'https://www.cmschina.com/api/newone2019/rzrq/rzrqstockdiscount'
-        self.data_list = []
+        params = {"pageSize": random_page_size(), "pageNum": 1}
+        self._securities_collect(params)
+
+    def _securities_collect(self, params):
         response = self.get_response(self.url, 0, get_headers(), params)
         text = json.loads(response.text)
         self.total_num = int(text['body']['totalNum'])
-        data = text['body']['stocks']
-        for i in data:
-            # stock_code = i['stkcode']
-            # stock_name = i['stkname']
-            # margin_rate = i['pledgerate']
-            # market = '沪市' if i['market'] == '1' else '深市'
-            self.data_list.append(i)
-            self.collect_num = len(self.data_list)
-
-
-def random_page_size(mu=28888, sigma=78888):
-    """
-    获取随机分页数
-    :param mu:
-    :param sigma:
-    :return:
-    """
-    random_value = random.randint(mu, sigma)  # Return random integer in range [a, b], including both end points.
-    return random_value
+        self.tmp_df = pd.DataFrame(text['body']['stocks'])
+        self.data_text = self.tmp_df.to_string()
+        self.collect_num = self.tmp_df.index.size
 
 
 if __name__ == '__main__':
-    collector = CollectHandler()
-    # collector.collect_data(5)
-    collector.collect_data(eval(sys.argv[1]))
+    CollectHandler().argv_param_invoke((2, 4, 5), sys.argv)

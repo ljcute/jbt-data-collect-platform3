@@ -7,13 +7,13 @@
 # @Software: PyCharm
 import os
 import sys
+import json
+import pandas as pd
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 
-from data.ms.basehandler import BaseHandler, get_proxies
-import json
-from constants import *
+from data.ms.basehandler import BaseHandler, get_headers, random_page_size
 
 
 class CollectHandler(BaseHandler):
@@ -22,62 +22,24 @@ class CollectHandler(BaseHandler):
         super().__init__()
         self.mq_msg = os.path.basename(__file__).split('.')[0]
         self.data_source = '中金财富'
-        self.url = 'https://www.cicc.com/ciccdata/reportservice/showreportdata.do'
 
     def rzrq_underlying_securities_collect(self):
         self.url = 'https://www.ciccwm.com/api2/web2016/cicc/rzrq/getTargetStockInfo?'
-        self.data_list = []
-        page = 1
-        size = random_page_size()
-        params = {'pageNum': page, 'pageSize': size}
-        response = self.get_response(self.url, 0, get_headers(), params)
-        text = json.loads(response.text)
-        self.total_num = int(text['data']['total'])
-
-        data = text['data']['list']
-        for i in data:
-            # exchname = i['exchname']
-            # stkid = i['stkid']
-            # groupid = i['groupid']
-            # stkname = i['stkname']
-            # stktypename = i['stktypename']
-            # rzbd = i['iscreditcashstk']
-            # rz_rate = i['ccmarginrate']
-            # rqbd = i['iscreditsharestk']
-            # rq_rate = i['csmarginrate']
-            # bzj = i['iscmo']
-            # bzj_rate = i['cmorate']
-            # fairprice = i['fairprice']
-            self.data_list.append(i)
-            self.collect_num = int(len(self.data_list))
+        self._securities_collect()
 
     def guaranty_securities_collect(self):
         self.url = 'https://www.ciccwm.com/api2/web2016/cicc/rzrq/getRzrqGuaranteeInfo?'
-        self.data_list = []
-        page = 1
-        size = random_page_size()
-        params = {'pageNum': page, 'pageSize': size}
+        self._securities_collect()
+
+    def _securities_collect(self):
+        params = {'pageNum': 1, 'pageSize': random_page_size()}
         response = self.get_response(self.url, 0, get_headers(), params)
         text = json.loads(response.text)
         self.total_num = int(text['data']['total'])
-        data = text['data']['list']
-        for i in data:
-            self.data_list.append(i)
-            self.collect_num = int(len(self.data_list))
-
-
-def random_page_size(mu=28888, sigma=78888):
-    """
-    获取随机分页数
-    :param mu:
-    :param sigma:
-    :return:
-    """
-    random_value = random.randint(mu, sigma)  # Return random integer in range [a, b], including both end points.
-    return random_value
+        self.tmp_df = pd.DataFrame(text['data']['list'])
+        self.collect_num = self.tmp_df.index.size
+        self.data_text = self.tmp_df.to_string()
 
 
 if __name__ == '__main__':
-    collector = CollectHandler()
-    # collector.collect_data(3)
-    collector.collect_data(eval(sys.argv[1]))
+    CollectHandler().argv_param_invoke((2, 3), sys.argv)

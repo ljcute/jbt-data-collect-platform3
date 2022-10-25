@@ -1,10 +1,19 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.10.0
 # -*- coding: utf-8 -*-
-# author yanpan
-# 2022/06/23 13:42
+"""
+@Description : 日志工具类
+@File        : __init__.py
+@Project     : jbt-data-collect-platform
+@Date        : 2022-9-19
+@Author      : Eagle (liuzh@igoldenbeta.com)
+@Software    : PyCharm
+"""
+
+__author__ = 'Eagle (liuzh@igoldenbeta.com)'
+
 from logging import handlers
 import logging
-import os
+from config import Config
 
 
 def get_log_info():
@@ -15,8 +24,7 @@ def get_log_info():
         'error': logging.ERROR,
         'crit': logging.CRITICAL
     }
-
-    filename = '../../../logs/logs.log'
+    filename = Config().get_content("log_file").get("filename")
     # filename = 'logs/logs.log'
     logger = logging.getLogger(filename)
     fmt = '%(asctime)s - %(pathname)s[line:%(lineno)d] - %(levelname)s: %(message)s'
