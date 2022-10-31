@@ -45,6 +45,7 @@ class CollectHandler(BaseHandler):
             self.total_num = df.index.size
             self.collect_num = self.total_num
             self.data_text = df.to_string()
+            self.search_date = df.iloc[0, 0]
 
     def rz_underlying_securities_collect(self):
         self.url = "http://query.sse.com.cn//sseQuery/commonExcelDd.do?FLAG=001&sqlId=COMMON_SSE_FW_JYFW_RZRQ_JYXX_BDZQKCDBZJZQLB_RZMRBDZQ_L"
