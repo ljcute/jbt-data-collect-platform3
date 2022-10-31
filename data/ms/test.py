@@ -36,6 +36,7 @@ import securities.zjcf_securities_collect as zjcf23
 
 
 if __name__ == '__main__':
+    pass
     # sh245.CollectHandler().collect_data(2, '2022-10-21')
     # sh245.CollectHandler().collect_data(2)
     # sh245.CollectHandler().collect_data(4, '2022-10-21')
@@ -101,9 +102,9 @@ if __name__ == '__main__':
     # gf245.CollectHandler().collect_data(5)
 
     # sw23.CollectHandler().collect_data(2, '2022-10-21')
-    sw23.CollectHandler().collect_data(2)
+    # sw23.CollectHandler().collect_data(2)
     # sw23.CollectHandler().collect_data(3, '2022-10-21')
-    sw23.CollectHandler().collect_data(3)
+    # sw23.CollectHandler().collect_data(3)
 
     # ax23.CollectHandler().collect_data(2, '2022-10-21')
     # ax23.CollectHandler().collect_data(2)
