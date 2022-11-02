@@ -28,7 +28,7 @@ class CollectHandler(BaseHandler):
         self.tmp_df = pd.DataFrame(text['list'])
         self.total_num = int(text['totalCount'])
         self.collect_num = self.tmp_df.index.size
-        self.data_text = self.tmp_df.to_string()
+        self.data_text = self.tmp_df.to_csv(index=False)
 
 
 if __name__ == '__main__':

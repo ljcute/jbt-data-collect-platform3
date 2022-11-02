@@ -104,7 +104,7 @@ if __name__ == '__main__':
     # sw23.CollectHandler().collect_data(2, '2022-10-21')
     # sw23.CollectHandler().collect_data(2)
     # sw23.CollectHandler().collect_data(3, '2022-10-21')
-    # sw23.CollectHandler().collect_data(3)
+    sw23.CollectHandler().collect_data(3)
 
     # ax23.CollectHandler().collect_data(2, '2022-10-21')
     # ax23.CollectHandler().collect_data(2)

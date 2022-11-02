@@ -52,7 +52,7 @@ class CollectHandler(BaseHandler):
                     logger.info(f" end target_page = {target_page}/{self.total_page}, df_size: {df.index.size}")
                     self.tmp_df = pd.concat([self.tmp_df, df])
             self.collect_num = self.tmp_df.index.size
-            self.data_text = self.tmp_df.to_string()
+            self.data_text = self.tmp_df.to_csv(index=False)
 
     def collect_by_page(self, target_page):
         retry_count = 5

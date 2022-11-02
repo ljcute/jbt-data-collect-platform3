@@ -73,7 +73,7 @@ class CollectHandler(BaseHandler):
                     # 读取内容与上一次完全相同，则休息一下再重新读取内容
                     counter = 0
                     while _df1.equals(_df2):
-                        logger.info(f'申万宏源担保券采集速度过快，休息一下')
+                        logger.info(f'申万宏源担保券采集速度过快，休息一下{counter}')
                         time.sleep(0.01)
                         html_content = str(driver.page_source)
                         _df2 = pd.read_html(html_content)[0]
@@ -96,7 +96,7 @@ class CollectHandler(BaseHandler):
                     self.collect_num = self.tmp_df.index.size
                     logger.info(f"申万宏源担保券第{current_page + 1}/{self.total_page}页，记录数{self.collect_num}/{self.total_num}条")
                 current_page += 1
-            self.data_text = self.tmp_df.to_string()
+            self.data_text = self.tmp_df.to_csv(index=False)
         finally:
             driver.quit()
 

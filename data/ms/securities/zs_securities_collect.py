@@ -40,7 +40,7 @@ class CollectHandler(BaseHandler):
         text = json.loads(response.text)
         self.total_num = int(text['body']['totalNum'])
         self.tmp_df = pd.DataFrame(text['body']['stocks'])
-        self.data_text = self.tmp_df.to_string()
+        self.data_text = self.tmp_df.to_csv(index=False)
         self.collect_num = self.tmp_df.index.size
 
 

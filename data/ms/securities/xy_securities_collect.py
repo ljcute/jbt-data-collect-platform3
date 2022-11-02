@@ -73,7 +73,7 @@ class CollectHandler(BaseHandler):
         #         self.tmp_df['biz_dt'] = sc_newest_date
         #         self.collect_num = self.tmp_df.index.size
         #         self.total_num = self.collect_num
-        #         self.data_text = self.tmp_df.to_string()
+        #         self.data_text = self.tmp_df.to_csv(index=False)
         #         return
 
         divs = soup.find_all('div', act='curdayinfo', mytitle=word)
@@ -115,7 +115,7 @@ class CollectHandler(BaseHandler):
                     self.tmp_df['biz_dt'] = biz_dt
                     self.collect_num = self.tmp_df.index.size
                     self.total_num = self.collect_num
-                    self.data_text = self.tmp_df.to_string()
+                    self.data_text = self.tmp_df.to_csv(index=False)
                     return
 
 

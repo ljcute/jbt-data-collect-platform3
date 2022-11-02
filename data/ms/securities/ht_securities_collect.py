@@ -58,7 +58,7 @@ class CollectHandler(BaseHandler):
                 if len(ss_data_list) > 0:
                     self.tmp_df = pd.concat([self.tmp_df, pd.DataFrame(ss_data_list)])
             self.collect_num = self.tmp_df.index.size
-            self.data_text = self.tmp_df.to_string()
+            self.data_text = self.tmp_df.to_csv(index=False)
 
     def collect_by_page(self, target_page, bizCode):
         retry_count = 5

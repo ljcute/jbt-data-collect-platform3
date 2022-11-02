@@ -43,7 +43,7 @@ class CollectHandler(BaseHandler):
                 self.tmp_df = pd.concat([self.tmp_df, df])
             self.collect_num = self.tmp_df.index.size
             self.total_num = self.collect_num
-            self.data_text = self.tmp_df.to_string()
+            self.data_text = self.tmp_df.to_csv(index=False)
         finally:
             driver.quit()
 

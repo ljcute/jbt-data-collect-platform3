@@ -63,7 +63,7 @@ class CollectHandler(BaseHandler):
                 logger.error(f"需要跟进的异常情况")
             curr_page += 1
             if curr_page > total_page:
-                self.data_text = self.tmp_df.to_string()
+                self.data_text = self.tmp_df.to_csv(index=False)
                 return
 
     def rzrq_underlying_securities_collect(self):

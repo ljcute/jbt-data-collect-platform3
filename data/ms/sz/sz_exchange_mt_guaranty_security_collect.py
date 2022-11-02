@@ -42,7 +42,7 @@ class CollectHandler(BaseHandler):
         if not self.tmp_df.empty:
             self.total_num = self.tmp_df.index.size
             self.collect_num = self.total_num
-            self.data_text = self.tmp_df.to_string()
+            self.data_text = self.tmp_df.to_csv(index=False)
         else:
             self.data_status = 3
 

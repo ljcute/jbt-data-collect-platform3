@@ -33,7 +33,7 @@ class CollectHandler(BaseHandler):
         self.tmp_df = pd.DataFrame(text['results'])
         self.collect_num = self.tmp_df.index.size
         self.total_num = self.collect_num
-        self.data_text = self.tmp_df.to_string()
+        self.data_text = self.tmp_df.to_csv(index=False)
 
     def rz_underlying_securities_collect(self):
         self._securities_collect(904103, 0)

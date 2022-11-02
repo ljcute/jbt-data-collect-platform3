@@ -27,7 +27,7 @@ class CollectHandler(BaseHandler):
         self.total_num = int(text['data'][0]['count'])
         self.tmp_df = pd.DataFrame(text['data'])
         self.collect_num = self.tmp_df.index.size
-        self.data_text = self.tmp_df.to_string()
+        self.data_text = self.tmp_df.to_csv(index=False)
 
     def rz_underlying_securities_collect(self):
         # type=0表示融资
