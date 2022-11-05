@@ -324,12 +324,15 @@ class BaseHandler(object):
         mutex.release()
 
     def argv_param_invoke(self, biz_types, argv):
-        msg = f"执行成功"
-        if len(argv) < 2 or int(argv[1]) not in biz_types:
-            msg = f'执行成功失败：第一个入参[business_type]错误, 当前已支持业务类型[{biz_types}]！'
-            logger.error(msg)
-        elif len(argv) > 2:
-            self.collect_data(eval(argv[1]), argv[2])
-        elif len(argv) == 2:
-            self.collect_data(eval(argv[1]))
-        return msg
+        try:
+            msg = f"执行成功"
+            if len(argv) < 2 or int(argv[1]) not in biz_types:
+                msg = f'执行成功失败：第一个入参[business_type]错误, 当前已支持业务类型[{biz_types}]！'
+                logger.error(msg)
+            elif len(argv) > 2:
+                self.collect_data(eval(argv[1]), argv[2])
+            elif len(argv) == 2:
+                self.collect_data(eval(argv[1]))
+            return msg
+        except Exception as err:
+            logger.error(f"互联网数据采集异常：{err} =》{str(traceback.format_exc())}")
