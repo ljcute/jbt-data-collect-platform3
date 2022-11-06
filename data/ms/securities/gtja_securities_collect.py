@@ -24,7 +24,7 @@ class CollectHandler(BaseHandler):
         self.url = f'https://www.gtja.com/cos/rest/margin/path/fuzzy.json?stamp={self.search_date}'
         response = self.get_response(self.url, 0, get_headers())
         text = json.loads(response.text)
-        self.tmp_df = pd.DataFrame(text["offset"])
+        self.tmp_df = pd.concat([pd.DataFrame(text["offset"]), pd.DataFrame(text["security"]), pd.DataFrame(text["finance"])])
         self.collect_num = self.tmp_df.index.size
         self.total_num = self.collect_num
         self.data_text = self.tmp_df.to_csv(index=False)
