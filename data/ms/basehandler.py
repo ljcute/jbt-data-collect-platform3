@@ -277,7 +277,7 @@ class BaseHandler(object):
         if 0 < self.collect_num == self.total_num > 0:
             self.data_status = 1
             logger.info(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}---开始进行数据入库')
-            data_deal.insert_data_collect(self.collect_num, pd.DataFrame(self.data_list).to_json(orient="records", force_ascii=False), self.search_date, self.biz_type,
+            data_deal.insert_data_collect(self.collect_num, self.data_text, self.search_date, self.biz_type,
                                           self.data_source, self.start_dt,
                                           self.end_dt, used_time, self.url, self.data_status, self.excel_file_path)
             logger.info(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}---数据入库结束,共{self.collect_num}条')
@@ -288,7 +288,7 @@ class BaseHandler(object):
                 else:
                     self.data_status = 3
                 logger.info(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}---开始进行数据入库')
-                data_deal.insert_data_collect(self.collect_num, pd.DataFrame(self.data_list).to_json(orient="records", force_ascii=False), self.search_date, self.biz_type,
+                data_deal.insert_data_collect(self.collect_num, self.data_text, self.search_date, self.biz_type,
                                               self.data_source, self.start_dt,
                                               self.end_dt, used_time, self.url, self.data_status, self.excel_file_path)
                 logger.info(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}---数据入库结束,共{self.collect_num}条')
