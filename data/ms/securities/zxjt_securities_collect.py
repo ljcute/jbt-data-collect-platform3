@@ -25,6 +25,7 @@ class CollectHandler(BaseHandler):
     def guaranty_and_underlying_securities_collect(self):
         pages = math.inf
         size = 10000
+        self.data_list = []
         url = self.url
         while pages:
             response = self.get_response(url, 0, get_headers())
@@ -35,10 +36,13 @@ class CollectHandler(BaseHandler):
                 size = int(data['size'])
             pages -= 1
             url = self.url.replace('current=1', f"current={data['pages'] -pages + 1}").replace('size=10000', f'size={size}')
-            self.tmp_df = pd.concat([self.tmp_df, pd.DataFrame(data['records'])])
-            self.collect_num = self.tmp_df.index.size
-        self.data_text = self.tmp_df.to_csv(index=False)
-
+            self.data_list.extend(data['records'])
+            # self.tmp_df = pd.concat([self.tmp_df, pd.DataFrame(data['records'])])
+            # self.collect_num = self.tmp_df.index.size
+        # self.data_text = self.tmp_df.to_csv(index=False)
+        self.data_text = self.data_list
+        self.collect_num = int(len(self.data_text))
 
 if __name__ == '__main__':
-    CollectHandler().argv_param_invoke((99, ), sys.argv)
+    # CollectHandler().argv_param_invoke((99, ), sys.argv)
+    CollectHandler().collect_data(99)
