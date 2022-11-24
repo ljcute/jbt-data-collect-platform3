@@ -112,7 +112,7 @@ if __name__ == '__main__':
                 start_dt = argv[3]
             end_dt = None
             if len(argv) > 4:
-                end_dt = argv[3]
+                end_dt = argv[4]
             hands_send_internet_data_collected_mq(data_source, biz_type, start_dt, end_dt)
         else:
             raise f"手工发送互联网数据采集完毕MQ-入参{sys.argv}异常!"
