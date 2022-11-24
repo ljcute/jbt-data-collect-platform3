@@ -1,6 +1,6 @@
 from db_connection import global_pool
-from utils.logs_utils import logger
 from utils.snowflake_utils import get_id
+import pandas as pd
 
 
 def insert_data_collect(record_num, data_text, date, data_type, data_source, start_dt, end_dt, used_time, data_url,
@@ -38,6 +38,22 @@ def get_max_biz_dt():
         if result:
             return result[0][0].strftime("%Y-%m-%d")
         return None
+    except Exception as es:
+        conn.rollback()
+        raise Exception(es)
+    finally:
+        conn.close()
+
+
+def get_data_source_and_data_type():
+    conn = global_pool.connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("select distinct data_source, data_type from t_ndc_data_collect_log where data_status=1 and biz_dt > (CURRENT_DATE - 7) order by data_source, data_type")
+        result = cursor.fetchall()
+        if result:
+            return pd.DataFrame(columns=['data_source', 'data_type'], data=result)
+        return pd.DataFrame()
     except Exception as es:
         conn.rollback()
         raise Exception(es)
