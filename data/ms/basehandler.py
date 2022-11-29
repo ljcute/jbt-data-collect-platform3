@@ -299,7 +299,7 @@ class BaseHandler(object):
 
     def kafka_mq_producer(self):
         logger.info(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}---开始发送mq消息')
-        biz_dt = str(self.search_date).replace('-', '')
+        biz_dt = str(self.search_date).replace('-', '')[:8]
         producer = KafkaProducer(bootstrap_servers=kafkaList,
                                  key_serializer=lambda k: json.dumps(k).encode(),
                                  value_serializer=lambda v: json.dumps(v).encode())
