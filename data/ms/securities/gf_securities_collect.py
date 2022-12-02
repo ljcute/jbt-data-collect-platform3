@@ -76,6 +76,24 @@ class CollectHandler(BaseHandler):
         self.collect_num = self.tmp_df.index.size
         self.data_text = self.tmp_df.to_csv(index=False)
 
+    def _securities_collect_bak(self, biz_type):
+        params = self._get_params(biz_type, 1)
+        response = self.get_response(self.url, 0, get_headers(), params)
+        text = json.loads(response.text)
+        self.total_num = int(text['count'])
+        result = text['result']
+        if self.total_num == 0 and result.index('当前搜索记录为空') > 0:
+            self.collect_num_check = False
+            return
+        self.total_page = math.ceil(self.total_num / self.page_size)
+        for target_page in range(1, self.total_page + 1):
+            target_page, df = self.collect_by_page(biz_type, target_page)
+            time.sleep(1)
+            logger.info(f" end target_page = {target_page}/{self.total_page}, df_size: {df.index.size}")
+            self.tmp_df = pd.concat([self.tmp_df, df])
+        self.collect_num = self.tmp_df.index.size
+        self.data_text = self.tmp_df.to_csv(index=False)
+
     def collect_by_page(self, biz_type, target_page):
         retry_count = 5
         params = self._get_params(biz_type, target_page)
@@ -83,7 +101,7 @@ class CollectHandler(BaseHandler):
         while retry_count:
             try:
                 _proxies = self._proxies
-                response = requests.get(url=self.url, params=params, headers=get_headers(), proxies=_proxies, timeout=6)
+                response = requests.get(url=self.url, params=params, headers=get_headers(), proxies=_proxies, timeout=60)
                 if response is None or response.status_code != 200:
                     raise Exception(f'{self.data_source}数据采集任务请求响应获取异常,已获取代理ip为:{self._proxies}，请求url为:{self.url},请求参数为:{params}')
                 text = json.loads(response.text)
