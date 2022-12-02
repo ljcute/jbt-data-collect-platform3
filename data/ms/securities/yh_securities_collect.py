@@ -10,7 +10,7 @@ import pandas as pd
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
-from data.ms.basehandler import BaseHandler
+from data.ms.basehandler import BaseHandler, argv_param_invoke
 
 
 class CollectHandler(BaseHandler):
@@ -20,6 +20,7 @@ class CollectHandler(BaseHandler):
         self.mq_msg = os.path.basename(__file__).split('.')[0]
         self.data_source = '中国银河'
         self.url = 'http://www.chinastock.com.cn/newsite/cgs-services/stockFinance/businessAnnc.html?type=marginList'
+        # http://www.chinastock.com.cn/website2020/margin/stockList?dataType=1
 
     def guaranty_and_underlying_securities_collect(self):
         try:
@@ -49,4 +50,4 @@ class CollectHandler(BaseHandler):
 
 
 if __name__ == '__main__':
-    CollectHandler().argv_param_invoke((99, ), sys.argv)
+    argv_param_invoke(CollectHandler(), (99, ), sys.argv)

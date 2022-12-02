@@ -14,7 +14,7 @@ import concurrent.futures
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
-from data.ms.basehandler import BaseHandler, get_headers, logger
+from data.ms.basehandler import BaseHandler, get_headers, logger, argv_param_invoke
 
 
 class CollectHandler(BaseHandler):
@@ -63,7 +63,7 @@ class CollectHandler(BaseHandler):
         if self.total_num == 0 and result.index('当前搜索记录为空') > 0:
             self.collect_num_check = False
             return
-        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             future_list = []
             self.total_page = math.ceil(self.total_num / self.page_size)
             for target_page in range(1, self.total_page + 1):
@@ -116,4 +116,4 @@ class CollectHandler(BaseHandler):
 
 
 if __name__ == '__main__':
-    CollectHandler().argv_param_invoke((2, 4, 5), sys.argv)
+    argv_param_invoke(CollectHandler(), (2, 4, 5), sys.argv)
