@@ -64,10 +64,10 @@ class CollectHandler(BaseHandler):
             self.collect_num_check = False
             return
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            future_list = []
             self.total_page = math.ceil(self.total_num / self.page_size)
             step = 5
             for _page in range(1, self.total_page + 1, step):
+                future_list = []
                 for _i in range(0, step):
                     if _page + _i > self.total_page:
                         break
