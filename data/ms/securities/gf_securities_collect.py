@@ -82,7 +82,7 @@ class CollectHandler(BaseHandler):
                         except Exception as e:
                             time.sleep(1)
                     logger.info(f" end target_page = {__page}/{self.total_page}, df_size: {df.index.size}")
-                self.tmp_df = pd.concat([self.tmp_df, df])
+                    self.tmp_df = pd.concat([self.tmp_df, df])
         self.collect_num = self.tmp_df.index.size
         self.data_text = self.tmp_df.to_csv(index=False)
 
