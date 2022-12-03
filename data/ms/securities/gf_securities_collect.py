@@ -109,8 +109,4 @@ class CollectHandler(BaseHandler):
 
 
 if __name__ == '__main__':
-    # argv_param_invoke(CollectHandler(), (2, 4, 5), sys.argv)
-
-    for target_page in range(1, 20):
-        for i in range(1, 5):
-            print(target_page + i)
+    argv_param_invoke(CollectHandler(), (2, 4, 5), sys.argv)
