@@ -67,6 +67,8 @@ class CollectHandler(BaseHandler):
         logger.info(f" start target_page = {target_page}/{self.total_page}, params: {params}")
         while retry_count:
             try:
+                if retry_count < 5:
+                    self.refresh_proxies(_proxies)
                 _proxies = self._proxies
                 response = requests.post(url=self.url, params=params, proxies=_proxies, timeout=60)
                 if response is None or response.status_code != 200:
@@ -78,7 +80,6 @@ class CollectHandler(BaseHandler):
             except Exception as e:
                 retry_count -= 1
                 time.sleep(5)
-                self.refresh_proxies(_proxies)
         return target_page, [], []
 
 

@@ -67,9 +67,11 @@ class CollectHandler(BaseHandler):
         for target_page in range(1, self.total_page + 1):
             target_page, df = self.collect_by_page(biz_type, target_page)
             while df.empty:
-                self.refresh_proxies(self._proxies)
-                target_page, df = self.collect_by_page(biz_type, target_page)
-                time.sleep(1)
+                try:
+                    self.refresh_proxies(self._proxies)
+                    target_page, df = self.collect_by_page(biz_type, target_page)
+                except Exception as e:
+                    time.sleep(1)
             time.sleep(1)
             logger.info(f" end target_page = {target_page}/{self.total_page}, df_size: {df.index.size}")
             self.tmp_df = pd.concat([self.tmp_df, df])
@@ -82,6 +84,8 @@ class CollectHandler(BaseHandler):
         logger.info(f" start target_page = {target_page}/{self.total_page}, params: {params}")
         while retry_count:
             try:
+                if retry_count < 5:
+                    self.refresh_proxies(_proxies)
                 _proxies = self._proxies
                 response = requests.get(url=self.url, params=params, headers=get_headers(), proxies=_proxies, timeout=120)
                 if response is None or response.status_code != 200:
@@ -93,7 +97,6 @@ class CollectHandler(BaseHandler):
             except Exception as e:
                 retry_count -= 1
                 time.sleep(5)
-                self.refresh_proxies(_proxies)
         return target_page, pd.DataFrame()
 
 
