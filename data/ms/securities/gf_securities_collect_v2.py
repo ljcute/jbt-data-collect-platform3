@@ -66,6 +66,10 @@ class CollectHandler(BaseHandler):
         self.total_page = math.ceil(self.total_num / self.page_size)
         for target_page in range(1, self.total_page + 1):
             target_page, df = self.collect_by_page(biz_type, target_page)
+            while df.empty:
+                self.refresh_proxies(self._proxies)
+                target_page, df = self.collect_by_page(biz_type, target_page)
+                time.sleep(1)
             time.sleep(1)
             logger.info(f" end target_page = {target_page}/{self.total_page}, df_size: {df.index.size}")
             self.tmp_df = pd.concat([self.tmp_df, df])
@@ -79,7 +83,7 @@ class CollectHandler(BaseHandler):
         while retry_count:
             try:
                 _proxies = self._proxies
-                response = requests.get(url=self.url, params=params, headers=get_headers(), proxies=_proxies, timeout=60)
+                response = requests.get(url=self.url, params=params, headers=get_headers(), proxies=_proxies, timeout=120)
                 if response is None or response.status_code != 200:
                     raise Exception(f'{self.data_source}数据采集任务请求响应获取异常,已获取代理ip为:{self._proxies}，请求url为:{self.url},请求参数为:{params}')
                 text = json.loads(response.text)
