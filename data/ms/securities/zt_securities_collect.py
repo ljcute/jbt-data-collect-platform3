@@ -27,6 +27,8 @@ class CollectHandler(BaseHandler):
         super().__init__()
         self.mq_msg = os.path.basename(__file__).split('.')[0]
         self.data_source = '中泰证券'
+        self.page_size = 10
+        self.total_page = 0
         self.init_date = None
         self.url = 'https://www.95538.cn/rzrq/data/Handler.ashx'
         self._proxies = self.get_proxies()
@@ -56,20 +58,24 @@ class CollectHandler(BaseHandler):
         text = json.loads(response.text)
         total_page = int(text['PageTotal'])
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-            future_list = []
-            for target_page in range(1, total_page + 1):
-                future = executor.submit(self.collect_by_page, biz_type, target_page)
-                future_list.append(future)
-
-            for r in future_list:
-                target_page, result_list = r.result()
-                logger.info(f" end target_page = {target_page}/{total_page}, df_size: {len(result_list)}")
-                if len(result_list) > 0:
-                    self.tmp_df = pd.concat([self.tmp_df, pd.DataFrame(result_list)])
-            self.collect_num = self.tmp_df.index.size
-            self.total_num = len(result_list)
-            self.data_text = self.tmp_df.to_csv(index=False)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            self.total_page = total_page
+            step = 5
+            for _page in range(1, self.total_page + 1, step):
+                future_list = []
+                for _i in range(0, step):
+                    if _page + _i > self.total_page:
+                        break
+                    future = executor.submit(self.collect_by_page, biz_type, _page + _i)
+                    future_list.append(future)
+                for r in future_list:
+                    __page, result_list = r.result()
+                    logger.info(f" end target_page = {__page}/{self.total_page}, df_size: {len(result_list)}")
+                    if len(result_list) > 0:
+                        self.tmp_df = pd.concat([self.tmp_df, pd.DataFrame(result_list)])
+                self.collect_num = self.tmp_df.index.size
+                self.total_num = self.collect_num
+                self.data_text = self.tmp_df.to_csv(index=False)
 
     def collect_by_page(self, biz_type, target_page):
         retry_count = 5
