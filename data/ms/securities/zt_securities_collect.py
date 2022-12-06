@@ -58,12 +58,12 @@ class CollectHandler(BaseHandler):
         if response.status_code == 200:
             text = json.loads(response.text)
             self.total_page = int(text['PageTotal'])
-            target_page, rs_list = self.collect_by_page(biz_type, self.total_page)
-            if rs_list:
-                self.total_num = (self.total_page - 1) * self.page_size + int(len(rs_list))
+            target_page, df = self.collect_by_page(biz_type, self.total_page)
+            if not df.empty:
+                self.total_num = (self.total_page - 1) * self.page_size + int(df.index.size)
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            step = 5
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            step = 10
             for _page in range(1, self.total_page + 1, step):
                 future_list = []
                 for _i in range(0, step):
@@ -72,12 +72,17 @@ class CollectHandler(BaseHandler):
                     future = executor.submit(self.collect_by_page, biz_type, _page + _i)
                     future_list.append(future)
                 for r in future_list:
-                    __page, result_list = r.result()
-                    logger.info(f" end target_page = {__page}/{self.total_page}, df_size: {len(result_list)}")
-                    if len(result_list) > 0:
-                        self.tmp_df = pd.concat([self.tmp_df, pd.DataFrame(result_list)])
-                self.collect_num = self.tmp_df.index.size
-                self.data_text = self.tmp_df.to_csv(index=False)
+                    __page, df = r.result()
+                    while df.empty:
+                        try:
+                            self.refresh_proxies(self._proxies)
+                            __page, df = self.collect_by_page(biz_type, __page)
+                        except Exception as e:
+                            time.sleep(1)
+                    logger.info(f" end target_page = {__page}/{self.total_page}, df_size: {df.index.size}")
+                    self.tmp_df = pd.concat([self.tmp_df, df])
+        self.collect_num = self.tmp_df.index.size
+        self.data_text = self.tmp_df.to_csv(index=False)
 
     def collect_by_page(self, biz_type, target_page):
         retry_count = 5
@@ -92,7 +97,7 @@ class CollectHandler(BaseHandler):
                         f'{self.data_source}数据采集任务请求响应获取异常,已获取代理ip为:{self._proxies}，请求url为:{self.url},请求参数为:{params}')
                 text = json.loads(response.text)
                 result = text['Items']
-                return target_page, result
+                return target_page, pd.DataFrame(result)
             except Exception as e:
                 retry_count -= 1
                 time.sleep(5)
