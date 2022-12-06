@@ -91,7 +91,7 @@ def hands_send_internet_data_collected_mq(data_source, biz_type, start_dt=None, 
             }
             future = producer.send(topic, value=str(msg), key=msg['user_id'], partition=0)
             record_metadata = future.get(timeout=30)
-            logger.info(f'{data_source}{biz_type_map.get(biz_type)}, biz_dt={biz_dt}---topic partition:{record_metadata.partition}')
+            logger.info(f'data_source={data_source}, biz_type={biz_type_map.get(biz_type)}, biz_dt={biz_dt}---topic partition:{record_metadata.partition}')
             logger.info(f'data_source={data_source}, biz_type={biz_type_map.get(biz_type)}, biz_dt={biz_dt}---发送mq消息结束，消息内容:{msg}')
     except Exception as e:
         logger.info(f"手工发送互联网数据采集完毕MQ异常：data_source parm: data_source={data_source}, biz_type={biz_type_map.get(biz_type)}, start_dt={start_dt}, end_dt={end_dt}: {e} =》{str(traceback.format_exc())}")
@@ -112,7 +112,7 @@ if __name__ == '__main__':
                 start_dt = argv[3]
             end_dt = None
             if len(argv) > 4:
-                end_dt = argv[3]
+                end_dt = argv[4]
             hands_send_internet_data_collected_mq(data_source, biz_type, start_dt, end_dt)
         else:
             raise f"手工发送互联网数据采集完毕MQ-入参{sys.argv}异常!"

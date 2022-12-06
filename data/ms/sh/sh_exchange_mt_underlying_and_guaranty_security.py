@@ -11,7 +11,7 @@ import pandas as pd
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
-from data.ms.basehandler import BaseHandler
+from data.ms.basehandler import BaseHandler, argv_param_invoke
 
 
 class CollectHandler(BaseHandler):
@@ -60,4 +60,4 @@ class CollectHandler(BaseHandler):
 
 
 if __name__ == '__main__':
-    CollectHandler().argv_param_invoke((2, 4, 5), sys.argv)
+    argv_param_invoke(CollectHandler(), (2, 4, 5), sys.argv)

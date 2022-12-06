@@ -299,7 +299,7 @@ class BaseHandler(object):
 
     def kafka_mq_producer(self):
         logger.info(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}---开始发送mq消息')
-        biz_dt = str(self.search_date).replace('-', '')
+        biz_dt = str(self.search_date).replace('-', '')[:8]
         producer = KafkaProducer(bootstrap_servers=kafkaList,
                                  key_serializer=lambda k: json.dumps(k).encode(),
                                  value_serializer=lambda v: json.dumps(v).encode())
@@ -322,16 +322,17 @@ class BaseHandler(object):
             self._proxies = self.get_proxies()
         mutex.release()
 
-    def argv_param_invoke(self, biz_types, argv):
-        try:
-            msg = f"执行成功"
-            if len(argv) < 2 or int(argv[1]) not in biz_types:
-                msg = f'执行成功失败：第一个入参[business_type]错误, 当前已支持业务类型[{biz_types}]！'
-                logger.error(msg)
-            elif len(argv) > 2:
-                self.collect_data(eval(argv[1]), argv[2])
-            elif len(argv) == 2:
-                self.collect_data(eval(argv[1]))
-            return msg
-        except Exception as err:
-            logger.error(f"互联网数据采集异常：{err} =》{str(traceback.format_exc())}")
+
+def argv_param_invoke(handler, biz_types, argv):
+    try:
+        msg = f"执行成功"
+        if len(argv) < 2 or int(argv[1]) not in biz_types:
+            msg = f'执行成功失败：第一个入参[business_type]错误, 当前已支持业务类型[{biz_types}]！'
+            logger.error(msg)
+        elif len(argv) > 2:
+            handler.collect_data(eval(argv[1]), argv[2])
+        elif len(argv) == 2:
+            handler.collect_data(eval(argv[1]))
+        return msg
+    except Exception as err:
+        logger.error(f"互联网数据采集异常：{err} =》{str(traceback.format_exc())}")

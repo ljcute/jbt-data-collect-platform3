@@ -15,7 +15,7 @@ import pandas as pd
 import concurrent.futures
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
-from data.ms.basehandler import BaseHandler, get_headers, logger
+from data.ms.basehandler import BaseHandler, get_headers, logger, argv_param_invoke
 
 
 class CollectHandler(BaseHandler):
@@ -60,6 +60,8 @@ class CollectHandler(BaseHandler):
         logger.info(f" start target_page = {target_page}/{self.total_page}, params: {params}")
         while retry_count:
             try:
+                if retry_count < 5:
+                    self.refresh_proxies(_proxies)
                 _proxies = self._proxies
                 response = requests.get(url=self.url, params=params, headers=get_headers(), proxies=_proxies, timeout=6)
                 if response is None or response.status_code != 200:
@@ -71,9 +73,8 @@ class CollectHandler(BaseHandler):
             except Exception as e:
                 retry_count -= 1
                 time.sleep(5)
-                self.refresh_proxies(_proxies)
         return target_page, pd.DataFrame()
 
 
 if __name__ == '__main__':
-    CollectHandler().argv_param_invoke((2, 3), sys.argv)
+    argv_param_invoke(CollectHandler(), (2, 3), sys.argv)

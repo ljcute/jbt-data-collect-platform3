@@ -12,7 +12,7 @@ import pandas as pd
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
-from data.ms.basehandler import BaseHandler, random_double
+from data.ms.basehandler import BaseHandler, random_double, argv_param_invoke
 from constants import USER_AGENTS
 
 
@@ -50,4 +50,4 @@ class CollectHandler(BaseHandler):
 
 
 if __name__ == '__main__':
-    CollectHandler().argv_param_invoke((3,), sys.argv)
+    argv_param_invoke(CollectHandler(), (3,), sys.argv)

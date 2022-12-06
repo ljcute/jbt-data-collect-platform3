@@ -63,26 +63,17 @@ class CollectHandler(BaseHandler):
         if self.total_num == 0 and result.index('当前搜索记录为空') > 0:
             self.collect_num_check = False
             return
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            self.total_page = math.ceil(self.total_num / self.page_size)
-            step = 5
-            for _page in range(1, self.total_page + 1, step):
-                future_list = []
-                for _i in range(0, step):
-                    if _page + _i > self.total_page:
-                        break
-                    future = executor.submit(self.collect_by_page, biz_type, _page + _i)
-                    future_list.append(future)
-                for r in future_list:
-                    __page, df = r.result()
-                    while df.empty:
-                        try:
-                            self.refresh_proxies(self._proxies)
-                            __page, df = self.collect_by_page(biz_type, __page)
-                        except Exception as e:
-                            time.sleep(1)
-                    logger.info(f" end target_page = {__page}/{self.total_page}, df_size: {df.index.size}")
-                    self.tmp_df = pd.concat([self.tmp_df, df])
+        self.total_page = math.ceil(self.total_num / self.page_size)
+        for target_page in range(1, self.total_page + 1):
+            target_page, df = self.collect_by_page(biz_type, target_page)
+            while df.empty:
+                try:
+                    self.refresh_proxies(self._proxies)
+                    target_page, df = self.collect_by_page(biz_type, target_page)
+                except Exception as e:
+                    time.sleep(1)
+            logger.info(f" end target_page = {target_page}/{self.total_page}, df_size: {df.index.size}")
+            self.tmp_df = pd.concat([self.tmp_df, df])
         self.collect_num = self.tmp_df.index.size
         self.data_text = self.tmp_df.to_csv(index=False)
 

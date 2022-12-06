@@ -34,7 +34,7 @@ def get_proxies(data_type=1, retry_count=3):
     this_method_retry_count = int(proxy_retry_time)
     while this_method_retry_count > 0:
         params = {"appId": app_id, "interfaceId": data_type}
-        response = requests.get(url=get_ip_url, params=params, timeout=3)
+        response = requests.get(url=get_ip_url, params=params, timeout=30)
         if response.status_code != 200:
             raise Exception(f'ip代理服务:{get_ip_url}异常，无法获取代理ip!')
         text = json.loads(response.text)
