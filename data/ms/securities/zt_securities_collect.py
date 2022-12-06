@@ -11,7 +11,7 @@ import pandas as pd
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
-
+from data.ms.basehandler import BaseHandler, get_headers, logger, argv_param_invoke
 from data.ms.basehandler import BaseHandler
 from utils.deal_date import ComplexEncoder, date_to_stamp
 import json
@@ -93,5 +93,5 @@ class CollectHandler(BaseHandler):
 
 
 if __name__ == '__main__':
-    CollectHandler().argv_param_invoke((2, 3), sys.argv)
-    # CollectHandler().collect_data(2)
+    argv_param_invoke(CollectHandler(), (2, 3), sys.argv)
+
