@@ -55,11 +55,14 @@ class CollectHandler(BaseHandler):
     def _securities_collect(self, biz_type):
         params, headers = self._get_params_headers(biz_type, 1)
         response = self.get_response(self.url, 0, headers, params)
-        text = json.loads(response.text)
-        total_page = int(text['PageTotal'])
+        if response.status_code == 200:
+            text = json.loads(response.text)
+            self.total_page = int(text['PageTotal'])
+            target_page, rs_list = self.collect_by_page(biz_type, self.total_page)
+            if rs_list:
+                self.total_num = (self.total_page - 1) * self.page_size + int(len(rs_list))
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            self.total_page = total_page
             step = 5
             for _page in range(1, self.total_page + 1, step):
                 future_list = []
@@ -74,7 +77,6 @@ class CollectHandler(BaseHandler):
                     if len(result_list) > 0:
                         self.tmp_df = pd.concat([self.tmp_df, pd.DataFrame(result_list)])
                 self.collect_num = self.tmp_df.index.size
-                self.total_num = self.collect_num
                 self.data_text = self.tmp_df.to_csv(index=False)
 
     def collect_by_page(self, biz_type, target_page):
@@ -100,4 +102,3 @@ class CollectHandler(BaseHandler):
 
 if __name__ == '__main__':
     argv_param_invoke(CollectHandler(), (2, 3), sys.argv)
-
