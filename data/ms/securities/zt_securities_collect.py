@@ -91,7 +91,7 @@ class CollectHandler(BaseHandler):
         while retry_count:
             try:
                 _proxies = self._proxies
-                response = requests.get(url=self.url, params=params, headers=headers, proxies=_proxies, timeout=6)
+                response = requests.get(url=self.url, params=params, headers=headers, proxies=_proxies, timeout=30)
                 if response is None or response.status_code != 200:
                     raise Exception(
                         f'{self.data_source}数据采集任务请求响应获取异常,已获取代理ip为:{self._proxies}，请求url为:{self.url},请求参数为:{params}')
