@@ -73,12 +73,16 @@ class CollectHandler(BaseHandler):
                     future_list.append(future)
                 for r in future_list:
                     __page, df = r.result()
+                    _count = 1
                     while df.empty:
                         try:
                             self.refresh_proxies(self._proxies)
                             __page, df = self.collect_by_page(biz_type, __page)
                         except Exception as e:
-                            time.sleep(1)
+                            _count += 1
+                            if _count > 10:
+                                raise f"采集{_page}页数据失败!"
+                            time.sleep(10 * (_count - 1) + 1)
                     logger.info(f" end target_page = {__page}/{self.total_page}, df_size: {df.index.size}")
                     self.tmp_df = pd.concat([self.tmp_df, df])
         self.collect_num = self.tmp_df.index.size
