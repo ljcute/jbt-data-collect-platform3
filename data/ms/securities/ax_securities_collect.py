@@ -41,16 +41,30 @@ class CollectHandler(BaseHandler):
         result_list = text['data']
         if result_list:
             self.total_num = int(text['total'])
-            with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-                future_list = []
+            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
                 self.total_page = math.ceil(self.total_num / self.page_size)
-                for target_page in range(1, self.total_page + 1):
-                    future = executor.submit(self.collect_by_page, target_page)
-                    future_list.append(future)
-                for r in future_list:
-                    target_page, df = r.result()
-                    logger.info(f" end target_page = {target_page}/{self.total_page}, df_size: {df.index.size}")
-                    self.tmp_df = pd.concat([self.tmp_df, df])
+                step = 10
+                for _page in range(1, self.total_page + 1, step):
+                    future_list = []
+                    for _i in range(0, step):
+                        if _page + _i > self.total_page:
+                            break
+                        future = executor.submit(self.collect_by_page, _page)
+                        future_list.append(future)
+                    for r in future_list:
+                        __page, df = r.result()
+                        _count = 1
+                        while df.empty:
+                            try:
+                                self.refresh_proxies(self._proxies)
+                                __page, df = self.collect_by_page(__page)
+                            except Exception as e:
+                                _count += 1
+                                if _count > 10:
+                                    raise f"采集{_page}页数据失败!"
+                                time.sleep(10 * (_count - 1) + 1)
+                        logger.info(f" end target_page = {__page}/{self.total_page}, df_size: {df.index.size}")
+                        self.tmp_df = pd.concat([self.tmp_df, df])
             self.collect_num = self.tmp_df.index.size
             self.data_text = self.tmp_df.to_csv(index=False)
 
