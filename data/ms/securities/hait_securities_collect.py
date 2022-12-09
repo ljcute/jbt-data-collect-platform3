@@ -45,7 +45,7 @@ class CollectHandler(BaseHandler):
 
     def _get_params(self, biz_type, target_page):
         params = {"pagesize": self.page_size, "pagecount": target_page,
-                  "searchDate": str(self.search_date).replace('-', ''),
+                  "searchDate": self.init_date,
                   "searchCode": '', "jiaoyisuo": ''}
         if biz_type == 'bd':
             params["type"] = 1
@@ -107,4 +107,5 @@ class CollectHandler(BaseHandler):
 
 
 if __name__ == '__main__':
-    argv_param_invoke(CollectHandler(), (2, 3), sys.argv)
+    # argv_param_invoke(CollectHandler(), (2, 3), sys.argv)
+    CollectHandler().collect_data(2, '2022-12-08')
