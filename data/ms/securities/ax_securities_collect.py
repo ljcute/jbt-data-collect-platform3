@@ -49,7 +49,7 @@ class CollectHandler(BaseHandler):
                     for _i in range(0, step):
                         if _page + _i > self.total_page:
                             break
-                        future = executor.submit(self.collect_by_page, _page)
+                        future = executor.submit(self.collect_by_page, _page + _i)
                         future_list.append(future)
                     for r in future_list:
                         __page, df = r.result()
