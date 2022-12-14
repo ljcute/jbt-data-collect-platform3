@@ -7,7 +7,6 @@
 # 上海交易所-融资融券交易汇总及详细数据
 import sys
 import time
-import xlrd2
 import datetime
 import os
 import warnings
@@ -18,9 +17,7 @@ from selenium.webdriver.common.by import By
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 
-from utils.exceptions_utils import ProxyTimeOutEx
-from utils.logs_utils import logger
-from data.ms.basehandler import BaseHandler, random_double, argv_param_invoke
+from data.ms.basehandler import BaseHandler, argv_param_invoke
 from constants import get_headers
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -80,7 +77,6 @@ class CollectHandler(BaseHandler):
 
     def get_trade_date(self):
         try:
-            logger.info(f'开始获取上海交易所最新交易日日期')
             driver = self.get_driver()
             url = 'http://www.sse.com.cn/market/othersdata/margin/detail/'
             driver.get(url)
@@ -88,10 +84,7 @@ class CollectHandler(BaseHandler):
             trade_date = driver.find_elements(By.XPATH,
                                               '/html/body/div[9]/div/div[2]/div/div[1]/div[1]/div[1]/table/tbody/tr/td[1]')[
                 0].text
-            logger.info(f'上海交易所最新交易日日期为{trade_date}')
             return trade_date
-        except ProxyTimeOutEx as es:
-            pass
         except Exception as e:
             raise Exception(e)
 
@@ -105,8 +98,6 @@ def download_excel(response, query_date=None):
                 file.write(response.content)  # 写excel到当前目录
         except Exception as es:
             raise Exception(es)
-    else:
-        logger.info("上交所该日无数据:txt_date:{}".format(query_date))
 
 
 if __name__ == "__main__":

@@ -8,6 +8,8 @@ import os
 import sys
 import time
 import warnings
+import random
+import os
 from configparser import ConfigParser
 
 import pandas as pd
@@ -16,14 +18,11 @@ from selenium.webdriver.common.by import By
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 
-from utils.exceptions_utils import ProxyTimeOutEx
 from data.ms.basehandler import BaseHandler, random_double, argv_param_invoke
-from utils.remove_file import remove_file, random_double
+from utils.remove_file import  random_double
 import datetime
 from constants import USER_AGENTS
-import random
-import os
-from utils.logs_utils import logger
+
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 excel_file_path = os.path.join(base_dir, 'sz_balance.xlsx')
@@ -96,7 +95,6 @@ class CollectHandler(BaseHandler):
     def get_trade_date(self):
         url = 'http://www.szse.cn/disclosure/margin/margin/index.html'
         try:
-            logger.info(f'开始获取深圳交易所最新交易日日期')
             driver = super().get_driver()
             driver.get(url)
             time.sleep(3)
@@ -104,11 +102,7 @@ class CollectHandler(BaseHandler):
                 driver.find_elements(By.XPATH,
                                      '/html/body/div[5]/div/div[2]/div/div/div[4]/div[1]/div[1]/div[1]/span[2]')[
                     0].text
-            logger.info(f'深圳交易所最新交易日日期为{trade_date}')
             return trade_date
-
-        except ProxyTimeOutEx as es:
-            pass
         except Exception as e:
             raise Exception(f'获取深圳交易所最新交易日日期异常，请求url为：{url}，具体异常信息为：{e}')
 
@@ -122,8 +116,6 @@ def download_excel(response, query_date=None):
                 file.write(response.content)  # 写excel到当前目录
         except Exception as es:
             raise Exception(es)
-    else:
-        logger.info("深交所该日无数据:txt_date:{}".format(query_date))
 
 
 if __name__ == "__main__":
