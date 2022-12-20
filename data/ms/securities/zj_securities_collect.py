@@ -91,7 +91,7 @@ class CollectHandler(BaseHandler):
                     counter = 0
                     while _df1.equals(_df2):
                         logger.info(f'中金公司数据采集速度过快，休息一下{counter}')
-                        time.sleep(0.5)
+                        time.sleep(1)
                         html_content = str(driver.page_source)
                         _df2 = pd.read_html(html_content)[2]
                         _df2.sort_values(by=['证券代码', '证券名称'], ascending=[True, True])
@@ -163,7 +163,7 @@ class CollectHandler(BaseHandler):
                     counter = 0
                     while _df1.equals(_df2):
                         logger.info(f'中金公司数据采集速度过快，休息一下{counter}')
-                        time.sleep(0.5)
+                        time.sleep(1)
                         html_content = str(driver.page_source)
                         _df2 = pd.read_html(html_content)[2]
                         _df2.sort_values(by=['证券代码', '证券名称'], ascending=[True, True])
