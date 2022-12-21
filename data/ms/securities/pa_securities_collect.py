@@ -93,7 +93,7 @@ class CollectHandler(BaseHandler):
                         dep_list = dep_line.values.tolist()
                         msg = f'平安证券标的券采集的重复数据为：{dep_list},共{len(dep_list)}条'
                         logger.info(msg)
-                        raise Exception(msg)
+                        # raise Exception(msg)
                     self.collect_num = self.tmp_df.index.size
                     logger.info(
                         f"平安证券标的券第{current_page + 1}/{self.total_page}页，记录数{self.collect_num}/{self.total_num}条")
