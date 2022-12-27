@@ -110,7 +110,7 @@ class CollectHandler(BaseHandler):
                                         timeout=6)
 
             if int(response.status_code) != 200:
-                logger.warning(f'response = {response}, current_page = {page}')
+                # logger.warning(f'response = {response}, current_page = {page}')
                 sleep_second = random.randint(3, 5)  # 随机sleep 3-5秒
                 time.sleep(sleep_second)
                 continue
