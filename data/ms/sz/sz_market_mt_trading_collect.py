@@ -46,15 +46,14 @@ class CollectHandler(BaseHandler):
         self.collect_num_check = False
 
     def trading_amount_collect(self):
-        # trade_date = self.get_trade_date()
-        # self.biz_dt = trade_date
-        self.biz_dt = self.search_date
+        trade_date = self.get_trade_date()
+        self.biz_dt = trade_date
         self.url = 'http://www.szse.cn/api/report/ShowReport?SHOWTYPE=xlsx&CATALOGID=1837_xxpl&TABKEY=tab1'
         headers = {
             'User-Agent': random.choice(USER_AGENTS)
         }
         params = {
-            'txtDate': self.search_date,  # 查历史可以传日期
+            'txtDate': trade_date,  # 查历史可以传日期
             'random': random_double(),
         }
         response = self.get_response(self.url, 0, headers, params)

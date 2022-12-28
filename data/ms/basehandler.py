@@ -324,26 +324,15 @@ class BaseHandler(object):
 
 
 def argv_param_invoke(handler, biz_types, argv):
-    import datetime
     try:
         msg = f"执行成功"
         if len(argv) < 2 or int(argv[1]) not in biz_types:
             msg = f'执行成功失败：第一个入参[business_type]错误, 当前已支持业务类型[{biz_types}]！'
             logger.error(msg)
-        elif 2 < len(argv) < 4:
+        elif len(argv) > 2:
             handler.collect_data(eval(argv[1]), argv[2])
         elif len(argv) == 2:
             handler.collect_data(eval(argv[1]))
-        elif len(argv) == 4:
-            a = argv[2].split('-')
-            b = argv[3].split('-')
-            begin = datetime.date(int(a[0]), int(a[1]), int(a[2]))
-            end = datetime.date(int(b[0]), int(b[1]), int(b[2]))
-            for i in range((end - begin).days + 1):
-                day = begin + datetime.timedelta(days=i)
-                day = str(day)
-                logger.info(f'开始采集{day}的数据')
-                handler.collect_data(eval(argv[1]), day)
         return msg
     except Exception as err:
         logger.error(f"互联网数据采集异常：{err} =》{str(traceback.format_exc())}")
