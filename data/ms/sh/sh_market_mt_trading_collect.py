@@ -40,15 +40,16 @@ class CollectHandler(BaseHandler):
         self.collect_num_check = False
 
     def trading_amount_collect(self):
-        trade_date = self.get_trade_date()
+        # trade_date = self.get_trade_date()
+        trade_date = self.search_date
         self.biz_dt = trade_date
         download_excel_url = "http://www.sse.com.cn/market/dealingdata/overview/margin/a/rzrqjygk20220623.xls"
         replace_str = 'rzrqjygk' + str(trade_date).format("'%Y%m%d'").replace('-', '') + '.xls'
+        replace_str = replace_str.split(' ')[0] + '.xls'
         download_excel_url = download_excel_url.replace(download_excel_url.split('/')[-1], replace_str)
         self.url = download_excel_url
         response = self.get_response(self.url, 0, get_headers())
         download_excel(response)
-
         warnings.filterwarnings('ignore')
         self.tmp_df = pd.read_excel(response.content, header=0, sheet_name='汇总信息')
         if not self.tmp_df.empty:
