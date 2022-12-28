@@ -330,7 +330,7 @@ def argv_param_invoke(handler, biz_types, argv):
         if len(argv) < 2 or int(argv[1]) not in biz_types:
             msg = f'执行成功失败：第一个入参[business_type]错误, 当前已支持业务类型[{biz_types}]！'
             logger.error(msg)
-        elif len(argv) > 2:
+        elif 2 < len(argv) < 4:
             handler.collect_data(eval(argv[1]), argv[2])
         elif len(argv) == 2:
             handler.collect_data(eval(argv[1]))
@@ -342,7 +342,7 @@ def argv_param_invoke(handler, biz_types, argv):
             for i in range((end - begin).days + 1):
                 day = begin + datetime.timedelta(days=i)
                 day = str(day)
-                print(f'开始采集{day}的数据')
+                logger.info(f'开始采集{day}的数据')
                 handler.collect_data(eval(argv[1]), day)
         return msg
     except Exception as err:
