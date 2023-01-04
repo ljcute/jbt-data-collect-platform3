@@ -19,10 +19,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.pa
 sys.path.append(BASE_DIR)
 
 from data.ms.basehandler import BaseHandler, random_double, argv_param_invoke
-from utils.remove_file import  random_double
+from utils.remove_file import random_double
 import datetime
 from constants import USER_AGENTS
-
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 excel_file_path = os.path.join(base_dir, 'sz_balance.xlsx')
@@ -60,6 +59,7 @@ class CollectHandler(BaseHandler):
         download_excel(response)
         warnings.filterwarnings('ignore')
         self.tmp_df = pd.read_excel(response.content, header=0)
+        self.tmp_df['业务日期'] = trade_date
         if not self.tmp_df.empty:
             self.total_num = self.tmp_df.index.size
             self.collect_num = self.total_num
@@ -85,6 +85,7 @@ class CollectHandler(BaseHandler):
         download_excel(response)
         warnings.filterwarnings('ignore')
         self.tmp_df = pd.read_excel(response.content, header=0)
+        self.tmp_df['业务日期'] = trade_date
         if not self.tmp_df.empty:
             self.total_num = self.tmp_df.index.size
             self.collect_num = self.total_num
@@ -119,4 +120,5 @@ def download_excel(response, query_date=None):
 
 
 if __name__ == "__main__":
-    argv_param_invoke(CollectHandler(), (0, 1), sys.argv)
+    # argv_param_invoke(CollectHandler(), (0, 1), sys.argv)
+    CollectHandler().collect_data(0)

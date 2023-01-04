@@ -50,6 +50,7 @@ class CollectHandler(BaseHandler):
         download_excel(response)
         warnings.filterwarnings('ignore')
         self.tmp_df = pd.read_excel(response.content, header=0, sheet_name='汇总信息')
+        self.tmp_df['业务日期'] = trade_date
         if not self.tmp_df.empty:
             self.total_num = self.tmp_df.index.size
             self.collect_num = self.total_num
@@ -67,6 +68,7 @@ class CollectHandler(BaseHandler):
         download_excel(response)
         warnings.filterwarnings('ignore')
         self.tmp_df = pd.read_excel(response.content, header=0, sheet_name='明细信息')
+        self.tmp_df['业务日期'] = trade_date
         if not self.tmp_df.empty:
             self.total_num = self.tmp_df.index.size
             self.collect_num = self.total_num
@@ -100,4 +102,5 @@ def download_excel(response, query_date=None):
 
 
 if __name__ == "__main__":
-    argv_param_invoke(CollectHandler(), (0, 1), sys.argv)
+    # argv_param_invoke(CollectHandler(), (0, 1), sys.argv)
+    CollectHandler().collect_data(0)
