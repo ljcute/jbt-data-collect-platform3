@@ -20,6 +20,8 @@ sys.path.append(os.path.join(os.getcwd(), ".."))
 import sh.sh_exchange_mt_underlying_and_guaranty_security as sh245
 import sz.sz_exchange_mt_guaranty_security_collect as sz2
 import sz.sz_exchange_mt_underlying_security_collect as sz3
+import bj.bj_exchange_mt_guaranty_security_collect as bj2
+import bj.bj_exchange_mt_underlying_security_collect as bj3
 import securities.zx_securities_collect as zx23
 import securities.gtja_securities_collect as gtja99
 import securities.ht_securities_collect as ht23
@@ -29,7 +31,7 @@ import securities.zxjt_securities_collect as zxjt99
 import securities.gx_securities_collect as gs245
 import securities.gy_securities_collect as gy245
 import securities.xy_securities_collect as xy23
-import securities.gf_securities_collect as gf245
+# import securities.gf_securities_collect as gf245
 import securities.sw_securities_collect as sw23
 import securities.ax_securities_collect as ax23
 import securities.zjcf_securities_collect as zjcf23
@@ -49,14 +51,19 @@ if __name__ == '__main__':
     # sz3.CollectHandler().collect_data(3, '2022-10-21')
     # sz3.CollectHandler().collect_data(3)
     #
+    bj2.CollectHandler().collect_data(2, '2023-02-13')
+    # bj2.CollectHandler().collect_data(2)
+    bj3.CollectHandler().collect_data(3, '2023-02-13')
+    # bj3.CollectHandler().collect_data(3)
+    #
     # zx23.CollectHandler().collect_data(2, '2022-10-21')
     # zx23.CollectHandler().collect_data(2)
     # zx23.CollectHandler().collect_data(3, '2022-10-21')
     # zx23.CollectHandler().collect_data(3)
 
-    # gtja99.CollectHandler().collect_data(99, '2022-10-19')
-    # gtja99.CollectHandler().collect_data(99, '2022-10-20')
-    # gtja99.CollectHandler().collect_data(99, '2022-10-21')
+    # gtja99.CollectHandler().collect_data(99, '2022-11-02')
+    # gtja99.CollectHandler().collect_data(99, '2022-11-03')
+    # gtja99.CollectHandler().collect_data(99, '2022-11-04')
     # gtja99.CollectHandler().collect_data(99, "")
     #
     # #
@@ -104,7 +111,7 @@ if __name__ == '__main__':
     # sw23.CollectHandler().collect_data(2, '2022-10-21')
     # sw23.CollectHandler().collect_data(2)
     # sw23.CollectHandler().collect_data(3, '2022-10-21')
-    sw23.CollectHandler().collect_data(3)
+    # sw23.CollectHandler().collect_data(3)
 
     # ax23.CollectHandler().collect_data(2, '2022-10-21')
     # ax23.CollectHandler().collect_data(2)
