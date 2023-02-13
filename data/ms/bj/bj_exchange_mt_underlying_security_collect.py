@@ -43,6 +43,12 @@ class CollectHandler(BaseHandler):
         warnings.filterwarnings('ignore')
         df = pd.read_excel(response.content, header=0)
         if not df.empty:
+            # 日期处理
+            dt_str = df.values[-1][0]
+            if '日期' in dt_str:
+                dt = dt_str.replace('日期', '').replace('：', '')
+                df.drop([len(df)-1], inplace=True)
+                df['日期'] = dt
             self.total_num = df.index.size
             self.collect_num = self.total_num
             self.data_text = df.to_csv(index=False)
