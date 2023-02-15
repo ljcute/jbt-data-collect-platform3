@@ -40,3 +40,19 @@ def stamp_to_date(stamp):
     # stamp = 1658246400000
     # print("checkpoint：%s" % time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(1658246400000 / 1000)))
     return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(stamp / 1000))
+
+
+def last_work_day(search_date):
+    import time, datetime  # 时间
+    date = datetime.datetime.combine(search_date, datetime.time())
+    # date = datetime.datetime.today()  # 今天
+    w = date.weekday() + 1
+    # print(w) #周日到周六对应1-7
+    if w == 1:  # 如果是周一，则返回上周五
+        lastworkday = (date + datetime.timedelta(days=-3)).strftime("%Y-%m-%d")
+    elif 1 < w < 7:  # 如果是周二到周五，则返回昨天
+        lastworkday = (date + datetime.timedelta(days=-1)).strftime("%Y-%m-%d")
+    elif w == 7:  # 如果是周日
+        lastworkday = (date + datetime.timedelta(days=-2)).strftime("%Y-%m-%d")
+
+    return lastworkday

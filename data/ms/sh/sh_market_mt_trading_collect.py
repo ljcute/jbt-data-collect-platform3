@@ -102,5 +102,4 @@ def download_excel(response, query_date=None):
 
 
 if __name__ == "__main__":
-    # argv_param_invoke(CollectHandler(), (0, 1), sys.argv)
-    CollectHandler().collect_data(0)
+    argv_param_invoke(CollectHandler(), (0, 1), sys.argv)
