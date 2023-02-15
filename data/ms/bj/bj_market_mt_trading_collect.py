@@ -14,13 +14,14 @@ import warnings
 import pandas as pd
 from configparser import ConfigParser
 
-from utils.deal_date import last_work_day
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 
 from data.ms.basehandler import BaseHandler, argv_param_invoke
 from constants import get_headers
+from utils.deal_date import last_work_day
+
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 excel_file_path = os.path.join(base_dir, 'bj_balance.xls')
