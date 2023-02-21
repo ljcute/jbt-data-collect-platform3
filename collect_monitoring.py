@@ -54,7 +54,7 @@ def get_data():
     conn = pymysql.connect(
         host=host,
         port=port,
-        database=database,
+        database=None,
         user=username,
         passwd=password,
     )
