@@ -26,7 +26,7 @@ password = cf.get('mysql', 'password')
 database = cf.get('mysql', 'schema')
 
 
-def data_monitoring():
+def monitoring():
     currentDateAndTime = int(datetime.now().strftime("%H"))
     _df1 = None
     if currentDateAndTime < 12:
@@ -50,7 +50,7 @@ def data_monitoring():
     rs.sort_values(by=['机构ID', '机构名称', 'type'], inplace=True)
     rs.fillna('-', inplace=True)
     rs.reset_index(inplace=True, drop=True)
-    return rs.to_csv
+    return rs.to_csv()
 
 
 def get_data():
@@ -234,4 +234,4 @@ def get_security_df():
 
 
 if __name__ == '__main__':
-    data_monitoring()
+    monitoring()
