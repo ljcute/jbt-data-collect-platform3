@@ -39,12 +39,14 @@ def data_monitoring():
         _df1 = get_data_(dt)
 
     _df2 = get_normal_df()
-    _df3 = _df1.loc[_df1['业务状态'] == '1'][
-        ['机构ID', '机构代码', '机构名称', '业务状态', '采集日期', 'type', '业务类型', '采集状态', '已上线券商数', '已采集券商数']].copy()
+    _df3 = _df1.loc[_df1['采集状态'] == '已采集'][
+        ['机构ID', '机构代码', '机构名称', '上线状态', '采集日期', 'type', '业务类型', '采集状态', '已上线券商数', '已采集券商数']].copy()
     _df4 = get_security_df()
-    _df4.rename(columns={'broker_id': '机构ID', 'broker_code': '机构代码', 'broker_name': '机构名称', 'valid': '业务状态'},
+    _df4.rename(columns={'broker_id': '机构ID', 'broker_code': '机构代码', 'broker_name': '机构名称', 'valid': '上线状态'},
                 inplace=True)
-    rs = pd.merge(_df2, _df3, how='inner')
+    rs = pd.merge(_df2, _df3, how='left', on=['机构ID', '机构代码', '机构名称', 'type'])
+    rs.sort_values(by=['机构ID', '机构名称', 'type'], inplace=True)
+    rs.fillna('-', inplace=True)
     print(rs.to_csv)
     return rs.to_csv
 
@@ -63,7 +65,7 @@ def get_data():
         a.broker_id AS `机构ID`,
         a.broker_code AS `机构代码`,
         ifnull( b.data_source, a.broker_name ) AS `机构名称`,
-        a.valid AS `业务状态`,
+        a.valid AS `上线状态`,
         IFNULL( b.biz_dt, '-' ) AS `采集日期`,
         b.data_type as type,
         (CASE WHEN b.data_type = 0 THEN '交易总量' WHEN b.data_type = 1 THEN '交易明细' WHEN b.data_type = 2 THEN '担保券' WHEN b.data_type = 3 THEN '标的券' WHEN b.data_type = 4 THEN '融资标的券' WHEN b.data_type = 5 THEN '融券标的券' WHEN b.data_type = '99' THEN '担保券及标的券' END) AS '业务类型',
@@ -122,7 +124,7 @@ def get_data_(dt):
             a.broker_id AS `机构ID`,
             a.broker_code AS `机构代码`,
             ifnull( b.data_source, a.broker_name ) AS `机构名称`,
-            a.valid AS `业务状态`,
+            a.valid AS `上线状态`,
             IFNULL( b.biz_dt, '-' ) AS `采集日期`,
             b.data_type as type,
             (CASE WHEN b.data_type = 0 THEN '交易总量' WHEN b.data_type = 1 THEN '交易明细' WHEN b.data_type = 2 THEN '担保券' WHEN b.data_type = 3 THEN '标的券' WHEN b.data_type = 4 THEN '融资标的券' WHEN b.data_type = 5 THEN '融券标的券' WHEN b.data_type = '99' THEN '担保券及标的券' END) AS '业务类型',
