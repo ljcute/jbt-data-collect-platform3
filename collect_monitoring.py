@@ -41,12 +41,15 @@ def data_monitoring():
     _df2 = get_normal_df()
     _df3 = _df1.loc[_df1['采集状态'] == '已采集'][
         ['机构ID', '机构代码', '机构名称', '上线状态', '采集日期', 'type', '业务类型', '采集状态', '已上线券商数', '已采集券商数']].copy()
+    _df3['已上线券商数'] = _df3['已上线券商数'].astype(str)
+    _df3['已采集券商数'] = _df3['已采集券商数'].astype(str)
     _df4 = get_security_df()
     _df4.rename(columns={'broker_id': '机构ID', 'broker_code': '机构代码', 'broker_name': '机构名称', 'valid': '上线状态'},
                 inplace=True)
     rs = pd.merge(_df2, _df3, how='left', on=['机构ID', '机构代码', '机构名称', 'type'])
     rs.sort_values(by=['机构ID', '机构名称', 'type'], inplace=True)
     rs.fillna('-', inplace=True)
+    rs.reset_index(inplace=True, drop=True)
     return rs.to_csv
 
 
