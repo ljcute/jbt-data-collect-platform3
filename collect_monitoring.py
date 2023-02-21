@@ -47,7 +47,6 @@ def data_monitoring():
     rs = pd.merge(_df2, _df3, how='left', on=['机构ID', '机构代码', '机构名称', 'type'])
     rs.sort_values(by=['机构ID', '机构名称', 'type'], inplace=True)
     rs.fillna('-', inplace=True)
-    print(rs.to_csv)
     return rs.to_csv
 
 
@@ -65,17 +64,17 @@ def get_data():
         a.broker_id AS `机构ID`,
         a.broker_code AS `机构代码`,
         ifnull( b.data_source, a.broker_name ) AS `机构名称`,
-        a.valid AS `上线状态`,
+        (CASE WHEN a.valid = 1 THEN '已上线' ELSE '未上线' END ) AS `上线状态`,
         IFNULL( b.biz_dt, '-' ) AS `采集日期`,
         b.data_type as type,
         (CASE WHEN b.data_type = 0 THEN '交易总量' WHEN b.data_type = 1 THEN '交易明细' WHEN b.data_type = 2 THEN '担保券' WHEN b.data_type = 3 THEN '标的券' WHEN b.data_type = 4 THEN '融资标的券' WHEN b.data_type = 5 THEN '融券标的券' WHEN b.data_type = '99' THEN '担保券及标的券' END) AS '业务类型',
         ( CASE WHEN a.valid = 0 THEN '-' WHEN b.data_source IS NULL AND a.valid = 1 THEN '未采集' WHEN a.valid = 1 and b.data_source is not null and b.data_status = 1 THEN '已采集' ELSE '采集失败' END) AS `采集状态`,
-        ( SELECT COUNT( DISTINCT broker_id ) FROM `dev-db-internet-biz-data`.`t_security_broker` WHERE broker_id > 10000 AND valid = 1 ) AS `已上线券商数`,
+        ( SELECT COUNT( DISTINCT broker_id ) FROM `db-internet-biz-data`.`t_security_broker` WHERE broker_id > 10000 AND valid = 1 ) AS `已上线券商数`,
         (
         SELECT
             COUNT( DISTINCT data_source ) 
         FROM
-            `dev-db-internet-raw-data`.`t_ndc_data_collect_log`
+            `db-internet-raw-data`.`t_ndc_data_collect_log`
         WHERE
             data_source NOT LIKE '%交易所' 
             AND biz_dt =(
@@ -85,7 +84,7 @@ def get_data():
                 t_ndc_data_collect_log 
             )) AS `已采集券商数` 
     FROM
-        `dev-db-internet-biz-data`.`t_security_broker` a
+        `db-internet-biz-data`.`t_security_broker` a
         LEFT JOIN (
         SELECT DISTINCT
             biz_dt,
@@ -93,13 +92,13 @@ def get_data():
             data_type,
             data_status
         FROM
-            `dev-db-internet-raw-data`.`t_ndc_data_collect_log`
+            `db-internet-raw-data`.`t_ndc_data_collect_log`
         WHERE
             biz_dt =(
             SELECT
                 MAX( biz_dt ) 
             FROM
-            `dev-db-internet-raw-data`.`t_ndc_data_collect_log`
+            `db-internet-raw-data`.`t_ndc_data_collect_log`
             where data_status = 1
             )) b ON (
             a.broker_name = b.data_source 
@@ -124,17 +123,17 @@ def get_data_(dt):
             a.broker_id AS `机构ID`,
             a.broker_code AS `机构代码`,
             ifnull( b.data_source, a.broker_name ) AS `机构名称`,
-            a.valid AS `上线状态`,
+        (CASE WHEN a.valid = 1 THEN '已上线' ELSE '未上线' END ) AS `上线状态`,
             IFNULL( b.biz_dt, '-' ) AS `采集日期`,
             b.data_type as type,
             (CASE WHEN b.data_type = 0 THEN '交易总量' WHEN b.data_type = 1 THEN '交易明细' WHEN b.data_type = 2 THEN '担保券' WHEN b.data_type = 3 THEN '标的券' WHEN b.data_type = 4 THEN '融资标的券' WHEN b.data_type = 5 THEN '融券标的券' WHEN b.data_type = '99' THEN '担保券及标的券' END) AS '业务类型',
             ( CASE WHEN a.valid = 0 THEN '-' WHEN b.data_source IS NULL AND a.valid = 1 THEN '未采集' WHEN a.valid = 1 and b.data_source is not null and b.data_status = 1 THEN '已采集' ELSE '采集失败' END) AS `采集状态`,
-            ( SELECT COUNT( DISTINCT broker_id ) FROM `dev-db-internet-biz-data`.`t_security_broker` WHERE broker_id > 10000 AND valid = 1 ) AS `已上线券商数`,
+            ( SELECT COUNT( DISTINCT broker_id ) FROM `db-internet-biz-data`.`t_security_broker` WHERE broker_id > 10000 AND valid = 1 ) AS `已上线券商数`,
             (
             SELECT
                 COUNT( DISTINCT data_source ) 
             FROM
-                `dev-db-internet-raw-data`.`t_ndc_data_collect_log`
+                `db-internet-raw-data`.`t_ndc_data_collect_log`
             WHERE
                 data_source NOT LIKE '%交易所' 
                 AND biz_dt =(
@@ -144,7 +143,7 @@ def get_data_(dt):
                     t_ndc_data_collect_log 
                 )) AS `已采集券商数` 
         FROM
-            `dev-db-internet-biz-data`.`t_security_broker` a
+            `db-internet-biz-data`.`t_security_broker` a
             LEFT JOIN (
             SELECT DISTINCT
                 biz_dt,
@@ -152,13 +151,13 @@ def get_data_(dt):
                 data_type,
                 data_status
             FROM
-                `dev-db-internet-raw-data`.`t_ndc_data_collect_log`
+                `db-internet-raw-data`.`t_ndc_data_collect_log`
             WHERE
                 biz_dt =(
                 SELECT
                     MAX( biz_dt ) 
                 FROM
-                `dev-db-internet-raw-data`.`t_ndc_data_collect_log`
+                `db-internet-raw-data`.`t_ndc_data_collect_log`
                 where data_status = 1 and create_dt > '{dt}'
                 )) b ON (
                 a.broker_name = b.data_source 
