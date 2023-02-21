@@ -40,12 +40,12 @@ def data_monitoring():
 
     _df2 = get_normal_df()
     _df3 = _df1.loc[_df1['采集状态'] == '已采集'][
-        ['机构ID', '机构代码', '机构名称', '上线状态', '采集日期', 'type', '业务类型', '采集状态', '已上线券商数', '已采集券商数']].copy()
-    _df3['已上线券商数'] = _df3['已上线券商数'].astype(str)
-    _df3['已采集券商数'] = _df3['已采集券商数'].astype(str)
-    _df4 = get_security_df()
-    _df4.rename(columns={'broker_id': '机构ID', 'broker_code': '机构代码', 'broker_name': '机构名称', 'valid': '上线状态'},
-                inplace=True)
+        ['机构ID', '机构代码', '机构名称', '上线状态', '采集日期', 'type', '业务类型', '采集状态', '已上线机构数', '已采集机构数']].copy()
+    _df3['已上线机构数'] = _df3['已上线机构数'].astype(str)
+    _df3['已采集机构数'] = _df3['已采集机构数'].astype(str)
+    # _df4 = get_security_df()
+    # _df4.rename(columns={'broker_id': '机构ID', 'broker_code': '机构代码', 'broker_name': '机构名称', 'valid': '上线状态'},
+    #             inplace=True)
     rs = pd.merge(_df2, _df3, how='left', on=['机构ID', '机构代码', '机构名称', 'type'])
     rs.sort_values(by=['机构ID', '机构名称', 'type'], inplace=True)
     rs.fillna('-', inplace=True)
@@ -57,7 +57,7 @@ def get_data():
     conn = pymysql.connect(
         host=host,
         port=port,
-        database=None,
+        database=database,
         user=username,
         passwd=password,
     )
@@ -72,7 +72,7 @@ def get_data():
         b.data_type as type,
         (CASE WHEN b.data_type = 0 THEN '交易总量' WHEN b.data_type = 1 THEN '交易明细' WHEN b.data_type = 2 THEN '担保券' WHEN b.data_type = 3 THEN '标的券' WHEN b.data_type = 4 THEN '融资标的券' WHEN b.data_type = 5 THEN '融券标的券' WHEN b.data_type = '99' THEN '担保券及标的券' END) AS '业务类型',
         ( CASE WHEN a.valid = 0 THEN '-' WHEN b.data_source IS NULL AND a.valid = 1 THEN '未采集' WHEN a.valid = 1 and b.data_source is not null and b.data_status = 1 THEN '已采集' ELSE '采集失败' END) AS `采集状态`,
-        ( SELECT COUNT( DISTINCT broker_id ) FROM `db-internet-biz-data`.`t_security_broker` WHERE broker_id > 10000 AND valid = 1 ) AS `已上线券商数`,
+        ( SELECT COUNT( DISTINCT broker_id ) FROM `db-internet-biz-data`.`t_security_broker` WHERE broker_id > 10000 AND valid = 1 ) AS `已上线机构数`,
         (
         SELECT
             COUNT( DISTINCT data_source ) 
@@ -85,7 +85,7 @@ def get_data():
                 MAX( biz_dt ) 
             FROM
                 t_ndc_data_collect_log 
-            )) AS `已采集券商数` 
+            )) AS `已采集机构数` 
     FROM
         `db-internet-biz-data`.`t_security_broker` a
         LEFT JOIN (
@@ -131,7 +131,7 @@ def get_data_(dt):
             b.data_type as type,
             (CASE WHEN b.data_type = 0 THEN '交易总量' WHEN b.data_type = 1 THEN '交易明细' WHEN b.data_type = 2 THEN '担保券' WHEN b.data_type = 3 THEN '标的券' WHEN b.data_type = 4 THEN '融资标的券' WHEN b.data_type = 5 THEN '融券标的券' WHEN b.data_type = '99' THEN '担保券及标的券' END) AS '业务类型',
             ( CASE WHEN a.valid = 0 THEN '-' WHEN b.data_source IS NULL AND a.valid = 1 THEN '未采集' WHEN a.valid = 1 and b.data_source is not null and b.data_status = 1 THEN '已采集' ELSE '采集失败' END) AS `采集状态`,
-            ( SELECT COUNT( DISTINCT broker_id ) FROM `db-internet-biz-data`.`t_security_broker` WHERE broker_id > 10000 AND valid = 1 ) AS `已上线券商数`,
+            ( SELECT COUNT( DISTINCT broker_id ) FROM `db-internet-biz-data`.`t_security_broker` WHERE broker_id > 10000 AND valid = 1 ) AS `已上线机构数`,
             (
             SELECT
                 COUNT( DISTINCT data_source ) 
@@ -144,7 +144,7 @@ def get_data_(dt):
                     MAX( biz_dt ) 
                 FROM
                     t_ndc_data_collect_log 
-                )) AS `已采集券商数` 
+                )) AS `已采集机构数` 
         FROM
             `db-internet-biz-data`.`t_security_broker` a
             LEFT JOIN (
@@ -228,7 +228,7 @@ def get_security_df():
         passwd=password,
     )
     sql = f'''
-        SELECT * FROM `dev-db-internet-biz-data`.`t_security_broker`
+        SELECT * FROM `db-internet-biz-data`.`t_security_broker`
     '''
     return sqll.read_sql(sql, conn)
 
