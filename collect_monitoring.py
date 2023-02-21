@@ -36,7 +36,7 @@ def monitoring():
         # 按照时间过滤的数据
         dt = datetime.now().strftime("%Y-%m-%d")
         dt = dt + ' ' + '12:00:00'
-        _df1 = get_data_(dt)
+        _df1 = get_data(dt)
 
     _df2 = get_normal_df()
     _df3 = _df1.loc[_df1['采集状态'] == '已采集'][
@@ -53,7 +53,7 @@ def monitoring():
     return rs.to_csv()
 
 
-def get_data():
+def get_data(dt=None):
     conn = pymysql.connect(
         host=host,
         port=port,
@@ -61,65 +61,10 @@ def get_data():
         user=username,
         passwd=password,
     )
-
-    sql = """
-                SELECT
-        a.broker_id AS `机构ID`,
-        a.broker_code AS `机构代码`,
-        ifnull( b.data_source, a.broker_name ) AS `机构名称`,
-        (CASE WHEN a.valid = 1 THEN '已上线' ELSE '未上线' END ) AS `上线状态`,
-        IFNULL( b.biz_dt, '-' ) AS `采集日期`,
-        b.data_type as type,
-        (CASE WHEN b.data_type = 0 THEN '交易总量' WHEN b.data_type = 1 THEN '交易明细' WHEN b.data_type = 2 THEN '担保券' WHEN b.data_type = 3 THEN '标的券' WHEN b.data_type = 4 THEN '融资标的券' WHEN b.data_type = 5 THEN '融券标的券' WHEN b.data_type = '99' THEN '担保券及标的券' END) AS '业务类型',
-        ( CASE WHEN a.valid = 0 THEN '-' WHEN b.data_source IS NULL AND a.valid = 1 THEN '未采集' WHEN a.valid = 1 and b.data_source is not null and b.data_status = 1 THEN '已采集' ELSE '采集失败' END) AS `采集状态`,
-        ( SELECT COUNT( DISTINCT broker_id ) FROM `db-internet-biz-data`.`t_security_broker` WHERE broker_id > 10000 AND valid = 1 ) AS `已上线机构数`,
-        (
-        SELECT
-            COUNT( DISTINCT data_source ) 
-        FROM
-            `db-internet-raw-data`.`t_ndc_data_collect_log`
-        WHERE
-            data_source NOT LIKE '%交易所' 
-            AND biz_dt =(
-            SELECT
-                MAX( biz_dt ) 
-            FROM
-                t_ndc_data_collect_log 
-            )) AS `已采集机构数` 
-    FROM
-        `db-internet-biz-data`.`t_security_broker` a
-        LEFT JOIN (
-        SELECT DISTINCT
-            biz_dt,
-            data_source,
-            data_type,
-            data_status
-        FROM
-            `db-internet-raw-data`.`t_ndc_data_collect_log`
-        WHERE
-            biz_dt =(
-            SELECT
-                MAX( biz_dt ) 
-            FROM
-            `db-internet-raw-data`.`t_ndc_data_collect_log`
-            where data_status = 1
-            )) b ON (
-            a.broker_name = b.data_source 
-        OR a.broker_name = SUBSTR( b.data_source, 3, 3 )) 
-    ORDER BY
-        a.broker_id
-    """
-    return sqll.read_sql(sql, conn)
-
-
-def get_data_(dt):
-    conn = pymysql.connect(
-        host=host,
-        port=port,
-        database=database,
-        user=username,
-        passwd=password,
-    )
+    if dt is not None:
+        dt_str = f" and create_dt > '{dt}'"
+    else:
+        dt_str = ""
 
     sql = f"""
                     SELECT
@@ -161,7 +106,7 @@ def get_data_(dt):
                     MAX( biz_dt ) 
                 FROM
                 `db-internet-raw-data`.`t_ndc_data_collect_log`
-                where data_status = 1 and create_dt > '{dt}'
+                where data_status = 1 {dt_str}
                 )) b ON (
                 a.broker_name = b.data_source 
             OR a.broker_name = SUBSTR( b.data_source, 3, 3 )) 
