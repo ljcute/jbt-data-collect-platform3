@@ -40,7 +40,7 @@ def monitoring():
 
     _df2 = get_normal_df()
     _df3 = _df1.loc[_df1['采集状态'] == '已采集'][
-        ['机构ID', '机构代码', '机构名称', '上线状态', '采集日期', 'type', '业务类型', '采集状态', '已上线机构数', '已采集机构数']].copy()
+        ['机构ID', '机构代码', '机构名称', '上线状态', '数据日期', '采集时间', 'type', '业务类型', '采集状态', '已上线机构数', '已采集机构数']].copy()
     _df3['已上线机构数'] = _df3['已上线机构数'].astype(str)
     _df3['已采集机构数'] = _df3['已采集机构数'].astype(str)
     # _df4 = get_security_df()
@@ -62,7 +62,7 @@ def get_data(dt=None):
         passwd=password,
     )
     if dt is not None:
-        dt_str = f" and create_dt > '{dt}'"
+        dt_str = f" and (create_dt > '{dt}' or SUBSTR(data_source, 3, 3 )='交易所')"
     else:
         dt_str = ""
 
@@ -72,10 +72,11 @@ def get_data(dt=None):
             a.broker_code AS `机构代码`,
             ifnull( b.data_source, a.broker_name ) AS `机构名称`,
         (CASE WHEN a.valid = 1 THEN '已上线' ELSE '未上线' END ) AS `上线状态`,
-            IFNULL( b.biz_dt, '-' ) AS `采集日期`,
+            IFNULL( b.biz_dt, '-' ) AS `数据日期`,
+            IFNULL( b.create_dt, '-' ) AS `采集时间`,
             b.data_type as type,
             (CASE WHEN b.data_type = 0 THEN '交易总量' WHEN b.data_type = 1 THEN '交易明细' WHEN b.data_type = 2 THEN '担保券' WHEN b.data_type = 3 THEN '标的券' WHEN b.data_type = 4 THEN '融资标的券' WHEN b.data_type = 5 THEN '融券标的券' WHEN b.data_type = '99' THEN '担保券及标的券' END) AS '业务类型',
-            ( CASE WHEN a.valid = 0 THEN '-' WHEN b.data_source IS NULL AND a.valid = 1 THEN '未采集' WHEN a.valid = 1 and b.data_source is not null and b.data_status = 1 THEN '已采集' ELSE '采集失败' END) AS `采集状态`,
+            '已采集' AS `采集状态`,
             ( SELECT COUNT( DISTINCT broker_id ) FROM `db-internet-biz-data`.`t_security_broker` WHERE broker_id > 10000 AND valid = 1 ) AS `已上线机构数`,
             (
             SELECT
@@ -93,21 +94,23 @@ def get_data(dt=None):
         FROM
             `db-internet-biz-data`.`t_security_broker` a
             LEFT JOIN (
-            SELECT DISTINCT
-                biz_dt,
+            SELECT 
+                biz_dt, max(create_dt) as create_dt,
                 data_source,
                 data_type,
                 data_status
             FROM
                 `db-internet-raw-data`.`t_ndc_data_collect_log`
             WHERE
-                biz_dt =(
+                data_status = 1
+                {dt_str}
+                AND biz_dt =(
                 SELECT
                     MAX( biz_dt ) 
                 FROM
-                `db-internet-raw-data`.`t_ndc_data_collect_log`
-                where data_status = 1 {dt_str}
-                )) b ON (
+                `db-internet-raw-data`.`t_ndc_data_collect_log`)
+                group by biz_dt, data_source, data_type, data_status
+                ) b ON (
                 a.broker_name = b.data_source 
             OR a.broker_name = SUBSTR( b.data_source, 3, 3 )) 
         ORDER BY
