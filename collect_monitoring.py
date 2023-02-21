@@ -11,6 +11,7 @@ import pandas as pd
 import pymysql
 import pandas.io.sql as sqll
 from configparser import ConfigParser
+from datetime import datetime
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 full_path = os.path.join(base_dir, 'config/config.ini')
@@ -26,9 +27,23 @@ database = cf.get('mysql', 'schema')
 
 
 def data_monitoring():
-    _df1 = get_data()
+    currentDateAndTime = int(datetime.now().strftime("%H"))
+    _df1 = None
+    if currentDateAndTime < 12:
+        # 不按时间过过滤的数据
+        _df1 = get_data()
+    elif currentDateAndTime > 12:
+        # 按照时间过滤的数据
+        dt = datetime.now().strftime("%Y-%m-%d")
+        dt = dt + ' ' + '12:00:00'
+        _df1 = get_data_(dt)
+
     _df2 = get_normal_df()
-    _df3 = _df1.loc[_df1['业务状态'] == '1'][['机构ID', '机构代码', '机构名称', '业务状态', '采集日期', 'type', '业务类型', '采集状态', '已上线券商数', '已采集券商数']].copy()
+    _df3 = _df1.loc[_df1['业务状态'] == '1'][
+        ['机构ID', '机构代码', '机构名称', '业务状态', '采集日期', 'type', '业务类型', '采集状态', '已上线券商数', '已采集券商数']].copy()
+    _df4 = get_security_df()
+    _df4.rename(columns={'broker_id': '机构ID', 'broker_code': '机构代码', 'broker_name': '机构名称', 'valid': '业务状态'},
+                inplace=True)
     rs = pd.merge(_df2, _df3, how='inner')
     print(rs.to_csv)
     return rs.to_csv
@@ -88,8 +103,67 @@ def get_data():
             a.broker_name = b.data_source 
         OR a.broker_name = SUBSTR( b.data_source, 3, 3 )) 
     ORDER BY
-        a.broker_id;
+        a.broker_id
     """
+    return sqll.read_sql(sql, conn)
+
+
+def get_data_(dt):
+    conn = pymysql.connect(
+        host=host,
+        port=port,
+        database=database,
+        user=username,
+        passwd=password,
+    )
+
+    sql = f"""
+                    SELECT
+            a.broker_id AS `机构ID`,
+            a.broker_code AS `机构代码`,
+            ifnull( b.data_source, a.broker_name ) AS `机构名称`,
+            a.valid AS `业务状态`,
+            IFNULL( b.biz_dt, '-' ) AS `采集日期`,
+            b.data_type as type,
+            (CASE WHEN b.data_type = 0 THEN '交易总量' WHEN b.data_type = 1 THEN '交易明细' WHEN b.data_type = 2 THEN '担保券' WHEN b.data_type = 3 THEN '标的券' WHEN b.data_type = 4 THEN '融资标的券' WHEN b.data_type = 5 THEN '融券标的券' WHEN b.data_type = '99' THEN '担保券及标的券' END) AS '业务类型',
+            ( CASE WHEN a.valid = 0 THEN '-' WHEN b.data_source IS NULL AND a.valid = 1 THEN '未采集' WHEN a.valid = 1 and b.data_source is not null and b.data_status = 1 THEN '已采集' ELSE '采集失败' END) AS `采集状态`,
+            ( SELECT COUNT( DISTINCT broker_id ) FROM `dev-db-internet-biz-data`.`t_security_broker` WHERE broker_id > 10000 AND valid = 1 ) AS `已上线券商数`,
+            (
+            SELECT
+                COUNT( DISTINCT data_source ) 
+            FROM
+                `dev-db-internet-raw-data`.`t_ndc_data_collect_log`
+            WHERE
+                data_source NOT LIKE '%交易所' 
+                AND biz_dt =(
+                SELECT
+                    MAX( biz_dt ) 
+                FROM
+                    t_ndc_data_collect_log 
+                )) AS `已采集券商数` 
+        FROM
+            `dev-db-internet-biz-data`.`t_security_broker` a
+            LEFT JOIN (
+            SELECT DISTINCT
+                biz_dt,
+                data_source,
+                data_type,
+                data_status
+            FROM
+                `dev-db-internet-raw-data`.`t_ndc_data_collect_log`
+            WHERE
+                biz_dt =(
+                SELECT
+                    MAX( biz_dt ) 
+                FROM
+                `dev-db-internet-raw-data`.`t_ndc_data_collect_log`
+                where data_status = 1 and create_dt > '{dt}'
+                )) b ON (
+                a.broker_name = b.data_source 
+            OR a.broker_name = SUBSTR( b.data_source, 3, 3 )) 
+        ORDER BY
+            a.broker_id
+        """
     return sqll.read_sql(sql, conn)
 
 
@@ -137,8 +211,22 @@ def get_normal_df():
                  46: '2', 47: '3', 48: '2', 49: '3', 50: '2', 51: '3', 52: '2', 53: '3', 54: '2', 55: '3', 56: '2',
                  57: '3', 58: '2', 59: '3', 60: '2', 61: '3', 62: '2', 63: '3', 64: '2', 65: '4', 66: '5', 67: '2',
                  68: '3'}
-        }
+    }
     return pd.DataFrame(data_dict)
+
+
+def get_security_df():
+    conn = pymysql.connect(
+        host=host,
+        port=port,
+        database=database,
+        user=username,
+        passwd=password,
+    )
+    sql = f'''
+        SELECT * FROM `dev-db-internet-biz-data`.`t_security_broker`
+    '''
+    return sqll.read_sql(sql, conn)
 
 
 if __name__ == '__main__':
