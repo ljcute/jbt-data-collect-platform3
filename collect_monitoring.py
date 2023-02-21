@@ -77,7 +77,7 @@ def get_data(dt=None):
             b.data_type as type,
             (CASE WHEN b.data_type = 0 THEN '交易总量' WHEN b.data_type = 1 THEN '交易明细' WHEN b.data_type = 2 THEN '担保券' WHEN b.data_type = 3 THEN '标的券' WHEN b.data_type = 4 THEN '融资标的券' WHEN b.data_type = 5 THEN '融券标的券' WHEN b.data_type = '99' THEN '担保券及标的券' END) AS '业务类型',
             '已采集' AS `采集状态`,
-            ( SELECT COUNT( DISTINCT broker_id ) FROM `db-internet-biz-data`.`t_security_broker` WHERE broker_id > 10000 AND valid = 1 ) AS `已上线机构数`,
+            ( SELECT COUNT( DISTINCT broker_id ) FROM `db-internet-biz-data`.`t_security_broker` WHERE valid = 1 ) AS `已上线机构数`,
             (
             SELECT
                 COUNT( DISTINCT data_source ) 
