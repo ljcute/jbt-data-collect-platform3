@@ -50,7 +50,7 @@ def monitoring():
     rs.sort_values(by=['机构ID', '机构名称', 'type'], inplace=True)
     rs.fillna('-', inplace=True)
     rs.reset_index(inplace=True, drop=True)
-    return rs.to_csv()
+    return rs
 
 
 def get_data(dt=None):
