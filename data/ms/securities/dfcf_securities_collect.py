@@ -8,11 +8,11 @@ import time
 import pandas as pd
 from selenium.webdriver.common.by import By
 
-from constants import get_headers
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 from data.ms.basehandler import BaseHandler, logger, argv_param_invoke
+from constants import get_headers
 
 
 class CollectHandler(BaseHandler):
