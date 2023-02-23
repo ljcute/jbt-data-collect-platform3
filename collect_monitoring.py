@@ -40,14 +40,20 @@ def monitoring():
 
     _df2 = get_normal_df()
     _df3 = _df1.loc[_df1['采集状态'] == '已采集'][
-        ['机构ID', '机构代码', '机构名称', '上线状态', '数据日期', '采集时间', 'type', '业务类型', '采集状态', '已上线机构数', '已采集机构数']].copy()
+        ['机构ID', '机构代码', '机构名称', '数据日期', '采集时间', 'type', '业务类型', '采集状态', '已上线机构数', '已采集机构数']].copy()
     _df3['已上线机构数'] = _df3['已上线机构数'].astype(str)
     _df3['已采集机构数'] = _df3['已采集机构数'].astype(str)
-    # _df4 = get_security_df()
-    # _df4.rename(columns={'broker_id': '机构ID', 'broker_code': '机构代码', 'broker_name': '机构名称', 'valid': '上线状态'},
-    #             inplace=True)
+    _df4 = get_security_df()
+    _df4.rename(columns={'broker_id': '机构ID', 'broker_code': '机构代码', 'broker_name': '机构名称', 'valid': '上线状态'},
+                inplace=True)
+    _df4['上线状态'] = _df4['上线状态'].apply(lambda x: '已上线' if x == '1' else '未上线')
+    _df2 = pd.merge(_df2, _df4[['机构ID', '上线状态']], how='left', on=['机构ID'])
     rs = pd.merge(_df2, _df3, how='left', on=['机构ID', '机构代码', '机构名称', 'type'])
     rs.sort_values(by=['机构ID', '机构名称', 'type'], inplace=True)
+    rs['采集状态'].fillna('未采集', inplace=True)
+    rs['采集状态'].fillna('未采集', inplace=True)
+    rs['告警状态'] = rs['上线状态'] + rs['采集状态']
+    rs['告警状态'] = rs['告警状态'].apply(lambda x: '告警' if x == '已上线未采集' else '正常')
     rs.fillna('-', inplace=True)
     rs.reset_index(inplace=True, drop=True)
     return rs.to_csv()
@@ -71,7 +77,6 @@ def get_data(dt=None):
             a.broker_id AS `机构ID`,
             a.broker_code AS `机构代码`,
             ifnull( b.data_source, a.broker_name ) AS `机构名称`,
-        (CASE WHEN a.valid = 1 THEN '已上线' ELSE '未上线' END ) AS `上线状态`,
             IFNULL( b.biz_dt, '-' ) AS `数据日期`,
             IFNULL( b.create_dt, '-' ) AS `采集时间`,
             b.data_type as type,
