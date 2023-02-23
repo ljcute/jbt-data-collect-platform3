@@ -56,7 +56,7 @@ def monitoring():
     rs['告警状态'] = rs['告警状态'].apply(lambda x: '告警' if x == '已上线未采集' else '正常')
     rs.fillna('-', inplace=True)
     rs.reset_index(inplace=True, drop=True)
-    return rs.to_csv()
+    return rs
 
 
 def get_data(dt=None):
