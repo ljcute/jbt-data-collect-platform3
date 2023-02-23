@@ -32,10 +32,10 @@ def monitoring():
     if currentDateAndTime < 12:
         # 不按时间过过滤的数据
         _df1 = get_data()
-    elif currentDateAndTime > 16:
+    elif currentDateAndTime > 12:
         # 按照时间过滤的数据
         dt = datetime.now().strftime("%Y-%m-%d")
-        dt = dt + ' ' + '16:00:00'
+        dt = dt + ' ' + '12:00:00'
         _df1 = get_data(dt)
 
     _df2 = get_normal_df()
