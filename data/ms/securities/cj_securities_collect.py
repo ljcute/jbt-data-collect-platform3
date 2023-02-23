@@ -7,11 +7,13 @@ import os
 import sys
 import traceback
 
+import pandas as pd
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 
 from utils.exceptions_utils import ProxyTimeOutEx
-from data.ms.basehandler import BaseHandler, get_proxies
+from data.ms.basehandler import BaseHandler, get_proxies, argv_param_invoke
 from utils.deal_date import ComplexEncoder
 import json
 import time
@@ -30,52 +32,22 @@ class CollectHandler(BaseHandler):
 
     def rzrq_underlying_securities_collect(self):
         params = {"funcNo": "902122", "i_page": 1, "i_perpage": 10000}  # 默认查询当天
-        self.data_list = []
-        self.title_list = ['market', 'stock_code', 'stock_name', 'rz_rate', 'rq_rate', 'rzbd', 'rqbd']
         response = self.get_response(self.url, 0, get_headers(), params)
         text = json.loads(response.text)
-        data_list = text['results']
-        if data_list:
-            self.total_num = int(data_list[0]['total_rows'])
-        for i in data_list:
-            stock_code = i['stock_code']
-            stock_name = i['stock_name']
-            rz_rate = i['fin_ratio']
-            rq_rate = i['bail_ratio']
-            if i['exchange_type'] == "2":
-                market = '深圳'
-            elif i['exchange_type'] == "1":
-                market = '上海'
-            else:
-                market = '北京'
-            rzbd = i['rzbd']
-            rqbd = i['rqbd']
-            self.data_list.append((market, stock_code, stock_name, rz_rate, rq_rate, rzbd, rqbd))
-            self.collect_num = int(len(self.data_list))
+        self.total_num = int(text['results'][0]['total_rows'])
+        self.tmp_df = pd.DataFrame(text['results'])
+        self.collect_num = self.tmp_df.index.size
+        self.data_text = self.tmp_df.to_csv(index=False)
 
     def guaranty_securities_collect(self):
         params = {"funcNo": "902124", "i_page": 1, "i_perpage": 10000}  # 默认查询当天
-        self.data_list = []
-        self.title_list = ['market', 'stock_code', 'stock_name', 'discount_rate']
         response = self.get_response(self.url, 0, get_headers(), params)
         text = json.loads(response.text)
-        data_list = text['results']
-        if data_list:
-            self.total_num = int(data_list[0]['total_rows'])
-        for i in data_list:
-            stock_code = i['stock_code']
-            stock_name = i['stock_name']
-            discount_rate = i['assure_ratio']
-            if i['exchange_type'] == "2":
-                market = '深圳'
-            elif i['exchange_type'] == "1":
-                market = '上海'
-            else:
-                market = '北京'
-            self.data_list.append((market, stock_code, stock_name, discount_rate))
-            self.collect_num = int(len(self.data_list))
+        self.total_num = int(text['results'][0]['total_rows'])
+        self.tmp_df = pd.DataFrame(text['results'])
+        self.collect_num = self.tmp_df.index.size
+        self.data_text = self.tmp_df.to_csv(index=False)
 
 
 if __name__ == '__main__':
-    # CollectHandler().collect_data(eval(sys.argv[1]))
-    pass
+    argv_param_invoke(CollectHandler(), (2, 3), sys.argv)
