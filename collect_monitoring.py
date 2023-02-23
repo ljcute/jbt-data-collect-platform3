@@ -32,10 +32,10 @@ def monitoring():
     if currentDateAndTime < 12:
         # 不按时间过过滤的数据
         _df1 = get_data()
-    elif currentDateAndTime > 12:
+    elif currentDateAndTime > 16:
         # 按照时间过滤的数据
         dt = datetime.now().strftime("%Y-%m-%d")
-        dt = dt + ' ' + '12:00:00'
+        dt = dt + ' ' + '16:00:00'
         _df1 = get_data(dt)
 
     _df2 = get_normal_df()
@@ -44,16 +44,16 @@ def monitoring():
     _df3['已上线机构数'] = _df3['已上线机构数'].astype(str)
     _df3['已采集机构数'] = _df3['已采集机构数'].astype(str)
     _df4 = get_security_df()
-    _df4.rename(columns={'broker_id': '机构ID', 'broker_code': '机构代码', 'broker_name': '机构名称', 'valid': '上线状态'},
+    _df4.rename(columns={'broker_id': '机构ID', 'broker_code': '机构代码', 'broker_name': '机构名称', 'valid': '上线状态', 'order_no': '排名'},
                 inplace=True)
     _df4['上线状态'] = _df4['上线状态'].apply(lambda x: '已上线' if x == '1' else '未上线')
-    _df2 = pd.merge(_df2, _df4[['机构ID', '上线状态']], how='left', on=['机构ID'])
+    _df2 = pd.merge(_df2, _df4[['机构ID', '上线状态', '排名']], how='left', on=['机构ID'])
     rs = pd.merge(_df2, _df3, how='left', on=['机构ID', '机构代码', '机构名称', 'type'])
-    rs.sort_values(by=['机构ID', '机构名称', 'type'], inplace=True)
     rs['采集状态'].fillna('未采集', inplace=True)
     rs['采集状态'].fillna('未采集', inplace=True)
     rs['告警状态'] = rs['上线状态'] + rs['采集状态']
     rs['告警状态'] = rs['告警状态'].apply(lambda x: '告警' if x == '已上线未采集' else '正常')
+    rs.sort_values(by=['告警状态', '上线状态', '采集状态', '排名', '机构ID', '机构代码', '机构名称', 'type'], inplace=True)
     rs.fillna('-', inplace=True)
     rs.reset_index(inplace=True, drop=True)
     return rs
