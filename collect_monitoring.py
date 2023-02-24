@@ -37,7 +37,7 @@ def monitoring():
     elif currentDateAndTime > 12:
         # 按照时间过滤的数据
         dt = datetime.now().strftime("%Y-%m-%d")
-        dt = dt + ' ' + '10:00:00'
+        dt = dt + ' ' + '12:00:00'
         _df1 = get_data(dt)
 
     _df2 = get_normal_df()
