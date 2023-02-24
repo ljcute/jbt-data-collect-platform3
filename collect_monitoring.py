@@ -31,10 +31,10 @@ biz_type_map = {0: "交易所交易总量", 1: "交易所交易明细", 2: "融�
 def monitoring():
     currentDateAndTime = int(datetime.now().strftime("%H"))
     _df1 = None
-    if currentDateAndTime < 10:
+    if currentDateAndTime < 12:
         # 不按时间过过滤的数据
         _df1 = get_data()
-    elif currentDateAndTime > 10:
+    elif currentDateAndTime > 12:
         # 按照时间过滤的数据
         dt = datetime.now().strftime("%Y-%m-%d")
         dt = dt + ' ' + '10:00:00'
