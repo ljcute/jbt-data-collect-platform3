@@ -25,17 +25,19 @@ username = cf.get('mysql', 'username')
 password = cf.get('mysql', 'password')
 database = cf.get('mysql', 'schema')
 
+biz_type_map = {0: "交易所交易总量", 1: "交易所交易明细", 2: "融资融券可充抵保证金证券", 3: "融资融券标的证券"
+        , 4: "融资标的证券", 5: "融券标的证券", 99: "融资融券可充抵保证金证券和融资融券标的证券"}
 
 def monitoring():
     currentDateAndTime = int(datetime.now().strftime("%H"))
     _df1 = None
-    if currentDateAndTime < 12:
+    if currentDateAndTime < 10:
         # 不按时间过过滤的数据
         _df1 = get_data()
-    elif currentDateAndTime > 12:
+    elif currentDateAndTime > 10:
         # 按照时间过滤的数据
         dt = datetime.now().strftime("%Y-%m-%d")
-        dt = dt + ' ' + '12:00:00'
+        dt = dt + ' ' + '10:00:00'
         _df1 = get_data(dt)
 
     _df2 = get_normal_df()
@@ -51,11 +53,16 @@ def monitoring():
     rs = pd.merge(_df2, _df3, how='left', on=['机构ID', '机构代码', '机构名称', 'type'])
     rs['采集状态'].fillna('未采集', inplace=True)
     rs['采集状态'].fillna('未采集', inplace=True)
+    rs['业务类型'] = rs['type'].apply(lambda x: biz_type_map.get(int(x)))
     rs['告警状态'] = rs['上线状态'] + rs['采集状态']
     rs['告警状态'] = rs['告警状态'].apply(lambda x: '告警' if x == '已上线未采集' else '正常')
     rs.sort_values(by=['告警状态', '上线状态', '采集状态', '排名', '机构ID', '机构代码', '机构名称', 'type'], inplace=True)
     rs.fillna('-', inplace=True)
     rs.reset_index(inplace=True, drop=True)
+    rs = rs[['数据日期', '已上线机构数', '已采集机构数', '机构ID', '机构代码', '机构名称', 'type', '业务类型', '上线状态', '排名', '采集状态', '采集时间', '告警状态']]
+    rs['数据日期'] = _df1['数据日期'][0]
+    rs['已上线机构数'] = _df1['已上线机构数'][0]
+    rs['已采集机构数'] = _df1['已采集机构数'][0]
     return rs
 
 
