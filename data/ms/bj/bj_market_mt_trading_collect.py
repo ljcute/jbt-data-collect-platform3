@@ -21,7 +21,7 @@ from selenium.webdriver.common.by import By
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 
-from data.ms.basehandler import BaseHandler, argv_param_invoke
+from data.ms.basehandler import BaseHandler, argv_param_invoke, logger
 from constants import get_headers
 from utils.deal_date import last_work_day
 
@@ -48,6 +48,8 @@ class CollectHandler(BaseHandler):
     def trading_amount_collect(self):
         stamp = datetime.datetime.now().timestamp()
         if isinstance(param_dt, str):
+            logger.info(f'param_dt:{param_dt, type(param_dt)}')
+            logger.info(f'进入查询北交所历史交易数据分支!')
             self.url = f'https://www.bse.cn/rzrqjyyexxController/summaryInfoResult.do?callback=jQuery331_{stamp}&transDate={param_dt}&page=0&_={stamp}'
         else:
             self.url = f'https://www.bse.cn/rzrqjyyexxController/summaryInfoResult.do?callback=jQuery331_{stamp}&transDate=&page=0&_={stamp}'
@@ -84,6 +86,8 @@ class CollectHandler(BaseHandler):
         stamp = datetime.datetime.now().timestamp()
         self.url = f'https://www.bse.cn/rzrqjyyexxController/detailInfoResult.do?callback=jQuery331_{stamp}'
         if isinstance(param_dt, str):
+            logger.info(f'param_dt:{param_dt, type(param_dt)}')
+            logger.info(f'进入查询北交所历史交易数据分支!')
             data = {
                 "transDate": param_dt,
                 "page": page,
@@ -103,18 +107,21 @@ class CollectHandler(BaseHandler):
         s = s[:-1]
         text = eval(s.replace('true', 'True').replace('false', 'False').replace('null', 'None'))
         total_pages = text[0][0]['totalPages']
+        self.total_num = text[0][0]['totalElements']
         for i in range(0, total_pages):
             if isinstance(param_dt, str):
+                logger.info(f'param_dt:{param_dt, type(param_dt)}')
+                logger.info(f'进入查询北交所历史交易数据分支!')
                 data_ = {
                     "transDate": param_dt,
-                    "page": page,
+                    "page": i,
                     "sortfield": None,
                     "sorttype": None
                 }
             else:
                 data_ = {
                     "transDate": None,
-                    "page": page,
+                    "page": i,
                     "sortfield": None,
                     "sorttype": None
                 }
@@ -128,8 +135,7 @@ class CollectHandler(BaseHandler):
 
         self.tmp_df['业务日期'] = text[1]
         if not self.tmp_df.empty:
-            self.total_num = self.tmp_df.index.size
-            self.collect_num = self.total_num
+            self.collect_num = self.tmp_df.index.size
             self.data_text = self.tmp_df.to_csv(index=False)
         else:
             self.data_status = 3
@@ -153,6 +159,6 @@ class CollectHandler(BaseHandler):
 if __name__ == '__main__':
     argv = sys.argv
     param_dt = None
-    if len(argv) > 3:
-        param_dt = argv[3]
+    if len(argv) == 3:
+        param_dt = argv[2]
     argv_param_invoke(CollectHandler(), (0, 1), sys.argv)
