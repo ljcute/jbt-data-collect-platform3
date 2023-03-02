@@ -37,8 +37,8 @@ class CollectHandler(BaseHandler):
     def _securities_collect(self, biz_type):
         data = {
             "funcNo": 501003,
-            "pageNum": 1,
-            "pageSize": 10000,
+            "pageNum": self.page_no,
+            "pageSize": 10,
             "securitiescode":None,
             "securitiestype":None,
             "search_date": self.search_date
@@ -49,8 +49,18 @@ class CollectHandler(BaseHandler):
             data['funcNo'] = 501002
         response = self.get_response(self.url, 0, get_headers(), data)
         text = json.loads(response.text)
+        self.total_page = text['results'][0]['totalPages']
         self.total_num = text['results'][0]['totalRows']
-        self.tmp_df = pd.DataFrame(text['results'][0]['data'])
+        for i in range(1, self.total_page + 1):
+            logger.info(f'第{i}页')
+            data['pageNum'] = i
+            response = self.get_response(self.url, 0, get_headers(), data)
+            temp_text = json.loads(response.text)
+            data_list = temp_text['results'][0]['data']
+            temp_df = pd.DataFrame(data_list)
+            self.tmp_df = pd.concat([self.tmp_df, temp_df])
+
+
         self.collect_num = self.tmp_df.index.size
         self.data_text = self.tmp_df.to_csv(index=False)
 
