@@ -29,13 +29,6 @@ class CollectHandler(BaseHandler):
         self.data_source = '方正证券'
         self.page_size = 10
         self._proxies = self.get_proxies()
-        self.data = {
-            "pageNo": 1,
-            "pageSize": 10000,
-            "stockCode": None,
-            "stockName": None,
-            "tradeDate": self.search_date
-        }
         self.headers = {
             'Accept': '*/*',
             'Accept-Encoding': 'gzip, deflate, br',
@@ -56,13 +49,28 @@ class CollectHandler(BaseHandler):
 
     def rzrq_underlying_securities_collect(self):
         self.url = 'https://www.foundersc.com/infoMargin/getFzRzrqRatioAndSecuritiesNewList.jspx'
+        self.data = {
+            "pageNo": 1,
+            "pageSize": 10000,
+            "stockCode": None,
+            "stockName": None,
+            "tradeDate": str(self.search_date).split(' ')[0]
+        }
         self._securities_collect()
 
     def guaranty_securities_collect(self):
         self.url = 'https://www.foundersc.com/infoMargin/getFzRzrqSecuritiesList.jspx'
+        self.data = {
+            "pageNo": 1,
+            "pageSize": 10000,
+            "stockCode": None,
+            "stockName": None,
+            "tradeDate": str(self.search_date).split(' ')[0]
+        }
         self._securities_collect()
 
     def _securities_collect(self):
+        logger.info(f'data:{self.data}')
         urllib3.disable_warnings()
         response = requests.post(url=self.url, data=self.data, proxies=self._proxies, headers=self.headers, timeout=30,
                                  verify=False)
