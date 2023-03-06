@@ -28,8 +28,8 @@ def auto_trigger_collect():
             collector_name = temp_list[0] + '_' + 'securities_collect.py'
             collector_type = temp_list[1]
             logger.info(f'本次重采{collector_name, collector_type}')
-            logger.info(f'执行shell:（cd /data/jbt-data-collect-platform2; python3 {collector_name} {collector_type}）')
-            os.system(f"cd /data/jbt-data-collect-platform2; python3 {collector_name} {collector_type}")
+            logger.info(f'执行shell:（cd /data/jbt-data-collect-platform2/data/ms/securities; python3 {collector_name} {collector_type}）')
+            os.system(f"cd /data/jbt-data-collect-platform2/data/ms/securities; python3 {collector_name} {collector_type}")
             # f = subprocess.Popen(f"cd /data/programs/python/jbt-data-collect-platform./securities.sh {
             # collector_name} {collector_type}", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         logger.info(f'自动触发告警采集任务重新采集数据结束------')
