@@ -85,7 +85,7 @@ class CollectHandler(BaseHandler):
                     counter = 0
                     while _df1.equals(_df2):
                         logger.info(f'光大证券标的券采集速度过快，休息一下{counter}')
-                        time.sleep(0.01)
+                        time.sleep(0.08)
                         html_content = str(driver.page_source)
                         if biz_type == 'bd':
                             _df2 = pd.read_html(html_content)[0]
