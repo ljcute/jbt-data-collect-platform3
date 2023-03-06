@@ -89,12 +89,12 @@ def get_data(dt=None):
             b.data_type as type,
             (CASE WHEN b.data_type = 0 THEN '交易总量' WHEN b.data_type = 1 THEN '交易明细' WHEN b.data_type = 2 THEN '担保券' WHEN b.data_type = 3 THEN '标的券' WHEN b.data_type = 4 THEN '融资标的券' WHEN b.data_type = 5 THEN '融券标的券' WHEN b.data_type = '99' THEN '担保券及标的券' END) AS '业务类型',
             '已采集' AS `采集状态`,
-            ( SELECT COUNT( DISTINCT broker_id ) FROM `db-internet-biz-data`.`t_security_broker` WHERE valid = 1 ) AS `已上线机构数`,
+            ( SELECT COUNT( DISTINCT broker_id ) FROM `dev-db-internet-biz-data`.`t_security_broker` WHERE valid = 1 ) AS `已上线机构数`,
             (
             SELECT
                 COUNT( DISTINCT data_source ) 
             FROM
-                `db-internet-raw-data`.`t_ndc_data_collect_log`
+                `dev-db-internet-raw-data`.`t_ndc_data_collect_log`
             WHERE
                 data_source NOT LIKE '%交易所' 
                 AND biz_dt =(
@@ -104,7 +104,7 @@ def get_data(dt=None):
                     t_ndc_data_collect_log 
                 )) AS `已采集机构数` 
         FROM
-            `db-internet-biz-data`.`t_security_broker` a
+            `dev-db-internet-biz-data`.`t_security_broker` a
             LEFT JOIN (
             SELECT 
                 biz_dt, max(create_dt) as create_dt,
@@ -112,7 +112,7 @@ def get_data(dt=None):
                 data_type,
                 data_status
             FROM
-                `db-internet-raw-data`.`t_ndc_data_collect_log`
+                `dev-db-internet-raw-data`.`t_ndc_data_collect_log`
             WHERE
                 data_status = 1
                 {dt_str}
@@ -120,7 +120,7 @@ def get_data(dt=None):
                 SELECT
                     MAX( biz_dt ) 
                 FROM
-                `db-internet-raw-data`.`t_ndc_data_collect_log`)
+                `dev-db-internet-raw-data`.`t_ndc_data_collect_log`)
                 group by biz_dt, data_source, data_type, data_status
                 ) b ON (
                 a.broker_name = b.data_source 
@@ -188,7 +188,7 @@ def get_security_df():
         passwd=password,
     )
     sql = f'''
-        SELECT * FROM `db-internet-biz-data`.`t_security_broker`
+        SELECT * FROM `dev-db-internet-biz-data`.`t_security_broker`
     '''
     return sqll.read_sql(sql, conn)
 
