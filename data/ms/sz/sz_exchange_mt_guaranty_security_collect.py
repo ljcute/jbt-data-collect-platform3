@@ -30,7 +30,7 @@ class CollectHandler(BaseHandler):
         }
         params = {
             'SHOWTYPE': 'xlsx',
-            'CATALOGID': '1835_xxpl',
+            'CATALOGID': '1835_xxpl_snapshot',
             'TABKEY': 'tab1',
             # 查历史可以传日期
             'txtDate': self.search_date.strftime('%Y-%m-%d'),
