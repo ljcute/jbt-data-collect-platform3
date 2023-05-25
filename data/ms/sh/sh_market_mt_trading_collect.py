@@ -82,9 +82,7 @@ class CollectHandler(BaseHandler):
             url = 'http://www.sse.com.cn/market/othersdata/margin/detail/'
             driver.get(url)
             time.sleep(3)
-            trade_date = driver.find_elements(By.XPATH,
-                                              '/html/body/div[9]/div/div[2]/div/div[1]/div[1]/div[1]/table/tbody/tr/td[1]')[
-                0].text
+            trade_date = driver.find_elements(By.XPATH,'/html/body/div[8]/div/div[2]/div/div[1]/div[1]/div[1]/table/tbody/tr/td[1]')[0].text
             return trade_date
         except Exception as e:
             raise Exception(e)
