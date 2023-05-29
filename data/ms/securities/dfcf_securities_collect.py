@@ -55,18 +55,22 @@ class CollectHandler(BaseHandler):
         self.data_text = self.tmp_df.to_csv(index=False)
 
     def collect_pages(self, pages, circle):
+        if circle >= 20:
+            return
         if len(pages) <= 3:
-            time.sleep(60)
+            time.sleep(300)
         _pages = []
-        for i in pages:
-            param = {"page": i}
-            logger.info(f'第{circle}轮，第{i}页')
+        for i in range(0, len(pages)):
+            param = {"page": pages[i]}
+            logger.info(f'第{circle}轮，第{pages[i]}页')
             response = self.get_response(self.url, 0, get_headers(), param)
             temp_df = pd.read_html(response.text)[0]
             code_names = set((temp_df['证券代码'].astype(str) + temp_df['证券简称']).to_list())
             if len(code_names.intersection(self.tmp_code_names)) > 0:
-                _pages.append(i)
-                logger.info(f'第{i}页, 采集有误，存在重复数据，第{circle+1}轮补采')
+                if i != 0 and pages[i-1] not in _pages:
+                    _pages.append(pages[i-1])
+                _pages.append(pages[i])
+                logger.info(f'第{pages[i]}页, 采集有误，存在重复数据，第{circle+1}轮补采')
                 continue
             self.tmp_code_names = self.tmp_code_names.union(code_names)
             self.tmp_df = pd.concat([self.tmp_df, temp_df])
