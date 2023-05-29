@@ -55,7 +55,7 @@ class CollectHandler(BaseHandler):
         self.data_text = self.tmp_df.to_csv(index=False)
 
     def collect_pages(self, pages, circle):
-        if circle >= 20:
+        if circle >= 10:
             return
         if len(pages) <= 3:
             time.sleep(300)
