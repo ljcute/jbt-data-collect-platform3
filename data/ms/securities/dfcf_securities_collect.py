@@ -80,5 +80,4 @@ class CollectHandler(BaseHandler):
 
 
 if __name__ == '__main__':
-    CollectHandler().collect_data(2)
-    # argv_param_invoke(CollectHandler(), (2, 3), sys.argv)
+    argv_param_invoke(CollectHandler(), (2, 3), sys.argv)
