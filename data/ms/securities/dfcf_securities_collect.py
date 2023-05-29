@@ -47,12 +47,23 @@ class CollectHandler(BaseHandler):
             raise Exception(f'业务类型(biz_type): {biz_type}错误')
         if len(li_elements) > 0:
             self.total_page = int(li_elements[-1].text[4:7])
+        temp_size = 10
         for i in range(1, self.total_page + 1):
             logger.info(f'第{i}页')
             param = {"page": i}
             response = self.get_response(self.url, 0, get_headers(), param)
             temp_df = pd.read_html(response.text)[0]
             self.tmp_df = pd.concat([self.tmp_df, temp_df])
+            if i == 1:
+                temp_size = temp_df.index.size
+
+            while i < self.total_page and temp_size < temp_df.index.size:
+                logger.info(f'条数不一致，需处理！')
+                logger.info(f'第{i}页')
+                param = {"page": i}
+                response = self.get_response(self.url, 0, get_headers(), param)
+                temp_df = pd.read_html(response.text)[0]
+                self.tmp_df = pd.concat([self.tmp_df, temp_df])
 
         self.collect_num = self.tmp_df.index.size
         self.total_num = self.collect_num
@@ -60,4 +71,5 @@ class CollectHandler(BaseHandler):
 
 
 if __name__ == '__main__':
-    argv_param_invoke(CollectHandler(), (2, 3), sys.argv)
+    # argv_param_invoke(CollectHandler(), (2, 3), sys.argv)
+    CollectHandler().collect_data(2)
