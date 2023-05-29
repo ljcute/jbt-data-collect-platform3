@@ -157,6 +157,10 @@ class BaseHandler(object):
                 self.process_result()
                 break
             except Exception as e:
+                try:
+                    self._driver.quit()
+                except Exception as err1:
+                    pass
                 if max_retry == int(out_cycle) - 1:
                     logger.error(f'{self.data_source}{self.biz_type_map.get(biz_type)}采集任务异常，业务请求次数上限：{out_cycle}，已重试次数{max_retry}，请求url为:{self.url}，具体异常信息为:{traceback.format_exc()}')
                     self.data_list.append(e)
@@ -241,6 +245,10 @@ class BaseHandler(object):
             max_retry += 1
 
     def get_driver(self):
+        try:
+            self._driver.quit()
+        except Exception as err1:
+            pass
         max_retry = 0
         # if int(use_proxy) == 1:
         while max_retry < int(in_cycle):
@@ -258,6 +266,7 @@ class BaseHandler(object):
                 driver = webdriver.Firefox(executable_path=f"{Config().get_content('firefox').get('executable_path')}", options=options)
                 # driver = webdriver.Firefox(options=options)
                 driver.implicitly_wait(10)
+                self._driver = driver
                 return driver
             except Exception as e:
                 logger.warn(f'{self.data_source}{self.biz_type_map.get(self.biz_type)}采集任务异常，请求url为:{self.url}，具体异常信息为:{traceback.format_exc()}')
