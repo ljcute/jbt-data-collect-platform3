@@ -68,16 +68,23 @@ class CollectHandler(BaseHandler):
             code_names = set((temp_df['证券代码'].astype(str) + temp_df['证券简称']).to_list())
             if len(code_names.intersection(self.tmp_code_names)) > 0:
                 if i != 0 and pages[i-1] not in _pages:
+                    logger.info(f'biz_type={biz_type}，第{circle}轮，第{pages[i]}页, 采集有误，存在重复数据，倒退1步=>第{pages[i-1]}页，第{circle+1}轮补采')
                     _pages.append(pages[i-1])
+                    self.tmp_code_names = self.tmp_code_names.difference(pre_code_names)
+                    self.tmp_df = self.tmp_df[~self.tmp_df.isin(pre_temp_df)].dropna()
+                    self.collect_num = self.tmp_df.index.size
                 _pages.append(pages[i])
                 logger.info(f'biz_type={biz_type}，第{circle}轮，第{pages[i]}页, 采集有误，存在重复数据，第{circle+1}轮补采')
                 continue
+            pre_code_names = code_names
+            pre_temp_df = temp_df
             self.tmp_code_names = self.tmp_code_names.union(code_names)
             self.tmp_df = pd.concat([self.tmp_df, temp_df])
             self.collect_num = self.tmp_df.index.size
         if len(_pages) > 0:
-            self.collect_pages(_pages, circle+1)
+            self.collect_pages(biz_type, _pages, circle+1)
 
 
 if __name__ == '__main__':
+    # CollectHandler().collect_data(2)
     argv_param_invoke(CollectHandler(), (2, 3), sys.argv)
