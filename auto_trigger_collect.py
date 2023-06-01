@@ -14,6 +14,7 @@ from collect_monitoring import monitoring
 from data.ms.basehandler import logger
 
 
+# 当海豚调度中的采集任务再数次执行后仍然失败，则触发如下脚本程序自动重采失败采集任务
 def auto_trigger_collect():
     logger.info(f'开始自动触发告警采集任务重新采集数据------')
     try:

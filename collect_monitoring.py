@@ -28,6 +28,8 @@ database = cf.get('mysql', 'schema')
 biz_type_map = {0: "交易所交易总量", 1: "交易所交易明细", 2: "融资融券可充抵保证金证券", 3: "融资融券标的证券"
         , 4: "融资标的证券", 5: "融券标的证券", 99: "融资融券可充抵保证金证券和融资融券标的证券"}
 
+
+# 数据采集平台异常邮件监控告警程序
 def monitoring():
     currentDateAndTime = int(datetime.now().strftime("%H"))
     _df1 = None
@@ -66,6 +68,7 @@ def monitoring():
     return rs
 
 
+# 获取当次采集失败的数据df
 def get_data(dt=None):
     conn = pymysql.connect(
         host=host,
@@ -131,6 +134,7 @@ def get_data(dt=None):
     return sqll.read_sql(sql, conn)
 
 
+# 获取采集券商机构喝业务表的对应关系映射
 def get_normal_df():
     data_dict = {
         '机构ID': {0: 10000, 1: 10000, 2: 10000, 3: 10000, 4: 10000, 5: 10000, 6: 10000, 7: 10000, 8: 10000, 9: 10000,
@@ -178,7 +182,7 @@ def get_normal_df():
     }
     return pd.DataFrame(data_dict)
 
-
+# 获取券商brokerId数据df
 def get_security_df():
     conn = pymysql.connect(
         host=host,
