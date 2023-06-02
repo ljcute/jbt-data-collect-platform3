@@ -1,6 +1,7 @@
 from db_connection import global_pool
 from utils.snowflake_utils import get_id
 import pandas as pd
+import pandas.io.sql as sqll
 
 
 def insert_data_collect(record_num, data_text, date, data_type, data_source, start_dt, end_dt, used_time, data_url,
@@ -59,3 +60,11 @@ def get_data_source_and_data_type():
         raise Exception(es)
     finally:
         conn.close()
+
+
+def get_failed_dfcf_collect(biz_dt, data_type):
+    conn = global_pool.connection()
+    sql =f"""
+        select data_text from t_ndc_data_collect_log where data_source = '东方财富' and data_status = 2 and biz_dt = '{biz_dt}' and data_type = {data_type} ORDER BY create_dt desc limit 1
+    """
+    return sqll.read_sql(sql, conn)
