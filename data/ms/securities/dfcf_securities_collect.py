@@ -7,10 +7,12 @@ import sys
 import time
 import pandas as pd
 from selenium.webdriver.common.by import By
+from io import StringIO
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
+from data.dao.data_deal import get_failed_dfcf_collect
 from data.ms.basehandler import BaseHandler, logger, argv_param_invoke
 from constants import get_headers
 
@@ -57,39 +59,72 @@ class CollectHandler(BaseHandler):
         self.total_num = first_df.index.size * (self.total_page - 1) + last_df.index.size
         self.tmp_code_names = set([])
         pages = range(1, self.total_page + 1)
-        self.collect_pages(biz_type, pages, 1)
+        prefix_ = get_failed_dfcf_collect(self.search_date, 2 if biz_type == 'db' else 3)
+        sec_flag = 0
+        restart_pages = None
+        prefix_df = None
+        if not prefix_.index.size == 0 and not len(prefix_['data_text'][0]) == 0:
+            prefix_df = pd.read_csv(StringIO(prefix_['data_text'][0]), sep=",")
+            restart_pages = range(1, int(prefix_df.index.size / 10) + 1)
+            sec_flag = 1
+        self.collect_pages(biz_type, pages, 1, sec_flag, restart_pages)
+        if sec_flag == 1:
+            dfs = [prefix_df, self.tmp_df]
+            self.tmp_df = pd.concat(dfs, axis=0)
+        if self.tmp_df.index.size != self.total_num:
+            self.tmp_df = self.tmp_df.iloc[:(self.tmp_df.index.size - 30)]
         self.collect_num = self.tmp_df.index.size
         self.data_text = self.tmp_df.to_csv(index=False)
 
-    def collect_pages(self, biz_type, pages, circle):
+    def collect_pages(self, biz_type, pages, circle, sec_flag, restart_pages):
         if circle >= 10:
             return
         if len(pages) <= 3:
             time.sleep(300)
         _pages = []
-        for i in range(0, len(pages)):
-            param = {"page": pages[i]}
-            logger.info(f'biz_type={biz_type}，第{circle}轮，第{pages[i]}页')
-            response = self.get_response(self.url, 0, get_headers(), param)
-            temp_df = pd.read_html(response.text)[0]
-            code_names = set((temp_df['证券代码'].astype(str) + temp_df['证券简称']).to_list())
-            if len(code_names.intersection(self.tmp_code_names)) > 0:
-                if i != 0 and pages[i-1] not in _pages:
-                    logger.info(f'biz_type={biz_type}，第{circle}轮，第{pages[i]}页, 采集有误，存在重复数据，倒退1步=>第{pages[i-1]}页，第{circle+1}轮补采')
-                    _pages.append(pages[i-1])
-                    self.tmp_code_names = self.tmp_code_names.difference(pre_code_names)
-                    self.tmp_df = self.tmp_df[~self.tmp_df.isin(pre_temp_df)].dropna()
-                    self.collect_num = self.tmp_df.index.size
-                _pages.append(pages[i])
-                logger.info(f'biz_type={biz_type}，第{circle}轮，第{pages[i]}页, 采集有误，存在重复数据，第{circle+1}轮补采')
-                continue
-            pre_code_names = code_names
-            pre_temp_df = temp_df
-            self.tmp_code_names = self.tmp_code_names.union(code_names)
-            self.tmp_df = pd.concat([self.tmp_df, temp_df])
-            self.collect_num = self.tmp_df.index.size
-        if len(_pages) > 0:
-            self.collect_pages(biz_type, _pages, circle+1)
+        if sec_flag == 1:
+            logger.info(f'断点重试，从{len(restart_pages)}页开始爬取！')
+            for i in range(len(restart_pages), len(pages)):
+                time.sleep(3)
+                param = {"page": pages[i]}
+                logger.info(f'biz_type={biz_type}，第{circle}轮，第{pages[i]}页')
+                response = self.get_response(self.url, 0, get_headers(), param)
+                temp_df = pd.read_html(response.text)[0]
+                code_names = set((temp_df['证券代码'].astype(str) + temp_df['证券简称']).to_list())
+                if len(code_names.intersection(self.tmp_code_names)) > 0:
+                    print(code_names)
+                    print(code_names.intersection(self.tmp_code_names))
+                    logger.info(f'第{i}采集到重复数据，停止本次采集进行断点重试！')
+                    break
+                self.tmp_code_names = self.tmp_code_names.union(code_names)
+                self.tmp_df = pd.concat([self.tmp_df, temp_df])
+                self.collect_num = self.tmp_df.index.size
+        else:
+            for i in range(0, len(pages)):
+                param = {"page": pages[i]}
+                logger.info(f'biz_type={biz_type}，第{circle}轮，第{pages[i]}页')
+                response = self.get_response(self.url, 0, get_headers(), param)
+                temp_df = pd.read_html(response.text)[0]
+                code_names = set((temp_df['证券代码'].astype(str) + temp_df['证券简称']).to_list())
+                if len(code_names.intersection(self.tmp_code_names)) > 0:
+                    logger.info(f'第{i}采集到重复数据，停止本次采集进行断点重试！')
+                    break
+                    # if i != 0 and pages[i-1] not in _pages:
+                    #     logger.info(f'biz_type={biz_type}，第{circle}轮，第{pages[i]}页, 采集有误，存在重复数据，倒退1步=>第{pages[i-1]}页，第{circle+1}轮补采')
+                    #     _pages.append(pages[i-1])
+                    #     self.tmp_code_names = self.tmp_code_names.difference(pre_code_names)
+                    #     self.tmp_df = self.tmp_df[~self.tmp_df.isin(pre_temp_df)].dropna()
+                    #     self.collect_num = self.tmp_df.index.size
+                    # _pages.append(pages[i])
+                    # logger.info(f'biz_type={biz_type}，第{circle}轮，第{pages[i]}页, 采集有误，存在重复数据，第{circle+1}轮补采')
+                    # continue
+                # pre_code_names = code_names
+                # pre_temp_df = temp_df
+                self.tmp_code_names = self.tmp_code_names.union(code_names)
+                self.tmp_df = pd.concat([self.tmp_df, temp_df])
+                self.collect_num = self.tmp_df.index.size
+        # if len(_pages) > 0:
+        #     self.collect_pages(biz_type, _pages, circle+1)
 
 
 if __name__ == '__main__':
