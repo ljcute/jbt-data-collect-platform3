@@ -65,6 +65,14 @@ def get_data_source_and_data_type():
 def get_failed_dfcf_collect(biz_dt, data_type):
     conn = global_pool.connection()
     sql =f"""
-        select data_text from t_ndc_data_collect_log where data_source = '东方财富' and data_status = 2 and biz_dt = '{biz_dt}' and data_type = {data_type} ORDER BY create_dt desc limit 1
+        select data_text 
+          from t_ndc_data_collect_log 
+         where data_source = '东方财富' 
+           and data_status = 2 
+           and log_id = (select max(log_id) 
+                           from t_ndc_data_collect_log 
+                          where data_source = '东方财富' 
+                            and biz_dt = '{biz_dt}' 
+                            and data_type = {data_type})
     """
     return sqll.read_sql(sql, conn)
