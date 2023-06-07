@@ -51,13 +51,14 @@ class CollectHandler(BaseHandler):
             self.total_page = int(li_elements[-1].text[4:7])
         # 获取第一页数据条数，后面算总数
         response = self.get_response(self.url, 0, get_headers(), {"page": 1})
+        time.sleep(4)
         first_df = pd.read_html(response.text)[0]
         # 获取最后一页数据条数，算出网页总数据
         param = {"page": self.total_page}
         response = self.get_response(self.url, 0, get_headers(), param)
+        time.sleep(4)
         last_df = pd.read_html(response.text)[0]
         self.total_num = first_df.index.size * (self.total_page - 1) + last_df.index.size
-        self.tmp_code_names = set([])
         if self._tmp_df.empty:
             prefix_ = get_failed_dfcf_collect(self.search_date, 2 if biz_type == 'db' else 3)
             if not prefix_.index.size == 0 and not len(prefix_['data_text'][0]) == 0:
@@ -67,6 +68,7 @@ class CollectHandler(BaseHandler):
         else:
             # 回退3页，重采
             self.tmp_df = self._tmp_df.iloc[:(self._tmp_df.index.size - 30)]
+        self.tmp_code_names = set((self.tmp_df['证券代码'].astype(str) + self.tmp_df['证券简称']).to_list())
         # 已采记录数
         self.collect_num = self.tmp_df.index.size
         # 开采页码
@@ -79,19 +81,25 @@ class CollectHandler(BaseHandler):
         _pages = []
         if restart_page > 1:
             logger.info(f'断点重试，从{restart_page}页开始爬取！')
-        for i in range(restart_page, self.total_page):
+        for i in range(restart_page, self.total_page + 1):
             param = {"page": i}
             logger.info(f'biz_type={biz_type}，第{i}页')
             response = self.get_response(self.url, 0, get_headers(), param)
             time.sleep(4)
             temp_df = pd.read_html(response.text)[0]
             code_names = set((temp_df['证券代码'].astype(str) + temp_df['证券简称']).to_list())
-            if len(code_names.intersection(self.tmp_code_names)) > 0:
-                logger.info(f"本次采集内容{(temp_df['证券代码'].astype(str) + temp_df['证券简称']).to_list()}")
-                logger.info(f"本次重复内容{code_names.intersection(self.tmp_code_names)}")
-                logger.info(f'第{i}页采集到重复数据，停止本次采集，下次进行断点重试！')
-                break
-            self.tmp_code_names = self.tmp_code_names.union(code_names)
+            repeat_code_names = code_names.intersection(self.tmp_code_names)
+            # 最后1页特殊处理：存在重复，且不影响总数，则单独处理重复记录
+            if i == self.total_page and self.total_num == (self.collect_num + temp_df.index.size - len(repeat_code_names)):
+                temp_df['code_name'] = temp_df['证券代码'].astype(str) + temp_df['证券简称']
+                temp_df = temp_df.loc[~temp_df['code_name'].isin(repeat_code_names)][self.tmp_df.columns.to_list()]
+            else:
+                if len(repeat_code_names) > 0:
+                    logger.info(f"本次采集内容{(temp_df['证券代码'].astype(str) + temp_df['证券简称']).to_list()}")
+                    logger.info(f"本次重复内容{code_names.intersection(self.tmp_code_names)}")
+                    logger.info(f'第{i}页采集到重复数据，停止本次采集，下次进行断点重试！')
+                    break
+                self.tmp_code_names = self.tmp_code_names.union(code_names)
             self.tmp_df = pd.concat([self.tmp_df, temp_df])
             self.collect_num = self.tmp_df.index.size
 
