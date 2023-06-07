@@ -83,7 +83,7 @@ class CollectHandler(BaseHandler):
             param = {"page": i}
             logger.info(f'biz_type={biz_type}，第{i}页')
             response = self.get_response(self.url, 0, get_headers(), param)
-            time.sleep(5)
+            time.sleep(4)
             temp_df = pd.read_html(response.text)[0]
             code_names = set((temp_df['证券代码'].astype(str) + temp_df['证券简称']).to_list())
             if len(code_names.intersection(self.tmp_code_names)) > 0:
