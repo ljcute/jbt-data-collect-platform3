@@ -68,7 +68,10 @@ class CollectHandler(BaseHandler):
         else:
             # 回退3页，重采
             self.tmp_df = self._tmp_df.iloc[:(self._tmp_df.index.size - 30)]
-        self.tmp_code_names = set((self.tmp_df['证券代码'].astype(str) + self.tmp_df['证券简称']).to_list())
+        if not self.tmp_df.empty:
+            self.tmp_code_names = set((self.tmp_df['证券代码'].astype(str) + self.tmp_df['证券简称']).to_list())
+        else:
+            self.tmp_code_names = set([])
         # 已采记录数
         self.collect_num = self.tmp_df.index.size
         # 开采页码
