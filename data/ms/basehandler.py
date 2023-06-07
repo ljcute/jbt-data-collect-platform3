@@ -345,3 +345,7 @@ def argv_param_invoke(handler, biz_types, argv):
         return msg
     except Exception as err:
         logger.error(f"互联网数据采集异常：{err} =》{str(traceback.format_exc())}")
+        try:
+            handler._driver.quit()
+        except Exception as err1:
+            pass
