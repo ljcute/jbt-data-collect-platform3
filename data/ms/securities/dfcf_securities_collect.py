@@ -58,16 +58,19 @@ class CollectHandler(BaseHandler):
         last_df = pd.read_html(response.text)[0]
         self.total_num = first_df.index.size * (self.total_page - 1) + last_df.index.size
         self.tmp_code_names = set([])
-        prefix_ = get_failed_dfcf_collect(self.search_date, 2 if biz_type == 'db' else 3)
-        restart_page = 1
-        if not prefix_.index.size == 0 and not len(prefix_['data_text'][0]) == 0:
-            prefix_df = pd.read_csv(StringIO(prefix_['data_text'][0]), sep=",")
+        if self.tmp_df.empty:
+            prefix_ = get_failed_dfcf_collect(self.search_date, 2 if biz_type == 'db' else 3)
+            if not prefix_.index.size == 0 and not len(prefix_['data_text'][0]) == 0:
+                prefix_df = pd.read_csv(StringIO(prefix_['data_text'][0]), sep=",")
+                # 回退3页，重采
+                self.tmp_df = prefix_df.iloc[:(prefix_df.index.size - 30)]
+        else:
             # 回退3页，重采
-            self.tmp_df = prefix_df.iloc[:(prefix_df.index.size - 30)]
-            # 回退3页后，已采记录数
-            self.collect_num = self.tmp_df.index.size
-            # 回退3页后，重采页码
-            restart_page = int(self.collect_num / 10) + 1
+            self.tmp_df = self.tmp_df.iloc[:(self.tmp_df.index.size - 30)]
+        # 已采记录数
+        self.collect_num = self.tmp_df.index.size
+        # 开采页码
+        restart_page = int(self.collect_num / 10) + 1
         self.collect_pages(biz_type, restart_page)
         self.collect_num = self.tmp_df.index.size
         self.data_text = self.tmp_df.to_csv(index=False)
@@ -80,7 +83,7 @@ class CollectHandler(BaseHandler):
             param = {"page": i}
             logger.info(f'biz_type={biz_type}，第{i}页')
             response = self.get_response(self.url, 0, get_headers(), param)
-            time.sleep(1)
+            time.sleep(5)
             temp_df = pd.read_html(response.text)[0]
             code_names = set((temp_df['证券代码'].astype(str) + temp_df['证券简称']).to_list())
             if len(code_names.intersection(self.tmp_code_names)) > 0:
