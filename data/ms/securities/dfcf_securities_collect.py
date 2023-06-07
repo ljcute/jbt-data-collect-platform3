@@ -58,7 +58,7 @@ class CollectHandler(BaseHandler):
         last_df = pd.read_html(response.text)[0]
         self.total_num = first_df.index.size * (self.total_page - 1) + last_df.index.size
         self.tmp_code_names = set([])
-        if self.tmp_df.empty:
+        if self._tmp_df.empty:
             prefix_ = get_failed_dfcf_collect(self.search_date, 2 if biz_type == 'db' else 3)
             if not prefix_.index.size == 0 and not len(prefix_['data_text'][0]) == 0:
                 prefix_df = pd.read_csv(StringIO(prefix_['data_text'][0]), sep=",")
@@ -66,7 +66,7 @@ class CollectHandler(BaseHandler):
                 self.tmp_df = prefix_df.iloc[:(prefix_df.index.size - 30)]
         else:
             # 回退3页，重采
-            self.tmp_df = self.tmp_df.iloc[:(self.tmp_df.index.size - 30)]
+            self.tmp_df = self._tmp_df.iloc[:(self._tmp_df.index.size - 30)]
         # 已采记录数
         self.collect_num = self.tmp_df.index.size
         # 开采页码

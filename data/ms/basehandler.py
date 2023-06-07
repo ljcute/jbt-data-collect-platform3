@@ -104,6 +104,7 @@ class BaseHandler(object):
         # 采集到的数据清单
         self.data_list = []
         self.tmp_df = pd.DataFrame()
+        self._tmp_df = self.tmp_df.copy()
         self.data_text = ''
         # 想采集数据的日期即采集维度里面的业务日期，和具体数据的业务日期无关：比如采集今天、历史某天(含节假日)
         self.search_date = date.today()
@@ -166,6 +167,7 @@ class BaseHandler(object):
                     self.data_list.append(e)
                     self.process_result(True)
                 time.sleep(30)
+                self._tmp_df = self.tmp_df.copy()
                 self.tmp_df = pd.DataFrame()
             max_retry += 1
 
