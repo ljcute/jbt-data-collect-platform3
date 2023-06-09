@@ -52,15 +52,15 @@ class CollectHandler(BaseHandler):
             'Referer': 'https://www.bse.cn/disclosure/rzrq_dygpdbwbl.html',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.64 Safari/537.36'
         }
-        self.search_date = last_work_day(self.search_date)
+        self.trade_date = last_work_day(self.search_date)
 
     # def single_stock_collateral_collect(self):
     #     if isinstance(param_dt, str):
     #         logger.info(f'param_dt:{param_dt, type(param_dt)}')
-    #         self.search_date = param_dt
+    #         self.trade_date = datetime.datetime.strptime(param_dt, '%Y%m%d').strftime('%Y-%m-%d')
     #         logger.info(f'进入查询北交所历史交易数据分支!')
-    #     self.url = f"https://www.bse.cn/dygpdbwblController/export.do?zqdm=&transDate={self.search_date.strftime('%Y-%m-%d')}"
-    #     response = self.get_response(self.url, 0, self.headers)
+    #     self.url = f"https://www.bse.cn/dygpdbwblController/export.do?zqdm=&transDate={self.trade_date}"
+    #     response = self.get_response(self.url, 1, self.headers)#实际是GET请求，但是POST才请求成功
     #     warnings.filterwarnings('ignore')
     #     df = pd.read_excel(response.content, header=0)
     #     if not df.empty:
@@ -82,8 +82,9 @@ class CollectHandler(BaseHandler):
         if isinstance(param_dt, str):
             logger.info(f'param_dt:{param_dt, type(param_dt)}')
             logger.info(f'进入查询北交所历史交易数据分支!')
+            self.trade_date = datetime.datetime.strptime(param_dt, '%Y%m%d').strftime('%Y-%m-%d')
             data = {
-                "transDate": param_dt,
+                "transDate": self.trade_date,
                 "page": page,
                 "zqdm": None,
                 "sortfield": None,
@@ -109,7 +110,7 @@ class CollectHandler(BaseHandler):
                 logger.info(f'param_dt:{param_dt, type(param_dt)}')
                 logger.info(f'进入查询北交所历史交易数据分支!')
                 data_ = {
-                    "transDate": param_dt,
+                    "transDate": self.trade_date,
                     "page": i,
                     "sortfield": None,
                     "sorttype": None
