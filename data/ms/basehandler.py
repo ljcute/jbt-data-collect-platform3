@@ -150,6 +150,8 @@ class BaseHandler(object):
                     self.rz_underlying_securities_collect()
                 elif biz_type == 5:
                     self.rq_underlying_securities_collect()
+                elif biz_type == 6:
+                    self.single_stock_collateral_collect()
                 elif biz_type == 99:
                     self.guaranty_and_underlying_securities_collect()
                 logger.info(f'{self.data_source}{self.biz_type_map.get(biz_type)}数据采集任务执行结束，已采集数据(条)：{self.collect_num}')
@@ -193,6 +195,10 @@ class BaseHandler(object):
 
     # 融券标的证券
     def rq_underlying_securities_collect(self):
+        pass
+
+    # 单一股票担保物比例信息
+    def single_stock_collateral_collect(self):
         pass
 
     # 融资融券可充抵保证金证券和融资融券标的证券
