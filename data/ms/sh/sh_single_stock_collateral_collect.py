@@ -4,7 +4,7 @@
 # @Time    : 2023/6/9 11:05
 # @Site    :
 # @Software: PyCharm
-# 上海交易所-单一股票担保物比例信息
+# 上海交易所-单一股票担保物比例信息 http://www.sse.com.cn/services/tradingservice/margin/info/single/
 import sys
 import time
 import datetime
@@ -19,7 +19,6 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.pa
 sys.path.append(BASE_DIR)
 
 from data.ms.basehandler import BaseHandler, argv_param_invoke, logger
-from constants import get_headers
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 excel_file_path = os.path.join(base_dir, 'sh_balance.xls')
@@ -58,6 +57,7 @@ class CollectHandler(BaseHandler):
         }
 
     def single_stock_collateral_collect(self):
+        logger.info(f"开始爬取上海交易所-单一股票担保物比例信息:{datetime.datetime.now()}")
         trade_date = self.get_trade_date()
         self.biz_dt = trade_date
         self.url = 'http://query.sse.com.cn/commonSoaQuery.do'
@@ -129,5 +129,5 @@ if __name__ == "__main__":
     param_dt = None
     if len(argv) == 3:
         param_dt = argv[2]
-    argv_param_invoke(CollectHandler(), (6), sys.argv)
+    argv_param_invoke(CollectHandler(), (6,), sys.argv)
     #CollectHandler().collect_data(6)
