@@ -150,7 +150,7 @@ class BaseHandler(object):
                     self.rz_underlying_securities_collect()
                 elif biz_type == 5:
                     self.rq_underlying_securities_collect()
-                elif biz_type == 6:
+                elif biz_type == 7:
                     self.single_stock_collateral_collect()
                 elif biz_type == 99:
                     self.guaranty_and_underlying_securities_collect()
