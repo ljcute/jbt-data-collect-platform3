@@ -20,16 +20,6 @@ from data.ms.basehandler import BaseHandler, argv_param_invoke, logger
 from constants import get_headers
 from utils.deal_date import last_work_day
 
-base_dir = os.path.dirname(os.path.abspath(__file__))
-excel_file_path = os.path.join(base_dir, 'bj_balance.xls')
-
-base_dir = os.path.dirname(os.path.abspath(__file__))
-full_path = os.path.join(base_dir, '../../../config/config.ini')
-cf = ConfigParser()
-cf.read(full_path, encoding='utf-8')
-paths = cf.get('excel-path', 'save_excel_file_path')
-save_excel_file_path = os.path.join(paths, "北交所融资融券{}.xls".format(datetime.date.today()))
-
 class CollectHandler(BaseHandler):
 
     def __init__(self):
@@ -54,28 +44,28 @@ class CollectHandler(BaseHandler):
         }
         self.trade_date = last_work_day(self.search_date)
 
-    # def single_stock_collateral_collect(self):
-    #     if isinstance(param_dt, str):
-    #         logger.info(f'param_dt:{param_dt, type(param_dt)}')
-    #         self.trade_date = datetime.datetime.strptime(param_dt, '%Y%m%d').strftime('%Y-%m-%d')
-    #         logger.info(f'进入查询北交所历史交易数据分支!')
-    #     self.url = f"https://www.bse.cn/dygpdbwblController/export.do?zqdm=&transDate={self.trade_date}"
-    #     response = self.get_response(self.url, 1, self.headers)#实际是GET请求，但是POST才请求成功
-    #     warnings.filterwarnings('ignore')
-    #     df = pd.read_excel(response.content, header=0)
-    #     if not df.empty:
-    #         # 日期处理
-    #         dt_str = df.values[-1][0]
-    #         if '日期' in dt_str:
-    #             dt = dt_str.replace('日期', '').replace('：', '')
-    #             df.drop([len(df)-1], inplace=True)
-    #             df['日期'] = dt
-    #         self.total_num = df.index.size
-    #         self.collect_num = self.total_num
-    #         self.data_text = df.to_csv(index=False)
-
-
     def single_stock_collateral_collect(self):
+        if isinstance(param_dt, str):
+            logger.info(f'param_dt:{param_dt, type(param_dt)}')
+            self.trade_date = datetime.datetime.strptime(param_dt, '%Y%m%d').strftime('%Y-%m-%d')
+            logger.info(f'进入查询北交所历史交易数据分支!')
+        self.url = f"https://www.bse.cn/dygpdbwblController/export.do?zqdm=&transDate={self.trade_date}"
+        response = self.get_response(self.url, 0, self.headers)#实际是GET请求，但是POST才请求成功
+        warnings.filterwarnings('ignore')
+        df = pd.read_excel(response.content, header=0)
+        if not df.empty:
+            # 日期处理
+            dt_str = df.values[-1][0]
+            if '日期' in dt_str:
+                dt = dt_str.replace('日期', '').replace('：', '')
+                df.drop([len(df)-1], inplace=True)
+                df['日期'] = dt
+            self.total_num = df.index.size
+            self.collect_num = self.total_num
+            self.data_text = df.to_csv(index=False)
+
+
+    '''def single_stock_collateral_collect(self):
         logger.info(f"开始爬取北京交易所-单一股票担保物比例信息:{datetime.datetime.now()}")
         page = 0
         self.url = f'https://www.bse.cn/dygpdbwblController/infoResult.do?callback=jQuery331_1686213639369'
@@ -135,7 +125,7 @@ class CollectHandler(BaseHandler):
             self.collect_num = self.tmp_df.index.size
             self.data_text = self.tmp_df.to_csv(index=False)
         else:
-            self.data_status = 3
+            self.data_status = 3'''
 
 
 if __name__ == '__main__':
@@ -143,5 +133,5 @@ if __name__ == '__main__':
     param_dt = None
     if len(argv) == 3:
         param_dt = argv[2]
-    argv_param_invoke(CollectHandler(), (6,), sys.argv)
-    #CollectHandler().collect_data(6)
+    argv_param_invoke(CollectHandler(), (7,), sys.argv)
+    #CollectHandler().collect_data(7)

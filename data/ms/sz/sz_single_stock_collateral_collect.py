@@ -12,12 +12,12 @@ import os
 import warnings
 import pandas as pd
 import random
-from configparser import ConfigParser
-from selenium.webdriver.common.by import By
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.append(BASE_DIR)
 
+from configparser import ConfigParser
+from selenium.webdriver.common.by import By
 from data.ms.basehandler import BaseHandler, argv_param_invoke, logger, USER_AGENTS, random_double
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -25,10 +25,6 @@ excel_file_path = os.path.join(base_dir, 'sh_balance.xls')
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 full_path = os.path.join(base_dir, '../../../config/config.ini')
-cf = ConfigParser()
-cf.read(full_path, encoding='utf-8')
-paths = cf.get('excel-path', 'save_excel_file_path')
-save_excel_file_path = os.path.join(paths, "上交所融资融券{}.xls".format(datetime.date.today()))
 
 
 class CollectHandler(BaseHandler):
@@ -87,5 +83,5 @@ if __name__ == "__main__":
     param_dt = None
     if len(argv) == 3:
         param_dt = argv[2]
-    argv_param_invoke(CollectHandler(), (6,), sys.argv)
-    #CollectHandler().collect_data(6)
+    argv_param_invoke(CollectHandler(), (7,), sys.argv)
+    #CollectHandler().collect_data(7)
