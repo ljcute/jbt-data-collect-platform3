@@ -4,7 +4,7 @@
 # @Time    : 2023/6/9 11:05
 # @Site    :
 # @Software: PyCharm
-# 深圳交易所-单一股票担保物比例信息 https://www.bse.cn/disclosure/rzrq_dygpdbwbl.html
+# 深圳交易所-单一股票担保物比例信息 http://www.szse.cn/disclosure/margin/ratio/index.html
 import sys
 import time
 import datetime
@@ -52,13 +52,14 @@ class CollectHandler(BaseHandler):
             'random': random_double()
         }
         if isinstance(param_dt, str):
-            logger.info(f'param_dt:{param_dt, type(param_dt)}')
-            logger.info(f'进入查询深交所历史单一股票担保物比例信息!')
+            logger.info(f'进入查询深交所历史单一股票担保物比例信息!param_dt:{param_dt, type(param_dt)}')
+            self.biz_dt = param_dt
             params['txtDate'] = param_dt
         response = self.get_response(self.url, 0, headers, params)
         warnings.filterwarnings('ignore')
         self.tmp_df = pd.read_excel(response.content, header=0)
         if not self.tmp_df.empty:
+            self.tmp_df['日期'] = self.biz_dt
             self.total_num = self.tmp_df.index.size
             self.collect_num = self.total_num
             self.data_text = self.tmp_df.to_csv(index=False)
