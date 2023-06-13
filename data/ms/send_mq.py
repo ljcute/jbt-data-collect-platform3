@@ -32,7 +32,7 @@ topic = cf.get('kafka', 'topic')
 use_proxy = cf.get('proxy-switch', 'use_proxy')
 out_cycle = cf.get('cycles', 'out_cycle')
 in_cycle = cf.get('cycles', 'in_cycle')
-biz_type_map = {0: "交易所交易总量", 1: "交易所交易明细", 2: "融资融券可充抵保证金证券", 3: "融资融券标的证券", 4: "融资标的证券", 5: "融券标的证券", 99: "融资融券可充抵保证金证券和融资融券标的证券"}
+biz_type_map = {0: "交易所交易总量", 1: "交易所交易明细", 2: "融资融券可充抵保证金证券", 3: "融资融券标的证券", 4: "融资标的证券", 5: "融券标的证券", 7: "单一股票担保物比例信息" , 99: "融资融券可充抵保证金证券和融资融券标的证券"}
 
 
 def std_dt(dt):
