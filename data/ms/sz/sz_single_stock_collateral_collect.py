@@ -53,8 +53,8 @@ class CollectHandler(BaseHandler):
         }
         if isinstance(param_dt, str):
             logger.info(f'进入查询深交所历史单一股票担保物比例信息!param_dt:{param_dt, type(param_dt)}')
-            self.biz_dt = param_dt
-            params['txtDate'] = param_dt
+            self.biz_dt = datetime.datetime.strptime(param_dt, '%Y%m%d').strftime('%Y-%m-%d')
+            params['txtDate'] = self.biz_dt
         response = self.get_response(self.url, 0, headers, params)
         warnings.filterwarnings('ignore')
         self.tmp_df = pd.read_excel(response.content, header=0)
