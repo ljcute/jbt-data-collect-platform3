@@ -92,8 +92,7 @@ class CollectHandler(BaseHandler):
                 temp_df = pd.DataFrame(result_list)
                 self.tmp_df = pd.concat([self.tmp_df, temp_df])
         if not self.tmp_df.empty:
-            self.tmp_df['日期'] = self.biz_dt
-            self.tmp_df.rename(columns={'secScale': 'rate', 'secCode': '证券代码', 'secAbbr': '证券简称'}, inplace=True)
+            self.tmp_df.rename(columns={'secScale': 'rate', 'secCode': '证券代码', 'secAbbr': '证券简称', 'tradeDate': '日期'}, inplace=True)
             self.total_num = self.tmp_df.index.size
             self.collect_num = self.total_num
             self.data_text = self.tmp_df.to_csv(index=False)
