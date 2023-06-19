@@ -225,7 +225,7 @@ class BaseHandler(object):
                     response = requests.get(url=url, params=params, proxies=self.proxies, headers=headers,
                                             allow_redirects=allow_redirects, timeout=30)
                 elif request_type == 1:
-                    response = requests.post(url=url, data=data, proxies=self.proxies, headers=headers, timeout=30)
+                    response = requests.post(url=url, data=data, proxies=self.proxies, headers=headers, timeout=30,verify=False)
                 elif request_type == 2:
                     response = session.post(url=url, data=data, headers=headers, proxies=self.proxies, timeout=30)
                 else:
